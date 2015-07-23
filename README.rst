@@ -1,28 +1,20 @@
 Graphite-InfluxDB
 =================
 
-An influxdb (0.8-rc5 or higher) backend for Graphite-web (source or 0.10.x) or graphite-api.
+An `Influxdb <https://github.com/influxdb/influxdb>`_ (0.9.2-rc1 or higher) backend for graphite-api.
+
+.. image:: https://travis-ci.org/pkittenis/graphite-influxdb.svg?branch=master
+  :target: https://travis-ci.org/pkittenis/graphite-influxdb
+.. image:: https://coveralls.io/repos/pkittenis/graphite-influxdb/badge.png?branch=master
+  :target: https://coveralls.io/r/pkittenis/graphite-influxdb?branch=master
 
 
-Install and configure using docker
-----------------------------------
-
-Using docker is an easy way to get graphite-api + graphite-influx up and running.
-See https://github.com/Dieterbe/graphite-api-influxdb-docker which provides
-a container that has all packages installed to make maximum use of these tools.
-
-Otherwise, follow instructions below.
-Graphite-api is the simplest to setup, though graphite-web might perform better.
-You can use the experimental statsd support in graphite-api to have this backend
-submit performance metrics (not supported with graphite-web)
-
-
-Manual installation
+Installation
 -------------------
 
 ::
 
-    pip install graphite_influxdb
+    pip install https://github.com/pkittenis/graphite-influxdb/releases/latest
 
 
 About the retention schemas
@@ -43,73 +35,32 @@ Schema rules use regex and are processed in order, first match wins.  If no rule
 Using with graphite-api
 -----------------------
 
-You need the patched version from https://github.com/Dieterbe/graphite-api/tarball/support-templates2
-This adds support for caching, statsd instrumentation, and graphite-style templates
+Please note that the version of `graphite-api` installed by this module's `requirements.txt` is an unreleased `1.0.2-rc1` that has working multi fetch support which is not in the latest official release of `graphite-api`.
 
-Note that the elasticsearch stuff is optional, see below
+While running with the latest official release does work, performance will suffer as all series need to be fetched one-by-one.
 
-In your graphite-api config file::
+Use `graphite-api` version as installed by our requirements is **highly** recommended - or latest official version >= `1.0.2` once `1.0.2` becomes available.
+
+In your graphite-api config file at `/etc/graphite-api.yaml`::
 
     finders:
       - graphite_influxdb.InfluxdbFinder
     influxdb:
-       host: localhost
-       port: 8086
-       user: graphite
-       pass: graphite
+       # 'db' is only required configuration setting
        db:   graphite
-       ssl: false
+       host: localhost # (optional)
+       port: 8086 # (optional)
+       user: root # (optional)
+       pass: root # (optional)
+       # Log to file (optional)
+       log_file: /var/log/graphite_handler/graphite_handler.log
+       # Log file logging level (optional). Values are standard logging levels - info, debug, warning, critical et al
+       log_level: info
+       # 'schema' value is only required if schemas other than the default are needed
        schema:
+         # 1 second sampling rate for metrics starting with 'high-res-metrics'
          - ['high-res-metrics', 1]
+	 # 10 second sampling rate for metrics starting with 'collectd'
          - ['^collectd', 10]
-    es:
-       enabled: false
-       hosts:
-         - elastichost1:9200
-       index: graphite_metrics2
-       field: _id
-
-
-
-Also enable the cache. memcache doesn't seem to work well because the list of series is too big.
-filesystem seems to work well::
-
-    cache:
-        type: 'filesystem'
-        dir: '/tmp/graphite-api-cache'
-
-
-Using with graphite-web
------------------------
-
-Note that the elasticsearch stuff is optional, see below
-In graphite's ``local_settings.py``::
-
-    STORAGE_FINDERS = (
-        'graphite_influxdb.InfluxdbFinder',
-    )
-    INFLUXDB_HOST = "localhost"
-    INFLUXDB_PORT = 8086
-    INFLUXDB_USER = "graphite"
-    INFLUXDB_PASS = "graphite"
-    INFLUXDB_DB =  "graphite"
-    INFLUXDB_SSL = "false"
-    INFLUXDB_SCHEMA = [
-        ('', 60),
-        ('high-res-metrics', 10)
-    ]
-    ES_ENABLED = "false"
-    ES_HOSTS = ['elastichost1:9200']
-    ES_INDEX = "graphite_metrics2"
-    ES_FIELD = "_id"
-
-
-Using Elasticsearch as an index
--------------------------------
-If you have an index in elasticsearch that contains all your metric id's,
-then you can use that as a metadata source.  Your mileage may vary, but for me ES is noticeably faster.
-(see also https://github.com/influxdb/influxdb/issues/884)
-You just need to install the elasticsearch pip module (comes in the docker image mentioned above) and enable it
-in the config.
-If you're wondering how to populate an ES index, you can use graph-explorer structured metrics plugins or carbon-tagger
-(beware the latter currently only does metrics 2.0 metrics)
+	 # (optional) Default 1 min sampling rate
+	 - ['', 60]

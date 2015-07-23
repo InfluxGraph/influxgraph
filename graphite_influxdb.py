@@ -239,7 +239,12 @@ class InfluxdbFinder(object):
         # It turns what should be a load error into a runtime error
         config = normalize_config(config)
         self.config = config
-        self.client = InfluxDBClient(config['host'], config['port'], config['user'], config['passw'], config['db'], config['ssl'])
+        self.client = InfluxDBClient(config.get('host', 'localhost'),
+                                     config.get('port', '8086'),
+                                     config.get('user', 'root'),
+                                     config.get('passw', 'root'),
+                                     config['db'],
+                                     config.get('ssl', 'false'),)
         self.schemas = [(re.compile(patt), step) for (patt, step) in config['schema']]
         try:
             self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
