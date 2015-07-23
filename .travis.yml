@@ -11,9 +11,11 @@ before_install:
   - sleep 5
 install:
   - pip install -r requirements.txt
-  - pip install coverage
+  - pip install coverage coveralls
 # Explicitly set UTC timezone as InfluxDB returns UTC time stamps
 script: TZ="UTC" nosetests --with-coverage --cover-package=graphite_influxdb
 notifications:
   email:
     on_failure: change
+after_success:
+  - coveralls

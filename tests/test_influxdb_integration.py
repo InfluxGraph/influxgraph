@@ -44,7 +44,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                        'user' : 'root',
                                        'pass' : 'root',
                                        'db' : self.db_name,
-                                       'schema' : [('', 60)],
+                                       # 'schema' : [('', 60)],
                                        'log_level' : 'debug',
                                        },}
         self.finder = graphite_influxdb.InfluxdbFinder(self.config)
