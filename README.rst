@@ -12,11 +12,11 @@ This project is a fork of the excellent `graphite_influxdb <https://github.com/v
 
 It differs from its parent in the following ways:
 
- * Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead.
- * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a Graphite-Api only finder plugin.
- * Simplified configuration - only InfluxDB database name for metric series is required.
- * Strict flake-8 compatibility and code test coverage. This project has *100%* code test coverage.
- * Python 2.6 and 2.7 automated testing - both fully supported.
+* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead.
+* Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a Graphite-Api only finder plugin.
+* Simplified configuration - only InfluxDB database name for metric series is required.
+* Strict flake-8 compatibility and code test coverage. This project has *100%* code test coverage.
+* Python 2.6 and 2.7 automated testing - both fully supported.
 	   
 Installation
 -------------------
@@ -44,13 +44,13 @@ Schema rules use regex and are processed in order, first match wins.  If no rule
 Using with graphite-api
 -----------------------
 
-Please note that the version of `graphite-api` installed by this module's `requirements.txt` is an unreleased `1.0.2-rc1` that has working multi fetch support which is not in the latest official release of `graphite-api`.
+Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is an unreleased ``1.0.2-rc1`` that has working multi fetch support which is not in the latest official release of ``graphite-api``.
 
 While running with the latest official release does work, performance will suffer as all series need to be fetched one-by-one.
 
-Use `graphite-api` version as installed by our requirements is **highly** recommended - or latest official version >= `1.0.2` once `1.0.2` becomes available.
+Use ``graphite-api`` version as installed by our requirements is **highly** recommended - or latest official version >= ``1.0.2`` once ``1.0.2`` becomes available.
 
-In your graphite-api config file at `/etc/graphite-api.yaml`::
+In your graphite-api config file at ``/etc/graphite-api.yaml``::
 
     finders:
       - graphite_influxdb.InfluxdbFinder
