@@ -1,9 +1,29 @@
-import re
-import time
-import logging
-from logging.handlers import TimedRotatingFileHandler
+# Copyright (C) [2014-2015] [Vimeo, LLC]
+# Copyright (C) [2015-] [Panos Kittenis]
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Graphite-Api storage finder for InfluxDB.
+
+Read metric series from an InfluxDB database via a Graphite compatible API."""
+
 import datetime
 from influxdb import InfluxDBClient
+import logging
+from logging.handlers import TimedRotatingFileHandler
+import re
+import sys
+from graphite_api.node import LeafNode, BranchNode
 try:
     import statsd
 except ImportError:
@@ -13,25 +33,17 @@ logger = logging.getLogger('graphite_influxdb')
 # logging.basicConfig()
 # logger.setLevel(logging.DEBUG)
 
-try:
-    from graphite_api.intervals import Interval, IntervalSet
-    from graphite_api.node import LeafNode, BranchNode
-except ImportError:
-    try:
-        from graphite.intervals import Interval, IntervalSet
-        from graphite.node import LeafNode, BranchNode
-    except ImportError:
-        raise SystemExit(1, "You have neither graphite_api nor \
-    the graphite webapp in your pythonpath")
-
 # Tell influxdb to return time as seconds from epoch
-_INFLUXDB_CLIENT_PARAMS = {'epoch' : 's'}
+_INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
 
-class NullStatsd():
+
+class NullStatsd(object):
+    """Fake StatsClient compatible class to use when statsd is not configured"""
+
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, _type, value, traceback):
         pass
 
     def timer(self, key, val=None):
@@ -47,47 +59,29 @@ class NullStatsd():
         pass
 
 
-def normalize_config(config=None):
+def normalize_config(config):
+    cfg = config.get('influxdb', None)
     ret = {}
-    if config is not None:
-        cfg = config.get('influxdb', {})
-        ret['host'] = cfg.get('host', 'localhost')
-        ret['port'] = cfg.get('port', 8086)
-        ret['user'] = cfg.get('user', 'graphite')
-        ret['passw'] = cfg.get('pass', 'graphite')
-        ret['db'] = cfg.get('db', 'graphite')
-        ssl = cfg.get('ssl', False)
-        ret['ssl'] = (ssl == 'true')
-        ret['schema'] = cfg.get('schema', [])
-        ret['log_file'] = cfg.get('log_file', None)
-        ret['log_level'] = cfg.get('log_level', 'info')
-        cfg = config.get('es', {})
-        ret['es_enabled'] = cfg.get('enabled', False)
-        ret['es_index'] = cfg.get('index', 'graphite_metrics2')
-        ret['es_hosts'] = cfg.get('hosts', ['localhost:9200'])
-        ret['es_field'] = cfg.get('field', '_id')
-        if config.get('statsd', None):
-            ret['statsd'] = config.get('statsd')
-    else:
-        from django.conf import settings
-        ret['host'] = getattr(settings, 'INFLUXDB_HOST', 'localhost')
-        ret['port'] = getattr(settings, 'INFLUXDB_PORT', 8086)
-        ret['user'] = getattr(settings, 'INFLUXDB_USER', 'graphite')
-        ret['passw'] = getattr(settings, 'INFLUXDB_PASS', 'graphite')
-        ret['db'] = getattr(settings, 'INFLUXDB_DB', 'graphite')
-        ssl = getattr(settings, 'INFLUXDB_SSL', False)
-        ret['ssl'] = (ssl == 'true')
-        ret['schema'] = getattr(settings, 'INFLUXDB_SCHEMA', [])
-        ret['log_file'] = getattr(
-            settings, 'INFLUXDB_LOG_FILE', None)
-        # Default log level is 'info'
-        ret['log_level'] = getattr(
-            settings, 'INFLUXDB_LOG_LEVEL', 'info')
-        ret['es_enabled'] = getattr(settings, 'ES_ENABLED', False)
-        ret['es_index'] = getattr(settings, 'ES_INDEX', 'graphite_metrics2')
-        ret['es_hosts'] = getattr(settings, 'ES_HOSTS', ['localhost:9200'])
-        ret['es_field'] = getattr(settings, 'ES_FIELD', '_id')
+    if not cfg:
+        logger.critical("Missing required 'influxdb' configuration in graphite-api"
+                        "config - please update your configuration file to include"
+                        "at least 'influxdb: db: <db_name>'")
+        sys.exit(1)
+    ret['host'] = cfg.get('host', 'localhost')
+    ret['port'] = cfg.get('port', 8086)
+    ret['user'] = cfg.get('user', 'graphite')
+    ret['passw'] = cfg.get('pass', 'graphite')
+    ret['db'] = cfg.get('db', 'graphite')
+    ssl = cfg.get('ssl', False)
+    ret['ssl'] = (ssl == 'true')
+    ret['schema'] = cfg.get('schema', [])
+    ret['log_file'] = cfg.get('log_file', None)
+    ret['log_level'] = cfg.get('log_level', 'info')
+    cfg = config.get('es', {})
+    if config.get('statsd', None):
+        ret['statsd'] = config.get('statsd')
     return ret
+
 
 def _make_graphite_api_points_list(influxdb_data):
     """Make graphite-api data points dictionary from Influxdb ResultSet data"""
@@ -97,7 +91,12 @@ def _make_graphite_api_points_list(influxdb_data):
                           d['value']) for d in influxdb_data.get_points(key[0])]
     return _data
 
+
 class InfluxdbReader(object):
+    """Graphite-Api reader class for InfluxDB.
+    
+    Retrieves a single metric series from InfluxDB
+    """
     __slots__ = ('client', 'path', 'step', 'statsd_client')
 
     def __init__(self, client, path, step, statsd_client):
@@ -107,12 +106,18 @@ class InfluxdbReader(object):
         self.statsd_client = statsd_client
 
     def fetch(self, start_time, end_time):
-        # in graphite,
-        # from is exclusive (from=foo returns data at ts=foo+1 and higher)
-        # until is inclusive (until=bar returns data at ts=bar and lower)
-        # influx doesn't support <= and >= yet, hence the add.
+        """Fetch single series' data from > start_time and <= end_time
+        
+        :param start_time: start_time in seconds from epoch
+        :param end_time: end_time in seconds from epoch
+        """
         logger.debug("fetch() path=%s start_time=%s, end_time=%s, step=%d", self.path, start_time, end_time, self.step)
-        with self.statsd_client.timer('service_is_graphite-api.ext_service_is_influxdb.target_type_is_gauge.unit_is_ms.what_is_query_individual_duration'):
+        timer_name = ".".join(['service_is_graphite-api',
+                               'ext_service_is_influxdb',
+                               'target_type_is_gauge',
+                               'unit_is_ms',
+                               'what_is_query_individual_duration'])
+        with self.statsd_client.timer(timer_name):
             _query = 'select mean(value) as value from "%s" where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
                 self.path, start_time, end_time, self.step)
             logger.debug("fetch() path=%s querying influxdb query: '%s'", self.path, _query)
@@ -127,21 +132,24 @@ class InfluxdbReader(object):
         return time_info, (v[1] for v in data[self.path])
     
     def get_intervals(self):
-        now = int(time.time())
-        return IntervalSet([Interval(1, now)])
+        """Noop function - Used by Graphite-Web but not needed for Graphite-Api"""
+        pass
 
 
 class InfluxLeafNode(LeafNode):
+    """Tell Graphite-Api that our leaf node supports multi-fetch"""
     __fetch_multi__ = 'influxdb'
 
 
 class InfluxdbFinder(object):
+    """Graphite-Api finder for InfluxDB.
+    
+    Finds and fetches metric series from InfluxDB.
+    """
     __fetch_multi__ = 'influxdb'
-    __slots__ = ('client', 'es', 'schemas', 'config', 'statsd_client')
+    __slots__ = ('client', 'schemas', 'config', 'statsd_client')
 
     def __init__(self, config=None):
-        # Shouldn't be trying imports in __init__.
-        # It turns what should be a load error into a runtime error
         config = normalize_config(config)
         self.config = config
         self.client = InfluxDBClient(config.get('host', 'localhost'),
@@ -154,21 +162,12 @@ class InfluxdbFinder(object):
         try:
             self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
                                                     config['statsd'].get('port', 8125)) \
-                                                    if 'statsd' in config and config['statsd'].get('host') else NullStatsd()
+                if 'statsd' in config and config['statsd'].get('host') else NullStatsd()
         except NameError:
             logger.warning("Statsd client configuration present but 'statsd' module"
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
         self._setup_logger(config['log_level'], config['log_file'])
-        self.es = None
-        if config['es_enabled']:
-            try:
-                from elasticsearch import Elasticsearch
-            except ImportError:
-                logger.warning("Elasticsearch configuration present but 'elasticsearch'"
-                               "module not installed - ignoring elasticsearch configuration..")
-            else:
-                self.es = Elasticsearch(config['es_hosts'])
 
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
@@ -192,64 +191,56 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
 
-    def assure_series(self, query):
-        key_series = "%s_series" % query.pattern
-        done = False
-        if self.es:
-            # note: ES always treats a regex as anchored at start and end
-            regex = self.compile_regex('{0}.*', query)
-            with self.statsd_client.timer('service_is_graphite-api.ext_service_is_elasticsearch.target_type_is_gauge.unit_is_ms.action_is_get_series'):
-                logger.debug("assure_series() Calling ES with regexp - %s", regex.pattern)
-                try:
-                    res = self.es.search(index=self.config['es_index'],
-                                         size=10000,
-                                         body={
-                                             "query": {
-                                                 "regexp": {
-                                                     self.config['es_field']: regex.pattern,
-                                                 },
-                                             },
-                                             "fields": [self.config['es_field']]
-                                         }
-                                         )
-                    if res['_shards']['successful'] > 0:
-                        # pprint(res['hits']['total'])
-                        series = [hit['fields'][self.config['es_field']] for hit in res['hits']['hits']]
-                        done = True
-                    else:
-                        logger.error("assure_series() Calling ES failed for %s: no successful shards", regex.pattern)
-                except Exception as e:
-                    logger.error("assure_series() Calling ES failed for %s: %s", regex.pattern, e)
-        # if no ES configured, or ES failed, try influxdb.
-        if not done:
-            # regexes in influxdb are not assumed to be anchored, so anchor them explicitly
-            regex = self.compile_regex('^{0}', query)
-            with self.statsd_client.timer('service_is_graphite-api.ext_service_is_influxdb.target_type_is_gauge.unit_is_ms.action_is_get_series'):
-                _query = "show series from /%s/" % regex.pattern
-                logger.debug("assure_series() Calling influxdb with query - %s", _query)
-                ret = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-                # as long as influxdb doesn't have good safeguards against
-                # series with bad data in the metric names, we must filter out
-                # like so:
-                series = [key_name for (key_name,_) in ret.keys()]
+    def get_series(self, query):
+        """Retrieve series names from InfluxDB according to query pattern
+        
+        :param query: Query to run to get series names
+        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
+        """
+        # regexes in influxdb are not assumed to be anchored, so anchor them explicitly
+        regex = self.compile_regex('^{0}', query)
+        timer_name = ".".join(['service_is_graphite-api',
+                               'ext_service_is_influxdb',
+                               'target_type_is_gauge',
+                               'unit_is_ms',
+                               'action_is_get_series'])
+        with self.statsd_client.timer(timer_name):
+            _query = "show series from /%s/" % regex.pattern
+            logger.debug("get_series() Calling influxdb with query - %s", _query)
+            data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
+            # as long as influxdb doesn't have good safeguards against
+            # series with bad data in the metric names, we must filter out
+            # like so:
+            series = [key_name for (key_name, _) in data.keys()]
         return series
 
     def compile_regex(self, fmt, query):
-        """Turn glob (graphite) queries into compiled regex
+        r"""Turn glob (graphite) queries into compiled regex.
+        
         * becomes .*
         . becomes \.
-        fmt argument is so that caller can control anchoring (must contain exactly 1 {0} !"""
+        fmt argument is so that caller can control anchoring (must contain exactly one {0} !
+        """
         return re.compile(fmt.format(
-            query.pattern.replace('.', '\.').replace('*', '[^\.]*').replace(
+            query.pattern.replace('.', r'\.').replace('*', r'[^\.]*').replace(
                 '{', '(').replace(',', '|').replace('}', ')')
         ))
 
     def get_leaves(self, query):
+        """Get LeafNode according to query pattern
+
+        :param query: Query to run to get LeafNodes
+        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
+        """
         key_leaves = "%s_leaves" % query.pattern
-        series = self.assure_series(query)
+        series = self.get_series(query)
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_leaves() key %s", key_leaves)
-        timer = self.statsd_client.timer('service_is_graphite-api.action_is_find_leaves.target_type_is_gauge.unit_is_ms')
+        timer_name = ".".join(['service_is_graphite-api',
+                               'action_is_find_leaves',
+                               'target_type_is_gauge',
+                               'unit_is_ms'])
+        timer = self.statsd_client.timer(timer_name)
         now = datetime.datetime.now()
         timer.start()
         # return every matching series and its
@@ -267,13 +258,22 @@ class InfluxdbFinder(object):
         return leaves
 
     def get_branches(self, query):
+        """Get branches according to query.
+
+        :param query: Query to run to get BranchNodes
+        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
+        """
         seen_branches = set()
         key_branches = "%s_branches" % query.pattern
         # Very inefficient call to list
-        series = self.assure_series(query)
+        series = self.get_series(query)
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_branches() %s", key_branches)
-        timer = self.statsd_client.timer('service_is_graphite-api.action_is_find_branches.target_type_is_gauge.unit_is_ms')
+        timer_name = ".".join(['service_is_graphite-api',
+                               'action_is_find_branches',
+                               'target_type_is_gauge',
+                               'unit_is_ms'])
+        timer = self.statsd_client.timer(timer_name)
         start_time = datetime.datetime.now()
         timer.start()
         branches = []
@@ -294,17 +294,34 @@ class InfluxdbFinder(object):
         return branches
 
     def find_nodes(self, query):
+        """Find matching nodes according to query.
+
+        :param query: Query to run to find either BranchNode(s) or LeafNode(s)
+        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
+        """
         logger.debug("find_nodes() query %s", query)
-        # TODO: once we can query influx better for retention periods, honor the start/end time in the FindQuery object
-        with self.statsd_client.timer('service_is_graphite-api.action_is_yield_nodes.target_type_is_gauge.unit_is_ms.what_is_query_duration'):
+        # TODO(retention_periods): once we can query influx better for retention periods,
+        # honour the start/end time in the FindQuery object
+        timer_name = ".".join(['service_is_graphite-api',
+                               'action_is_yield_nodes',
+                               'target_type_is_gauge',
+                               'unit_is_ms.what_is_query_duration'])
+        with self.statsd_client.timer(timer_name):
             for (name, res) in self.get_leaves(query):
                 yield InfluxLeafNode(name, InfluxdbReader(
                     self.client, name, res, self.statsd_client))
             for name in self.get_branches(query):
-                logger.debug("Yielding branch %s" % (name,))
+                logger.debug("Yielding branch %s", name,)
                 yield BranchNode(name)
 
     def fetch_multi(self, nodes, start_time, end_time):
+        """Fetch datapoints for all series between start and end times
+
+        :param nodes: List of nodes to retrieve data for
+        :type nodes: list(:mod:`graphite_influxdb.InfluxdbLeafNode`)
+        :param start_time: Start time of query
+        :param end_time: End time of query
+        """
         series = ', '.join(['"%s"' % node.path for node in nodes])
         # use the step of the node that is the most coarse
         # not sure if there's a better way? can we combine series
@@ -315,19 +332,27 @@ class InfluxdbFinder(object):
                 series, start_time, end_time, step)
         logger.debug('fetch_multi() query: %s', query)
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, step %s',
-                     datetime.datetime.fromtimestamp(float(start_time)), datetime.datetime.fromtimestamp(float(end_time)), step)
-
-        with self.statsd_client.timer('service_is_graphite-api.ext_service_is_influxdb.target_type_is_gauge.unit_is_ms.action_is_select_datapoints'):
+                     datetime.datetime.fromtimestamp(float(start_time)),
+                     datetime.datetime.fromtimestamp(float(end_time)), step)
+        timer_name = ".".join(['service_is_graphite-api',
+                               'ext_service_is_influxdb',
+                               'target_type_is_gauge',
+                               'unit_is_ms',
+                               'action_is_select_datapoints'])
+        with self.statsd_client.timer(timer_name):
             logger.debug("Calling influxdb multi fetch with query - %s", query)
             data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
         data = _make_graphite_api_points_list(data)
         # some series we requested might not be in the resultset.
         # this is because influx doesn't include series that had no values
-        # this is a behavior that some people actually appreciate when graphing, but graphite doesn't do this (yet),
+        # this is a behavior that some people actually appreciate when graphing,
+        # but graphite doesn't do this (yet),
         # and we want to look the same, so we must add those back in.
-        # a better reason though, is because for advanced alerting cases like bosun, you want all entries even if they have no data, so you can properly
-        # compare, join, or do logic with the targets returned for requests for the same data but from different time ranges, you want them to all
+        # a better reason though, is because for advanced alerting cases like bosun,
+        # you want all entries even if they have no data, so you can properly
+        # compare, join, or do logic with the targets returned for requests for the
+        # same data but from different time ranges, you want them to all
         # include the same keys.
         query_keys = set([node.path for node in nodes])
         for key in query_keys:
