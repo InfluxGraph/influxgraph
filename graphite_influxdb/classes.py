@@ -25,6 +25,7 @@ from logging.handlers import TimedRotatingFileHandler
 import re
 import sys
 from graphite_api.node import LeafNode, BranchNode
+from .utils import NullStatsd, normalize_config, _make_graphite_api_points_list
 try:
     import statsd
 except ImportError:
@@ -36,62 +37,6 @@ logger = logging.getLogger('graphite_influxdb')
 
 # Tell influxdb to return time as seconds from epoch
 _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
-
-
-class NullStatsd(object):
-    """Fake StatsClient compatible class to use when statsd is not configured"""
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, _type, value, traceback):
-        pass
-
-    def timer(self, key, val=None):
-        return self
-
-    def timing(self, key, val):
-        pass
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-
-def normalize_config(config):
-    cfg = config.get('influxdb', None)
-    ret = {}
-    if not cfg:
-        logger.critical("Missing required 'influxdb' configuration in graphite-api"
-                        "config - please update your configuration file to include"
-                        "at least 'influxdb: db: <db_name>'")
-        sys.exit(1)
-    ret['host'] = cfg.get('host', 'localhost')
-    ret['port'] = cfg.get('port', 8086)
-    ret['user'] = cfg.get('user', 'graphite')
-    ret['passw'] = cfg.get('pass', 'graphite')
-    ret['db'] = cfg.get('db', 'graphite')
-    ssl = cfg.get('ssl', False)
-    ret['ssl'] = (ssl == 'true')
-    ret['schema'] = cfg.get('schema', [])
-    ret['log_file'] = cfg.get('log_file', None)
-    ret['log_level'] = cfg.get('log_level', 'info')
-    cfg = config.get('es', {})
-    if config.get('statsd', None):
-        ret['statsd'] = config.get('statsd')
-    return ret
-
-
-def _make_graphite_api_points_list(influxdb_data):
-    """Make graphite-api data points dictionary from Influxdb ResultSet data"""
-    _data = {}
-    for key in influxdb_data.keys():
-        _data[key[0]] = [(datetime.datetime.fromtimestamp(float(d['time'])),
-                          d['value']) for d in influxdb_data.get_points(key[0])]
-    return _data
-
 
 class InfluxdbReader(object):
     """Graphite-Api reader class for InfluxDB.
