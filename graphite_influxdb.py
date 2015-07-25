@@ -15,7 +15,8 @@
 
 """Graphite-Api storage finder for InfluxDB.
 
-Read metric series from an InfluxDB database via a Graphite compatible API."""
+Read metric series from an InfluxDB database via a Graphite compatible API.
+"""
 
 import datetime
 from influxdb import InfluxDBClient
