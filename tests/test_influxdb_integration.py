@@ -1,3 +1,4 @@
+import os
 import unittest
 from influxdb import InfluxDBClient
 import influxdb.exceptions
@@ -8,6 +9,8 @@ class Query(object):
 
     def __init__(self, pattern):
         self.pattern = pattern
+
+os.environ['TZ'] = 'UTC'
 
 class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
