@@ -5,9 +5,14 @@ def calculate_interval(start_time, end_time):
     """Calculates wanted data series interval according to start and end times
 
     Returns interval in seconds
-    """
+    :param start_time: Start time in seconds from epoch
+    :param end_time: End time in seconds from epoch"""
     time_delta = end_time - start_time
     deltas = {
+        # # 1 hour -> 1s
+        # 3600 : 1,
+        # # 1 day -> 30s
+        # 86400 : 30,
         # 3 days -> 1min
         259200 : 60,
         # 7 days -> 5min
@@ -26,9 +31,7 @@ def calculate_interval(start_time, end_time):
         126144000 : 43200,
         }
     for delta in sorted(deltas.keys()):
-        total_seconds = (time_delta.microseconds + (
-            time_delta.seconds + time_delta.days * 24 * 3600) * 10**6) / 10**6
-        if total_seconds <= delta:
+        if time_delta <= delta:
             return deltas[delta]
     # 1 day default, or if time range > 4 year
     return 86400

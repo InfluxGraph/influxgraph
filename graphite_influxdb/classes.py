@@ -25,7 +25,7 @@ from logging.handlers import TimedRotatingFileHandler
 import re
 import sys
 from graphite_api.node import LeafNode, BranchNode
-from .utils import NullStatsd, normalize_config, _make_graphite_api_points_list
+from .utils import NullStatsd, normalize_config, _make_graphite_api_points_list, calculate_interval
 try:
     import statsd
 except ImportError:
@@ -43,12 +43,11 @@ class InfluxdbReader(object):
     
     Retrieves a single metric series from InfluxDB
     """
-    __slots__ = ('client', 'path', 'step', 'statsd_client')
+    __slots__ = ('client', 'path', 'statsd_client')
 
-    def __init__(self, client, path, step, statsd_client):
+    def __init__(self, client, path, statsd_client):
         self.client = client
         self.path = path
-        self.step = step
         self.statsd_client = statsd_client
 
     def fetch(self, start_time, end_time):
@@ -57,7 +56,9 @@ class InfluxdbReader(object):
         :param start_time: start_time in seconds from epoch
         :param end_time: end_time in seconds from epoch
         """
-        logger.debug("fetch() path=%s start_time=%s, end_time=%s, step=%d", self.path, start_time, end_time, self.step)
+        interval = calculate_interval(start_time, end_time)
+        logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d",
+                     self.path, start_time, end_time, interval)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -65,7 +66,7 @@ class InfluxdbReader(object):
                                'what_is_query_individual_duration'])
         with self.statsd_client.timer(timer_name):
             _query = 'select mean(value) as value from "%s" where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-                self.path, start_time, end_time, self.step)
+                self.path, start_time, end_time, interval,)
             logger.debug("fetch() path=%s querying influxdb query: '%s'", self.path, _query)
             data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
@@ -74,7 +75,7 @@ class InfluxdbReader(object):
         except Exception:
             logger.debug("fetch() path=%s COULDN'T READ POINTS. SETTING TO EMPTY LIST", self.path)
             data = []
-        time_info = start_time, end_time, self.step
+        time_info = start_time, end_time, interval
         return time_info, [v[1] for v in data[self.path]]
     
     def get_intervals(self):
@@ -110,7 +111,7 @@ class InfluxdbFinder(object):
                                                     config['statsd'].get('port', 8125)) \
                 if 'statsd' in config and config['statsd'].get('host') else NullStatsd()
         except NameError:
-            logger.warning("Statsd client configuration present but 'statsd' module"
+            logger.warning("Statsd client configuration present but 'statsd' module "
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
         self._setup_logger(config['log_level'], config['log_file'])
@@ -143,7 +144,8 @@ class InfluxdbFinder(object):
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        # regexes in influxdb are not assumed to be anchored, so anchor them explicitly
+        # regexes in influxdb are not assumed to be anchored, so anchor them
+        # explicitly
         regex = self.compile_regex('^{0}', query)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
@@ -151,13 +153,10 @@ class InfluxdbFinder(object):
                                'unit_is_ms',
                                'action_is_get_series'])
         with self.statsd_client.timer(timer_name):
-            _query = "show series from /%s/" % regex.pattern
+            _query = "show series from /%s/" % (regex.pattern,)
             logger.debug("get_series() Calling influxdb with query - %s", _query)
             data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-            # as long as influxdb doesn't have good safeguards against
-            # series with bad data in the metric names, we must filter out
-            # like so:
-            series = [key_name for (key_name, _) in data.keys()]
+            series = (key_name for (key_name, _) in data.keys())
         return series
 
     def compile_regex(self, fmt, query):
@@ -165,7 +164,8 @@ class InfluxdbFinder(object):
         
         * becomes .*
         . becomes \.
-        fmt argument is so that caller can control anchoring (must contain exactly one {0} !
+        fmt argument is so that caller can control
+        anchoring (must contain exactly one {0} !
         """
         return re.compile(fmt.format(
             query.pattern.replace('.', r'\.').replace('*', r'[^\.]*').replace(
@@ -178,7 +178,7 @@ class InfluxdbFinder(object):
         :param query: Query to run to get LeafNodes
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        key_leaves = "%s_leaves" % query.pattern
+        key_leaves = "%s_leaves" % (query.pattern,)
         series = self.get_series(query)
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_leaves() key %s", key_leaves)
@@ -189,11 +189,7 @@ class InfluxdbFinder(object):
         timer = self.statsd_client.timer(timer_name)
         now = datetime.datetime.now()
         timer.start()
-        # return every matching series and its
-        # resolution (based on first pattern match in schema, fallback to 60s)
-        leaves = [(name, next((res for (patt, res) in self.schemas if patt.match(name)), 60))
-                  for name in series if regex.match(name)
-                  ]
+        leaves = (name for name in series if regex.match(name))
         timer.stop()
         end = datetime.datetime.now()
         dt = end - now
@@ -253,9 +249,9 @@ class InfluxdbFinder(object):
                                'target_type_is_gauge',
                                'unit_is_ms.what_is_query_duration'])
         with self.statsd_client.timer(timer_name):
-            for (name, res) in self.get_leaves(query):
+            for name in self.get_leaves(query):
                 yield InfluxLeafNode(name, InfluxdbReader(
-                    self.client, name, res, self.statsd_client))
+                    self.client, name, self.statsd_client))
             for name in self.get_branches(query):
                 logger.debug("Yielding branch %s", name,)
                 yield BranchNode(name)
@@ -269,17 +265,13 @@ class InfluxdbFinder(object):
         :param end_time: End time of query
         """
         series = ', '.join(['"%s"' % node.path for node in nodes])
-        # use the step of the node that is the most coarse
-        # not sure if there's a better way? can we combine series
-        # with different steps (and use the optimal step for each?)
-        # probably not
-        step = max([node.reader.step for node in nodes])
+        interval = calculate_interval(start_time, end_time)
         query = 'select mean(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-                series, start_time, end_time, step)
+                series, start_time, end_time, interval,)
         logger.debug('fetch_multi() query: %s', query)
-        logger.debug('fetch_multi() - start_time: %s - end_time: %s, step %s',
+        logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
-                     datetime.datetime.fromtimestamp(float(end_time)), step)
+                     datetime.datetime.fromtimestamp(float(end_time)), interval)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -303,7 +295,7 @@ class InfluxdbFinder(object):
         query_keys = set([node.path for node in nodes])
         for key in query_keys:
             data.setdefault(key, [])
-        time_info = start_time, end_time, step
+        time_info = start_time, end_time, interval
         for key in data:
             data[key] = [v[1] for v in data[key]]
         return time_info, data
