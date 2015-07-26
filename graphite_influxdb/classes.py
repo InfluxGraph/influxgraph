@@ -25,7 +25,8 @@ from logging.handlers import TimedRotatingFileHandler
 import re
 import sys
 from graphite_api.node import LeafNode, BranchNode
-from .utils import NullStatsd, normalize_config, _make_graphite_api_points_list, calculate_interval
+from .utils import NullStatsd, normalize_config, \
+     calculate_interval, read_influxdb_values
 try:
     import statsd
 except ImportError:
@@ -70,13 +71,9 @@ class InfluxdbReader(object):
             logger.debug("fetch() path=%s querying influxdb query: '%s'", self.path, _query)
             data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
-        try:
-            data = _make_graphite_api_points_list(data)
-        except Exception:
-            logger.debug("fetch() path=%s COULDN'T READ POINTS. SETTING TO EMPTY LIST", self.path)
-            data = []
+        data = read_influxdb_values(data)
         time_info = start_time, end_time, interval
-        return time_info, [v[1] for v in data[self.path]]
+        return time_info, [v for v in data[self.path]] if self.path in data else []
     
     def get_intervals(self):
         """Noop function - Used by Graphite-Web but not needed for Graphite-Api"""
@@ -281,7 +278,7 @@ class InfluxdbFinder(object):
             logger.debug("Calling influxdb multi fetch with query - %s", query)
             data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
-        data = _make_graphite_api_points_list(data)
+        data = read_influxdb_values(data)
         # some series we requested might not be in the resultset.
         # this is because influx doesn't include series that had no values
         # this is a behavior that some people actually appreciate when graphing,
@@ -297,5 +294,5 @@ class InfluxdbFinder(object):
             data.setdefault(key, [])
         time_info = start_time, end_time, interval
         for key in data:
-            data[key] = [v[1] for v in data[key]]
+            data[key] = [v for v in data[key]]
         return time_info, data

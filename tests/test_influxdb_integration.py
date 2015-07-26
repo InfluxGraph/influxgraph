@@ -3,6 +3,7 @@ import unittest
 from influxdb import InfluxDBClient
 import influxdb.exceptions
 import graphite_influxdb
+import graphite_influxdb.utils
 import datetime
 
 class Query(object):
@@ -47,7 +48,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                        'user' : 'root',
                                        'pass' : 'root',
                                        'db' : self.db_name,
-                                       # 'schema' : [('', 60)],
                                        'log_level' : 'debug',
                                        },
                         'statsd' : { 'host': 'localhost' },
@@ -146,6 +146,33 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for series %s - got %s" % (
                                 self.num_datapoints, series, len(datapoints),))
+
+    def test_get_non_existant_series(self):
+        """Test single fetch data for a series by name"""
+        path = 'fake_path'
+        reader = graphite_influxdb.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), path, graphite_influxdb.utils.NullStatsd())
+        time_info, data = reader.fetch(int(self.start_time.strftime("%s")),
+                                            int(self.end_time.strftime("%s")))
+        self.assertFalse(data,
+                         msg="Expected no data for non-existant series %s - got %s" % (
+                             path, data,))
+
+    def test_multi_fetch_non_existant_series(self):
+        """Test single fetch data for a series by name"""
+        path1, path2 = 'fake_path1', 'fake_path2'
+        reader1 = graphite_influxdb.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), path1, graphite_influxdb.utils.NullStatsd())
+        reader2 = graphite_influxdb.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), path2, graphite_influxdb.utils.NullStatsd())
+        nodes = [reader1, reader2]
+        time_info, data = self.finder.fetch_multi(nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        for metric_name in data:
+            self.assertFalse(data[metric_name],
+                             msg="Expected no data for non-existant series %s - got %s" % (
+                                 metric_name, data,))
 
 if __name__ == '__main__':
     unittest.main()

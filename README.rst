@@ -17,7 +17,7 @@ It differs from its parent in the following ways:
 * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a Graphite-Api only finder plugin.
 * Simplified configuration - only InfluxDB database name for metric series is required.
 * Strict flake-8 compatibility and code test coverage. This project has *100%* code test coverage.
-* Python 2.6 and 2.7 automated testing - both fully supported.
+* Python 2.6, 2.7 and 3.4 all fully supported with automated testing.
 
 Installation
 ------------
