@@ -146,3 +146,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for series %s - got %s" % (
                                 self.num_datapoints, series, len(datapoints),))
+
+if __name__ == '__main__':
+    unittest.main()
