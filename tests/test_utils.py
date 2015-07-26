@@ -21,12 +21,9 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
                          msg="Expected interval of 1day/86400s for start/end times %s-%s, got %s" % (
                              start_time, end_time, interval))
 
-
     def test_config_parsing(self):
         cfg = {}
-        with self.assertRaises(SystemExit) as cm:
-            graphite_influxdb.utils.normalize_config(cfg)
-        
+        self.assertRaises(SystemExit, graphite_influxdb.utils.normalize_config, cfg)
 
     def test_null_statsd(self):
         statsd = graphite_influxdb.utils.NullStatsd()
