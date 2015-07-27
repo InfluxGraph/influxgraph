@@ -1,7 +1,7 @@
 Graphite-InfluxDB
 =================
 
-An `InfluxDB`_ 0.9.2-rc1 or higher plugin for `Graphite-API`_.
+An `InfluxDB`_ 0.9.2 or higher plugin for `Graphite-API`_.
 
 .. image:: https://travis-ci.org/pkittenis/graphite-influxdb.svg?branch=master
   :target: https://travis-ci.org/pkittenis/graphite-influxdb
