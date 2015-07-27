@@ -15,8 +15,8 @@ It differs from its parent in the following ways:
 
 * Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead.
 * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a Graphite-Api only finder plugin.
-* Simplified configuration - only InfluxDB database name for metric series is required.
-* Strict flake-8 compatibility and code test coverage. This project has *100%* code test coverage.
+* Simplified configuration - only InfluxDB database name for Graphite metric series is required.
+* Strict flake-8 compatibility and code test coverage. This project has **100%** code test coverage.
 * Python 2.6, 2.7 and 3.4 all fully supported with automated testing.
 
 Installation
@@ -24,8 +24,7 @@ Installation
 
 ::
 
-    pip install https://github.com/pkittenis/graphite-influxdb/releases/latest
-
+    pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc2.tar.gz
 
 
 Retention periods and data intervals
@@ -45,7 +44,7 @@ An interval, or step, used to group data with is automatically calculated depend
 
 This mirrors what `Grafana`_ does when talking directly to InfluxDB.
 
-Overriding the automatically calculated interval is not currently supported by `Graphite-API`_.
+Overriding the automatically calculated interval is not supported.
 
 Users that wish to retrieve all data regardless of time range are advised to query `InfluxDB`_ directly.
 

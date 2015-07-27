@@ -1,3 +1,4 @@
+import version
 from setuptools import setup, find_packages
 import sys
 
@@ -7,7 +8,7 @@ if sys.version_info >= (3,):
 
 setup(
     name='graphite-influxdb',
-    version='0.5',
+    version=version.get_git_version(),
     url='https://github.com/vimeo/graphite-influxdb',
     license='apache2',
     author='original graphite-influxdb by Dieter Plaetinck, fork by PK',
