@@ -71,6 +71,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_get_branches(self):
         """Test finding a series by name"""
+        branches = list(self.finder.get_branches(Query('fakeyfakeyfakefake')))
+        self.assertEqual(branches, [],
+                         msg="Got branches list %s - wanted empty list" % (
+                             branches,))
         branches = list(self.finder.get_branches(Query('*')))
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
@@ -122,6 +126,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         expected = self.nodes
         self.assertEqual(nodes, expected,
                          msg="Expected leaf node list '%s' - got %s" % (expected, nodes))
+        nodes = [node.name
+                 for node in self.finder.find_nodes(Query("fakeyfakeyfakefake.*"))]
+        self.assertEqual(nodes, [],
+                         msg="Expected empty leaf node list - got %s" % (nodes,))
 
     def test_multi_fetch_data(self):
         """Test fetching data for a single series by name"""

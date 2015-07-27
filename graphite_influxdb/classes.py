@@ -175,8 +175,10 @@ class InfluxdbFinder(object):
         :param query: Query to run to get LeafNodes
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        key_leaves = "%s_leaves" % (query.pattern,)
         series = self.get_series(query)
+        if not series:
+            return []
+        key_leaves = "%s_leaves" % (query.pattern,)
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_leaves() key %s", key_leaves)
         timer_name = ".".join(['service_is_graphite-api',
@@ -202,10 +204,10 @@ class InfluxdbFinder(object):
         :param query: Query to run to get BranchNodes
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        seen_branches = set()
-        key_branches = "%s_branches" % query.pattern
-        # Very inefficient call to list
         series = self.get_series(query)
+        if not series:
+            return []
+        key_branches = "%s_branches" % query.pattern
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_branches() %s", key_branches)
         timer_name = ".".join(['service_is_graphite-api',
@@ -215,6 +217,7 @@ class InfluxdbFinder(object):
         timer = self.statsd_client.timer(timer_name)
         start_time = datetime.datetime.now()
         timer.start()
+        seen_branches = set()
         branches = []
         for name in series:
             while '.' in name:
