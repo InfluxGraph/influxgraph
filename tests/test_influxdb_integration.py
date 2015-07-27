@@ -69,6 +69,37 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          "Expected compiled pattern %s" % (
                              rec.pattern, metric_query_pat, expected,))
 
+    def test_get_branches(self):
+        """Test finding a series by name"""
+        branches = list(self.finder.get_branches(Query('*')))
+        expected = [self.metric_prefix]
+        self.assertEqual(branches, expected,
+                         msg="Got branches list %s - wanted %s" % (branches,
+                                                                  expected,))
+        branches = ['branch_node1', 'branch_node2']
+        series = [".".join([self.metric_prefix,
+                            branch, 'leaf_node',])
+                            for branch in branches]
+        data = [{
+            "measurement": series,
+            "tags": {},
+            "time": _time,
+            "fields": {
+                "value": 1,
+                }
+            }
+            for series in series
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+        branches = sorted(list(self.finder.get_branches(Query(self.metric_prefix + '*'))))
+        expected = sorted(branches)
+        self.assertEqual(branches, expected,
+                         msg="Got branches list %s - wanted %s" % (branches,
+                                                                  expected,))
+
     def test_find_series(self):
         """Test finding a series by name"""
         nodes = [node.name for node in self.finder.find_nodes(Query(self.series1))
