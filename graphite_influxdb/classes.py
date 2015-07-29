@@ -176,8 +176,6 @@ class InfluxdbFinder(object):
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         series = self.get_series(query)
-        if not series:
-            return []
         key_leaves = "%s_leaves" % (query.pattern,)
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_leaves() key %s", key_leaves)
@@ -205,8 +203,6 @@ class InfluxdbFinder(object):
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         series = self.get_series(query)
-        if not series:
-            return []
         key_branches = "%s_branches" % query.pattern
         regex = self.compile_regex('^{0}$', query)
         logger.debug("get_branches() %s", key_branches)
