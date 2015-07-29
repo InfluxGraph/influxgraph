@@ -24,7 +24,7 @@ Installation
 
 ::
 
-    pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc2.tar.gz
+    pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc3.tar.gz
 
 
 Retention periods and data intervals
