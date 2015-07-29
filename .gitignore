@@ -2,5 +2,3 @@
 *.pyc
 dist
 build
-RELEASE-VERSION
-
