@@ -29,6 +29,23 @@ Installation
     pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc3.tar.gz
 
 
+InfluxDB Graphite metric templates
+==================================
+
+.. note::
+
+   Please note that InfluxDB configurations containing Graphite metric templates are currently *not* supported.
+   
+   Support for templates, meaning querying Graphite metrics that have been parsed into tags by InfluxDB's Graphite plugin is coming in a later version.
+   
+   This plugin currently requires that all Graphite metrics paths are stored as a single series.
+
+Templates should be empty in InfluxDB's Graphite plugin configuration. ::
+  
+  [[graphite]]
+    enabled = true
+    # templates = []
+
 Retention periods and data intervals
 ====================================
 
