@@ -100,6 +100,26 @@ The above is the most minimal configuration. There are several optional configur
        # Default is 'info'
        log_level: info
 
+Varnish caching Graphite-API
+----------------------------
+
+The following is a sample configuration of `Varnish`_ as an HTTP cache in front of `Graphite-API`_ webapp. It uses Varnish's default TTL of 60 sec for all `Graphite-API`_ requests.
+
+Clients like `Grafana`_ should connect to the Varnish port to talk to InfluxDB on each node.
+
+Substitute `<port>` with the Graphite-API webapp port in your installation  ::
+
+  backend default {
+    .host = "127.0.0.1";
+    .port = "<port>";
+  }
+
+  sub vcl_recv {
+    unset req.http.cookie;
+  }
+
+
+.. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
 .. _Grafana: https://github.com/grafana/grafana
 .. _InfluxDB: https://github.com/influxdb/influxdb
