@@ -13,7 +13,7 @@ This project is a fork of the excellent `graphite_influxdb <https://github.com/v
 
 It differs from its parent in the following ways:
 
-* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead.
+* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead. See `Varnish caching Graphite-API`_ section for an example.
 * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a `Graphite-API`_ only plugin.
 * Simplified configuration - only InfluxDB database name for Graphite metric series is required.
 * Strict flake-8 compatibility and code test coverage. This project has **100%** code test coverage.
