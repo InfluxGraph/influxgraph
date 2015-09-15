@@ -87,7 +87,7 @@ def _compile_aggregation_patterns(aggregation_functions):
     """Compile aggregation function patterns to compiled regex objects"""
     if not aggregation_functions:
         return
-    for pattern in aggregation_functions.keys():
+    for pattern in aggregation_functions.copy().keys():
         if not aggregation_functions[pattern] in INFLUXDB_AGGREGATIONS:
             sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB"
                              "aggregation function - ignoring..\n" % (

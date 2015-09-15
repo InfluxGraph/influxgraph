@@ -226,9 +226,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         aggregation_funcs = sorted(list(set(graphite_influxdb.utils.get_aggregation_func(
             path, self.aggregation_functions) for path in paths)))
         expected = sorted(['min', 'max'])
-        self.assertListEqual(expected, aggregation_funcs,
-                             msg="Expected aggregation functions %s for paths %s - got %s" % (
-                                 expected, paths, aggregation_funcs))
+        self.assertEqual(expected, aggregation_funcs,
+                         msg="Expected aggregation functions %s for paths %s - got %s" % (
+                             expected, paths, aggregation_funcs))
         series = self.metric_prefix + ".agg_path.max"
         nodes = list(self.finder.find_nodes(Query(series)))
         time_info, data = self.finder.fetch_multi(nodes,
