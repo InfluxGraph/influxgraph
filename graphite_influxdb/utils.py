@@ -1,5 +1,7 @@
 import datetime
 import sys
+import re
+from .constants import INFLUXDB_AGGREGATIONS
 
 def calculate_interval(start_time, end_time):
     """Calculates wanted data series interval according to start and end times
@@ -75,10 +77,39 @@ def normalize_config(config):
     ret['schema'] = cfg.get('schema', [])
     ret['log_file'] = cfg.get('log_file', None)
     ret['log_level'] = cfg.get('log_level', 'info')
-    cfg = config.get('es', {})
     if config.get('statsd', None):
         ret['statsd'] = config.get('statsd')
+    ret['aggregation_functions'] = _compile_aggregation_patterns(
+        cfg.get('aggregation_functions', None))
     return ret
+
+def _compile_aggregation_patterns(aggregation_functions):
+    """Compile aggregation function patterns to compiled regex objects"""
+    if not aggregation_functions:
+        return
+    for pattern in aggregation_functions.keys():
+        if not aggregation_functions[pattern] in INFLUXDB_AGGREGATIONS:
+            sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB",
+                             "aggregation function - ignoring..\n" % (
+                                 aggregation_functions[pattern],))
+            continue
+        try:
+            aggregation_functions[re.compile(r'%s' % (pattern,))] = aggregation_functions[pattern]
+        except re.error:
+            sys.stderr.write("Error compiling regex pattern '%s' - ignoring..\n" % (
+                pattern,))
+        del aggregation_functions[pattern]
+    return aggregation_functions
+
+def get_aggregation_func(path, aggregation_functions):
+    """Lookup aggregation function for path, if any.
+    Defaults to 'mean'."""
+    if not aggregation_functions:
+        return 'mean'
+    for pattern in aggregation_functions:
+        if pattern.search(path):
+            return aggregation_functions[pattern]
+    return 'mean'
 
 def read_influxdb_values(influxdb_data):
     """Return generator for values from InfluxDB data"""

@@ -25,8 +25,9 @@ from logging.handlers import TimedRotatingFileHandler
 import re
 import sys
 from graphite_api.node import LeafNode, BranchNode
+from .constants import INFLUXDB_AGGREGATIONS
 from .utils import NullStatsd, normalize_config, \
-     calculate_interval, read_influxdb_values
+     calculate_interval, read_influxdb_values, get_aggregation_func
 try:
     import statsd
 except ImportError:
@@ -44,12 +45,14 @@ class InfluxdbReader(object):
     
     Retrieves a single metric series from InfluxDB
     """
-    __slots__ = ('client', 'path', 'statsd_client')
+    __slots__ = ('client', 'path', 'statsd_client', 'aggregation_functions')
 
-    def __init__(self, client, path, statsd_client):
+    def __init__(self, client, path, statsd_client,
+                 aggregation_functions=None):
         self.client = client
         self.path = path
         self.statsd_client = statsd_client
+        self.aggregation_functions = aggregation_functions
 
     def fetch(self, start_time, end_time):
         """Fetch single series' data from > start_time and <= end_time
@@ -58,16 +61,17 @@ class InfluxdbReader(object):
         :param end_time: end_time in seconds from epoch
         """
         interval = calculate_interval(start_time, end_time)
-        logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d",
-                     self.path, start_time, end_time, interval)
+        aggregation_func = get_aggregation_func(self.path, self.aggregation_functions)
+        logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d, aggregation=%s",
+                     self.path, start_time, end_time, interval, aggregation_func)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'what_is_query_individual_duration'])
         with self.statsd_client.timer(timer_name):
-            _query = 'select mean(value) as value from "%s" where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-                self.path, start_time, end_time, interval,)
+            _query = 'select %s(value) as value from "%s" where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
+                aggregation_func, self.path, start_time, end_time, interval,)
             logger.debug("fetch() path=%s querying influxdb query: '%s'", self.path, _query)
             data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
@@ -91,9 +95,9 @@ class InfluxdbFinder(object):
     Finds and fetches metric series from InfluxDB.
     """
     __fetch_multi__ = 'influxdb'
-    __slots__ = ('client', 'schemas', 'config', 'statsd_client')
+    __slots__ = ('client', 'schemas', 'config', 'statsd_client', 'aggregation_functions')
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         config = normalize_config(config)
         self.config = config
         self.client = InfluxDBClient(config.get('host', 'localhost'),
@@ -112,6 +116,8 @@ class InfluxdbFinder(object):
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
         self._setup_logger(config['log_level'], config['log_file'])
+        self.aggregation_functions = config.get('aggregation_functions', None)
+        logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
 
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
@@ -247,7 +253,8 @@ class InfluxdbFinder(object):
         with self.statsd_client.timer(timer_name):
             for name in self.get_leaves(query):
                 yield InfluxLeafNode(name, InfluxdbReader(
-                    self.client, name, self.statsd_client))
+                    self.client, name, self.statsd_client,
+                    aggregation_functions=self.aggregation_functions))
             for name in self.get_branches(query):
                 logger.debug("Yielding branch %s", name,)
                 yield BranchNode(name)
@@ -262,8 +269,15 @@ class InfluxdbFinder(object):
         """
         series = ', '.join(['"%s"' % node.path for node in nodes])
         interval = calculate_interval(start_time, end_time)
-        query = 'select mean(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-                series, start_time, end_time, interval,)
+        paths = [n.path for n in nodes]
+        aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
+                                     for path in paths))
+        if len(aggregation_funcs) > 1:
+            logger.warning("Got multiple aggregation functions %s for paths %s - Using '%s'",
+                           aggregation_funcs, paths, aggregation_funcs[0])
+        aggregation_func = aggregation_funcs[0]
+        query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
+                aggregation_func, series, start_time, end_time, interval,)
         logger.debug('fetch_multi() query: %s', query)
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
