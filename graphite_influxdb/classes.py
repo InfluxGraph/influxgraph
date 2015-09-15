@@ -261,7 +261,7 @@ class InfluxdbFinder(object):
 
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
-
+        
         :param nodes: List of nodes to retrieve data for
         :type nodes: list(:mod:`graphite_influxdb.InfluxdbLeafNode`)
         :param start_time: Start time of query

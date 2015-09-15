@@ -89,9 +89,10 @@ def _compile_aggregation_patterns(aggregation_functions):
         return
     for pattern in aggregation_functions.keys():
         if not aggregation_functions[pattern] in INFLUXDB_AGGREGATIONS:
-            sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB",
+            sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB"
                              "aggregation function - ignoring..\n" % (
                                  aggregation_functions[pattern],))
+            del aggregation_functions[pattern]
             continue
         try:
             aggregation_functions[re.compile(r'%s' % (pattern,))] = aggregation_functions[pattern]

@@ -31,3 +31,28 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
         statsd.timing('key', 'val')
         statsd.start()
         statsd.stop()
+
+    def test_aggregation_functions(self):
+        cfg = { 'influxdb' : {
+            'aggregation_functions': {
+                '\.min$' : 'min',
+                'pattern' : 'notvalidagg',
+                'notvalidpattern[' : 'notvalidagg',
+                }}}
+        config = graphite_influxdb.utils.normalize_config(cfg)
+        self.assertTrue(config.get('aggregation_functions', None) is not None,
+                        msg="Aggregation functions are empty")
+        self.assertTrue('notvalidagg' not in config['aggregation_functions'].values(),
+                        msg="Expected invalid aggregation function '%s' to not be in parsed functions" % (
+                            'notvalidagg',))
+        path = 'my.path.min'
+        func = graphite_influxdb.utils.get_aggregation_func(path, config['aggregation_functions'])
+        self.assertTrue(func == 'min',
+                        msg="Expected aggregation function 'min' for path '%s' - got '%s' instead" % (
+                            path, func))
+        path = 'my.path.not.in.config'
+        func = graphite_influxdb.utils.get_aggregation_func(path, config['aggregation_functions'])
+        self.assertTrue(func == 'mean',
+                        msg="Expected aggregation function 'mean' for path '%s' - got '%s' instead" % (
+                            path, func))
+        
