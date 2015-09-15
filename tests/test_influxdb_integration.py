@@ -128,7 +128,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_find_leaf_nodes(self):
         """Test finding leaf nodes by wildcard"""
         nodes = [node.name
-                 for node in self.finder.find_nodes(Query(self.metric_prefix + ".*"))]
+                 for node in self.finder.find_nodes(Query(self.metric_prefix + ".leaf*"))]
         expected = self.nodes
         self.assertEqual(nodes, expected,
                          msg="Expected leaf node list '%s' - got %s" % (expected, nodes))
@@ -171,7 +171,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         
     def test_multi_fetch_data_multi_series(self):
         """Test fetching data for multiple series by name"""
-        nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".*")))
+        nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".leaf*")))
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))
