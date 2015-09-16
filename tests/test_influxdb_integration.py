@@ -43,16 +43,12 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
                                 int(self.start_time.strftime("%s"))) * 1.0 / self.step)) + 1
         self.client = InfluxDBClient(database=self.db_name)
-        self.aggregation_functions = { '\.min$' : 'min',
-                                       '\.max$' : 'max',
-                                       }
         self.config = { 'influxdb' : { 'host' : 'localhost',
                                        'port' : 8086,
                                        'user' : 'root',
                                        'pass' : 'root',
                                        'db' : self.db_name,
                                        'log_level' : 'debug',
-                                       'aggregation_functions' : self.aggregation_functions,
                                        },
                         'statsd' : { 'host': 'localhost' },
                         }
@@ -63,7 +59,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
           ".".join([self.metric_prefix, self.nodes[1]])
         self.series = [self.series1, self.series2,
                        'integration_test.agg_path.min',
-                       'integration_test.agg_path.max']
+                       'integration_test.agg_path.max',
+                       'integration_test.agg_path.last',
+                       'integration_test.agg_path.sum',
+                       ]
         self.setup_db()
 
     def test_compile_regex(self):
@@ -220,31 +219,25 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                  metric_name, data,))
 
     def test_multi_fetch_data_multi_series_configured_aggregation_functions(self):
-        """Test fetching data for multiple series by name"""
+        """Test fetching data for multiple series with aggregation functions configured"""
         nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".agg_path.*")))
         paths = [node.path for node in nodes]
+        # import ipdb; ipdb.set_trace()
         aggregation_funcs = sorted(list(set(graphite_influxdb.utils.get_aggregation_func(
-            path, self.aggregation_functions) for path in paths)))
-        expected = sorted(['min', 'max'])
+            path, self.finder.aggregation_functions) for path in paths)))
+        expected = sorted(graphite_influxdb.utils.DEFAULT_AGGREGATIONS.values())
         self.assertEqual(expected, aggregation_funcs,
                          msg="Expected aggregation functions %s for paths %s - got %s" % (
                              expected, paths, aggregation_funcs))
-        series = self.metric_prefix + ".agg_path.max"
-        nodes = list(self.finder.find_nodes(Query(series)))
-        time_info, data = self.finder.fetch_multi(nodes,
-                                                  int(self.start_time.strftime("%s")),
-                                                  int(self.end_time.strftime("%s")))
-        self.assertTrue(series in data,
-                        msg="Did not get data for requested series %s - got data for %s" % (
-                            series, data.keys(),))
-        series = self.metric_prefix + ".agg_path.min"
-        nodes = list(self.finder.find_nodes(Query(series)))
-        time_info, data = self.finder.fetch_multi(nodes,
-                                                  int(self.start_time.strftime("%s")),
-                                                  int(self.end_time.strftime("%s")))
-        self.assertTrue(series in data,
-                        msg="Did not get data for requested series %s - got data for %s" % (
-                            series, data.keys(),))
+        for suffix in ['min', 'max', 'last', 'sum']:
+            series = self.metric_prefix + ".agg_path.%s" % (suffix,)
+            nodes = list(self.finder.find_nodes(Query(series)))
+            time_info, data = self.finder.fetch_multi(nodes,
+                                                      int(self.start_time.strftime("%s")),
+                                                      int(self.end_time.strftime("%s")))
+            self.assertTrue(series in data,
+                            msg="Did not get data for requested series %s - got data for %s" % (
+                                series, data.keys(),))
 
 if __name__ == '__main__':
     unittest.main()

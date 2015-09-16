@@ -51,6 +51,27 @@ Retention periods and data intervals
 
 With InfluxDB versions >= 0.9 it is no longer required that a retention period or schema is configured explicitly for each series. Queries for series that have data in multiple retention periods are automatically merged by InfluxDB and data from all retention periods is returned.
 
+Aggregation function configuration
+==================================
+
+The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of `storage-aggregation.conf` in Graphite's `carbon-cache`.
+
+Default aggregation function used is `mean`, meaning `average`.
+
+Graphite-influxdb has pre-defined aggregation configuration matching `carbon-cache` defaults, namely ::
+
+  aggregation_functions:
+      \.min$ : min
+      \.max$ : max
+      \.last$ : last
+      \.sum$ : sum
+
+Defaults are overridden if `aggregation_functions` is configured in `graphite-api.yaml` as shown below.
+
+An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
+
+Known InfluxDB aggregation functions are defined at `graphite_influxdb.constants.INFLUXDB_AGGREGATIONS` and can be overriden if necessary.
+
 Schema-less design
 ------------------
 
@@ -99,6 +120,18 @@ The above is the most minimal configuration. There are several optional configur
        # Values are standard logging levels - info, debug, warning, critical et al
        # Default is 'info'
        log_level: info
+       aggregation_functions:
+           # Aggregation function for metric paths ending in 'metrics.*'
+	   # is 'nonNegativeDerivative'
+	   \.metrics.+$ : nonNegativeDerivative
+	   # The below four aggregation functions are the
+	   # defaults used if 'aggregation_functions'
+	   # configuration is not provided.
+	   # They will need to be re-added if configuration is provided
+	   \.min$ : min
+	   \.max$ : max
+	   \.last$ : last
+	   \.sum$ : sum
 
 Varnish caching Graphite-API
 ----------------------------
