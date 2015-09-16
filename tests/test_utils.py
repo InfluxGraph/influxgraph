@@ -60,5 +60,4 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
                             path, func))
 
     def test_empty_aggregation_functions(self):
-        self.assertIsNone(graphite_influxdb.utils._compile_aggregation_patterns(None))
-
+        self.assertFalse(graphite_influxdb.utils._compile_aggregation_patterns(None))
