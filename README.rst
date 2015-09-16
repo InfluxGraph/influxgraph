@@ -26,7 +26,7 @@ Installation
 
     # Install graphite-api with multi fetch support
     pip install https://github.com/thomsonreuters/graphite-api/archive/1.0.2-rc1.tar.gz
-    pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc3.tar.gz
+    pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc4.tar.gz
 
 
 InfluxDB Graphite metric templates

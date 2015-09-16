@@ -222,13 +222,18 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         """Test fetching data for multiple series with aggregation functions configured"""
         nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".agg_path.*")))
         paths = [node.path for node in nodes]
-        # import ipdb; ipdb.set_trace()
         aggregation_funcs = sorted(list(set(graphite_influxdb.utils.get_aggregation_func(
             path, self.finder.aggregation_functions) for path in paths)))
         expected = sorted(graphite_influxdb.utils.DEFAULT_AGGREGATIONS.values())
         self.assertEqual(expected, aggregation_funcs,
                          msg="Expected aggregation functions %s for paths %s - got %s" % (
                              expected, paths, aggregation_funcs))
+        time_info, data = self.finder.fetch_multi(nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        self.assertTrue(nodes[0].path in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            nodes[0].path, data.keys(),))
         for suffix in ['min', 'max', 'last', 'sum']:
             series = self.metric_prefix + ".agg_path.%s" % (suffix,)
             nodes = list(self.finder.find_nodes(Query(series)))

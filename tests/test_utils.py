@@ -37,7 +37,7 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
             'aggregation_functions': {
                 '\.min$' : 'min',
                 'pattern' : 'notvalidagg',
-                'notvalidpattern[' : 'notvalidagg',
+                'notvalidpattern[' : 'sum',
                 }}}
         config = graphite_influxdb.utils.normalize_config(cfg)
         self.assertTrue(config.get('aggregation_functions', None) is not None,
@@ -45,6 +45,9 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
         self.assertTrue('notvalidagg' not in config['aggregation_functions'].values(),
                         msg="Expected invalid aggregation function '%s' to not be in parsed functions" % (
                             'notvalidagg',))
+        self.assertTrue('notvalidpattern[' not in config['aggregation_functions'].values(),
+                        msg="Expected invalid regex pattern '%s' to not be in parsed functions" % (
+                            'notvalidpattern[',))
         path = 'my.path.min'
         func = graphite_influxdb.utils.get_aggregation_func(path, config['aggregation_functions'])
         self.assertTrue(func == 'min',
@@ -55,4 +58,7 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
         self.assertTrue(func == 'mean',
                         msg="Expected aggregation function 'mean' for path '%s' - got '%s' instead" % (
                             path, func))
-        
+
+    def test_empty_aggregation_functions(self):
+        self.assertIsNone(graphite_influxdb.utils._compile_aggregation_patterns(None))
+
