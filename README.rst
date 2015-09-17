@@ -66,11 +66,19 @@ Graphite-influxdb has pre-defined aggregation configuration matching `carbon-cac
       \.last$ : last
       \.sum$ : sum
 
-Defaults are overridden if `aggregation_functions` is configured in `graphite-api.yaml` as shown below.
+Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown below.
 
 An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
 
-Known InfluxDB aggregation functions are defined at `graphite_influxdb.constants.INFLUXDB_AGGREGATIONS` and can be overriden if necessary.
+Known InfluxDB aggregation functions are defined at ``graphite_influxdb.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
+
+.. note::
+
+   Please note that when querying multiple series InfluxDB allows only *one* aggregation function to be used for all series in the query.
+   
+   In other words, client needs to make sure all series in a wildcard query, for example ``my_host.cpu.cpu*`` have the same aggregation function configured.
+
+   ``Graphite-InfluxDB`` `will use the first aggregation function configured <https://github.com/pkittenis/graphite-influxdb/blob/master/graphite_influxdb/classes.py#L275>`_ and log a warning message to that effect if a wildcard query resolves to multiple aggregation functions.
 
 Schema-less design
 ------------------
