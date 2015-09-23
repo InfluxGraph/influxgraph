@@ -9,3 +9,6 @@ DEFAULT_AGGREGATIONS = { '\.min$' : 'min',
                          '\.last$' : 'last',
                          '\.sum$' : 'sum',
                          }
+
+# Tell influxdb to return time as seconds from epoch
+_INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}

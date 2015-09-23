@@ -1,5 +1,5 @@
-# Copyright (C) [2014-2015] [Vimeo, LLC]
 # Copyright (C) [2015-] [Panos Kittenis]
+# Copyright (C) [2014-2015] [Vimeo, LLC]
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,70 +24,18 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import re
 import sys
-from graphite_api.node import LeafNode, BranchNode
-from .constants import INFLUXDB_AGGREGATIONS
-from .utils import NullStatsd, normalize_config, \
+from graphite_api.node import BranchNode
+from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS
+from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func
+from .reader import InfluxdbReader
+from .leaf import InfluxDBLeafNode
 try:
     import statsd
 except ImportError:
     pass
 
 logger = logging.getLogger('graphite_influxdb')
-# logging.basicConfig()
-# logger.setLevel(logging.DEBUG)
-
-# Tell influxdb to return time as seconds from epoch
-_INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
-
-class InfluxdbReader(object):
-    """Graphite-Api reader class for InfluxDB.
-    
-    Retrieves a single metric series from InfluxDB
-    """
-    __slots__ = ('client', 'path', 'statsd_client', 'aggregation_functions')
-
-    def __init__(self, client, path, statsd_client,
-                 aggregation_functions=None):
-        self.client = client
-        self.path = path
-        self.statsd_client = statsd_client
-        self.aggregation_functions = aggregation_functions
-
-    def fetch(self, start_time, end_time):
-        """Fetch single series' data from > start_time and <= end_time
-        
-        :param start_time: start_time in seconds from epoch
-        :param end_time: end_time in seconds from epoch
-        """
-        interval = calculate_interval(start_time, end_time)
-        aggregation_func = get_aggregation_func(self.path, self.aggregation_functions)
-        logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d, aggregation=%s",
-                     self.path, start_time, end_time, interval, aggregation_func)
-        timer_name = ".".join(['service_is_graphite-api',
-                               'ext_service_is_influxdb',
-                               'target_type_is_gauge',
-                               'unit_is_ms',
-                               'what_is_query_individual_duration'])
-        with self.statsd_client.timer(timer_name):
-            _query = 'select %s(value) as value from "%s" where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-                aggregation_func, self.path, start_time, end_time, interval,)
-            logger.debug("fetch() path=%s querying influxdb query: '%s'", self.path, _query)
-            data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        logger.debug("fetch() path=%s returned data: %s", self.path, data)
-        data = read_influxdb_values(data)
-        time_info = start_time, end_time, interval
-        return time_info, [v for v in data[self.path]] if self.path in data else []
-    
-    def get_intervals(self):
-        """Noop function - Used by Graphite-Web but not needed for Graphite-Api"""
-        pass
-
-
-class InfluxLeafNode(LeafNode):
-    """Tell Graphite-Api that our leaf node supports multi-fetch"""
-    __fetch_multi__ = 'influxdb'
-
 
 class InfluxdbFinder(object):
     """Graphite-Api finder for InfluxDB.
@@ -252,7 +200,7 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         with self.statsd_client.timer(timer_name):
             for name in self.get_leaves(query):
-                yield InfluxLeafNode(name, InfluxdbReader(
+                yield InfluxDBLeafNode(name, InfluxdbReader(
                     self.client, name, self.statsd_client,
                     aggregation_functions=self.aggregation_functions))
             for name in self.get_branches(query):
@@ -263,7 +211,7 @@ class InfluxdbFinder(object):
         """Fetch datapoints for all series between start and end times
         
         :param nodes: List of nodes to retrieve data for
-        :type nodes: list(:mod:`graphite_influxdb.InfluxdbLeafNode`)
+        :type nodes: list(:mod:`graphite_influxdb.classes.InfluxDBLeafNode`)
         :param start_time: Start time of query
         :param end_time: End time of query
         """
