@@ -34,6 +34,7 @@ try:
     import statsd
 except ImportError:
     pass
+import memcache
 
 logger = logging.getLogger('graphite_influxdb')
 
@@ -43,7 +44,8 @@ class InfluxdbFinder(object):
     Finds and fetches metric series from InfluxDB.
     """
     __fetch_multi__ = 'influxdb'
-    __slots__ = ('client', 'schemas', 'config', 'statsd_client', 'aggregation_functions')
+    __slots__ = ('client', 'schemas', 'config', 'statsd_client', 'aggregation_functions',
+                 'memcache', 'memcache_ttl')
 
     def __init__(self, config):
         config = normalize_config(config)
@@ -63,6 +65,9 @@ class InfluxdbFinder(object):
             logger.warning("Statsd client configuration present but 'statsd' module "
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
+        self.memcache = memcache.Client(['localhost'],
+                                        pickleProtocol=-1)
+        self.memcache_ttl = 3600
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
         logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
@@ -95,6 +100,10 @@ class InfluxdbFinder(object):
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
+        cached_series = self.memcache.get(query.pattern.encode('utf8'))
+        if cached_series:
+            logger.debug("Found cached series for query %s", query.pattern)
+            return cached_series
         # regexes in influxdb are not assumed to be anchored, so anchor them
         # explicitly
         regex = self.compile_regex('^{0}', query)
@@ -103,12 +112,17 @@ class InfluxdbFinder(object):
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        with self.statsd_client.timer(timer_name):
-            _query = "show series from /%s/" % (regex.pattern,)
-            logger.debug("get_series() Calling influxdb with query - %s", _query)
-            data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-            series = (key_name for (key_name, _) in data.keys())
-        return series
+        _query = "show series from /%s/" % (regex.pattern,)
+        logger.debug("get_series() Calling influxdb with query - %s", _query)
+        timer = self.statsd_client.timer(timer_name)
+        timer.start()
+        data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
+        series = [key_name for (key_name, _) in data.keys()]
+        timer.stop()
+        self.memcache.set(query.pattern.encode('utf8'), series,
+                          time=self.memcache_ttl,
+                          min_compress_len=50)
+        return (s for s in series)
 
     def compile_regex(self, fmt, query):
         r"""Turn glob (graphite) queries into compiled regex.
