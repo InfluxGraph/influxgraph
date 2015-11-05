@@ -229,17 +229,29 @@ class InfluxdbFinder(object):
         :param start_time: Start time of query
         :param end_time: End time of query
         """
-        series = ', '.join(['"%s"' % node.path for node in nodes])
-        interval = calculate_interval(start_time, end_time)
         paths = [n.path for n in nodes]
+        series = ', '.join(['"%s"' % path for path in paths])
+        interval = calculate_interval(start_time, end_time)
+        time_info = start_time, end_time, interval
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
                                      for path in paths))
         if len(aggregation_funcs) > 1:
             logger.warning("Got multiple aggregation functions %s for paths %s - Using '%s'",
                            aggregation_funcs, paths, aggregation_funcs[0])
         aggregation_func = aggregation_funcs[0]
+        start_time_dt, end_time_dt = datetime.datetime.fromtimestamp(float(start_time)), \
+          datetime.datetime.fromtimestamp(float(end_time))
+        td = end_time_dt - start_time_dt
+        delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+        memcache_key = "".join(paths + [
+            aggregation_func, str(delta)]
+            ).encode('utf8')
+        data = self.memcache.get(memcache_key)
+        if data:
+            logger.debug("Found cached data for key %s", memcache_key)
+            return time_info, data
         query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-                aggregation_func, series, start_time, end_time, interval,)
+            aggregation_func, series, start_time, end_time, interval,)
         logger.debug('fetch_multi() query: %s', query)
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
@@ -267,7 +279,9 @@ class InfluxdbFinder(object):
         query_keys = set([node.path for node in nodes])
         for key in query_keys:
             data.setdefault(key, [])
-        time_info = start_time, end_time, interval
         for key in data:
             data[key] = [v for v in data[key]]
+        self.memcache.set(memcache_key, data,
+                          time=interval,
+                          min_compress_len=50)
         return time_info, data
