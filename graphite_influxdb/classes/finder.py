@@ -27,7 +27,8 @@ import sys
 from graphite_api.node import BranchNode
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS
 from ..utils import NullStatsd, normalize_config, \
-     calculate_interval, read_influxdb_values, get_aggregation_func
+     calculate_interval, read_influxdb_values, get_aggregation_func, \
+     gen_memcache_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 try:
@@ -35,6 +36,10 @@ try:
 except ImportError:
     pass
 import memcache
+try:
+    import memcache
+except ImportError:
+    pass
 
 logger = logging.getLogger('graphite_influxdb')
 
@@ -245,13 +250,8 @@ class InfluxdbFinder(object):
             logger.warning("Got multiple aggregation functions %s for paths %s - Using '%s'",
                            aggregation_funcs, paths, aggregation_funcs[0])
         aggregation_func = aggregation_funcs[0]
-        start_time_dt, end_time_dt = datetime.datetime.fromtimestamp(float(start_time)), \
-          datetime.datetime.fromtimestamp(float(end_time))
-        td = end_time_dt - start_time_dt
-        delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
-        memcache_key = "".join(paths + [
-            aggregation_func, str(delta)]
-            ).encode('utf8')
+        memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
+                                        paths)
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
@@ -262,16 +262,17 @@ class InfluxdbFinder(object):
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
                      datetime.datetime.fromtimestamp(float(end_time)), interval)
-        timer_name = ".".join(['service_is_graphite-api',
-                               'ext_service_is_influxdb',
-                               'target_type_is_gauge',
-                               'unit_is_ms',
-                               'action_is_select_datapoints'])
-        with self.statsd_client.timer(timer_name):
-            logger.debug("Calling influxdb multi fetch with query - %s", query)
-            data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
+        timer_name = ".".join([
+            'service_is_graphite-api', 'ext_service_is_influxdb',
+            'target_type_is_gauge', 'unit_is_ms', 'action_is_select_datapoints']
+            )
+        timer = self.statsd_client.timer(timer_name)
+        timer.start()
+        logger.debug("Calling influxdb multi fetch with query - %s", query)
+        data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
         data = read_influxdb_values(data)
+        timer.stop()
         # some series we requested might not be in the resultset.
         # this is because influx doesn't include series that had no values
         # this is a behavior that some people actually appreciate when graphing,

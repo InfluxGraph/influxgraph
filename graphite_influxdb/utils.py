@@ -1,6 +1,7 @@
 import datetime
 import sys
 import re
+import datetime
 from .constants import INFLUXDB_AGGREGATIONS, DEFAULT_AGGREGATIONS
 
 def calculate_interval(start_time, end_time):
@@ -118,3 +119,11 @@ def read_influxdb_values(influxdb_data):
     for key in influxdb_data.keys():
         _data[key[0]] = (d['value'] for d in influxdb_data.get_points(key[0]))
     return _data
+
+def gen_memcache_key(start_time, end_time, aggregation_func, paths):
+    """Generate memcache key to use to cache request data"""
+    start_time_dt, end_time_dt = datetime.datetime.fromtimestamp(float(start_time)), \
+      datetime.datetime.fromtimestamp(float(end_time))
+    td = end_time_dt - start_time_dt
+    delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+    return "".join(paths + [aggregation_func, str(delta)]).encode('utf8')

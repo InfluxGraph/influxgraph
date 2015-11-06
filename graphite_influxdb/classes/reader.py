@@ -3,13 +3,16 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from ..constants import _INFLUXDB_CLIENT_PARAMS
-from ..utils import calculate_interval, read_influxdb_values, get_aggregation_func
+from ..utils import calculate_interval, read_influxdb_values, \
+     get_aggregation_func, gen_memcache_key
 try:
     import statsd
 except ImportError:
     pass
-from datetime import datetime
-import memcache
+try:
+    import memcache
+except ImportError:
+    pass
 
 logger = logging.getLogger('graphite_influxdb')
 
@@ -44,12 +47,8 @@ class InfluxdbReader(object):
         aggregation_func = get_aggregation_func(self.path, self.aggregation_functions)
         logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d, aggregation=%s",
                      self.path, start_time, end_time, interval, aggregation_func)
-        start_time_dt, end_time_dt = datetime.fromtimestamp(float(start_time)), \
-          datetime.fromtimestamp(float(end_time))
-        td = end_time_dt - start_time_dt
-        delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
-        memcache_key = "".join([self.path,
-                                aggregation_func, str(delta)]).encode('utf8')
+        memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
+                                        [self.path])
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
