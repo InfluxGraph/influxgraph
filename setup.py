@@ -30,7 +30,7 @@ setup(
     ),
     install_requires=['graphite_api','influxdb>=2.6.0'],
     extras_require={
-        'memcache': ['memcache'],
+        'memcached': ['python-memcached'],
     },
     **convert_2_to_3
 )
