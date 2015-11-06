@@ -44,8 +44,8 @@ class InfluxdbFinder(object):
     Finds and fetches metric series from InfluxDB.
     """
     __fetch_multi__ = 'influxdb'
-    __slots__ = ('client', 'schemas', 'config', 'statsd_client', 'aggregation_functions',
-                 'memcache', 'memcache_ttl')
+    __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
+                 'memcache', 'memcache_host', 'memcache_ttl')
 
     def __init__(self, config):
         config = normalize_config(config)
@@ -56,7 +56,6 @@ class InfluxdbFinder(object):
                                      config.get('passw', 'root'),
                                      config['db'],
                                      config.get('ssl', 'false'),)
-        self.schemas = [(re.compile(patt), step) for (patt, step) in config['schema']]
         try:
             self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
                                                     config['statsd'].get('port', 8125)) \
@@ -65,9 +64,13 @@ class InfluxdbFinder(object):
             logger.warning("Statsd client configuration present but 'statsd' module "
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
-        self.memcache = memcache.Client(['localhost'],
-                                        pickleProtocol=-1)
-        self.memcache_ttl = 3600
+        self.memcache_host = config.get('memcache_host', None)
+        self.memcache_ttl = config['memcache_ttl']
+        if self.memcache_host:
+            self.memcache = memcache.Client([self.memcache_host],
+                                            pickleProtocol=-1)
+        else:
+            self.memcache = None
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
         logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
@@ -100,7 +103,8 @@ class InfluxdbFinder(object):
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        cached_series = self.memcache.get(query.pattern.encode('utf8'))
+        cached_series = self.memcache.get(query.pattern.encode('utf8')) \
+          if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
             return cached_series
@@ -119,9 +123,10 @@ class InfluxdbFinder(object):
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         series = [key_name for (key_name, _) in data.keys()]
         timer.stop()
-        self.memcache.set(query.pattern.encode('utf8'), series,
-                          time=self.memcache_ttl,
-                          min_compress_len=50)
+        if self.memcache:
+            self.memcache.set(query.pattern.encode('utf8'), series,
+                              time=self.memcache_ttl,
+                              min_compress_len=50)
         return (s for s in series)
 
     def compile_regex(self, fmt, query):
@@ -216,7 +221,8 @@ class InfluxdbFinder(object):
             for name in self.get_leaves(query):
                 yield InfluxDBLeafNode(name, InfluxdbReader(
                     self.client, name, self.statsd_client,
-                    aggregation_functions=self.aggregation_functions))
+                    aggregation_functions=self.aggregation_functions,
+                    memcache_host=self.memcache_host))
             for name in self.get_branches(query):
                 logger.debug("Yielding branch %s", name,)
                 yield BranchNode(name)
@@ -246,7 +252,7 @@ class InfluxdbFinder(object):
         memcache_key = "".join(paths + [
             aggregation_func, str(delta)]
             ).encode('utf8')
-        data = self.memcache.get(memcache_key)
+        data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return time_info, data
@@ -281,7 +287,8 @@ class InfluxdbFinder(object):
             data.setdefault(key, [])
         for key in data:
             data[key] = [v for v in data[key]]
-        self.memcache.set(memcache_key, data,
-                          time=interval,
-                          min_compress_len=50)
+        if self.memcache:
+            self.memcache.set(memcache_key, data,
+                              time=interval,
+                              min_compress_len=50)
         return time_info, data

@@ -8,6 +8,7 @@ try:
     import statsd
 except ImportError:
     pass
+from datetime import datetime
 import memcache
 
 logger = logging.getLogger('graphite_influxdb')
@@ -18,17 +19,20 @@ class InfluxdbReader(object):
     Retrieves a single metric series from InfluxDB
     """
     __slots__ = ('client', 'path', 'statsd_client', 'aggregation_functions',
-                 'memcache', 'memcache_ttl')
+                 'memcache')
 
     def __init__(self, client, path, statsd_client,
+                 memcache_host=None,
                  aggregation_functions=None):
         self.client = client
         self.path = path
         self.statsd_client = statsd_client
         self.aggregation_functions = aggregation_functions
-        self.memcache = memcache.Client(['localhost'],
-                                        pickleProtocol=-1)
-        self.memcache_ttl = 3600
+        if memcache_host:
+            self.memcache = memcache.Client([memcache_host],
+                                            pickleProtocol=-1)
+        else:
+            self.memcache = None
 
     def fetch(self, start_time, end_time):
         """Fetch single series' data from > start_time and <= end_time
@@ -40,9 +44,13 @@ class InfluxdbReader(object):
         aggregation_func = get_aggregation_func(self.path, self.aggregation_functions)
         logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d, aggregation=%s",
                      self.path, start_time, end_time, interval, aggregation_func)
-        memcache_key = " ".join([self.path, start_time, end_time,
-                                 interval, aggregation_func])
-        data = self.memcache.get(memcache_key)
+        start_time_dt, end_time_dt = datetime.fromtimestamp(float(start_time)), \
+          datetime.fromtimestamp(float(end_time))
+        td = end_time_dt - start_time_dt
+        delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+        memcache_key = "".join([self.path,
+                                aggregation_func, str(delta)]).encode('utf8')
+        data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return data
@@ -62,6 +70,10 @@ class InfluxdbReader(object):
         timer.stop()
         time_info = start_time, end_time, interval
         values = [v for v in data[self.path]] if self.path in data else []
+        if self.memcache:
+            self.memcache.set(memcache_key, data,
+                              time=interval,
+                              min_compress_len=50)
         return time_info, values
     
     def get_intervals(self):

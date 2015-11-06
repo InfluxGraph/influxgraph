@@ -29,5 +29,8 @@ setup(
         'Topic :: System :: Monitoring',
     ),
     install_requires=['graphite_api','influxdb>=2.6.0'],
+    extras_require={
+        'memcache': ['memcache'],
+    },
     **convert_2_to_3
 )

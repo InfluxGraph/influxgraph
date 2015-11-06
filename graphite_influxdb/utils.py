@@ -5,7 +5,7 @@ from .constants import INFLUXDB_AGGREGATIONS, DEFAULT_AGGREGATIONS
 
 def calculate_interval(start_time, end_time):
     """Calculates wanted data series interval according to start and end times
-
+    
     Returns interval in seconds
     :param start_time: Start time in seconds from epoch
     :param end_time: End time in seconds from epoch"""
@@ -35,7 +35,7 @@ def calculate_interval(start_time, end_time):
     for delta in sorted(deltas.keys()):
         if time_delta <= delta:
             return deltas[delta]
-    # 1 day default, or if time range > 4 year
+    # 1 day default, or if time range > 4 years
     return 86400
 
 class NullStatsd(object):
@@ -74,13 +74,14 @@ def normalize_config(config):
     ret['db'] = cfg.get('db', 'graphite')
     ssl = cfg.get('ssl', False)
     ret['ssl'] = (ssl == 'true')
-    ret['schema'] = cfg.get('schema', [])
     ret['log_file'] = cfg.get('log_file', None)
     ret['log_level'] = cfg.get('log_level', 'info')
     if config.get('statsd', None):
         ret['statsd'] = config.get('statsd')
     ret['aggregation_functions'] = _compile_aggregation_patterns(
         cfg.get('aggregation_functions', DEFAULT_AGGREGATIONS))
+    ret['memcache_host'] = cfg.get('memcache', {}).get('host', None)
+    ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', 900)
     return ret
 
 def _compile_aggregation_patterns(aggregation_functions):

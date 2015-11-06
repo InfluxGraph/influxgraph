@@ -12,6 +12,7 @@ before_install:
   - sleep 5
 install:
   - pip install -r requirements.txt
+  - pip install -r test_requirements.txt
   - pip install coverage coveralls
 script:
   - nosetests --with-coverage --cover-package=graphite_influxdb
