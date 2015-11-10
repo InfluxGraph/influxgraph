@@ -13,7 +13,8 @@ This project is a fork of the excellent `graphite_influxdb <https://github.com/v
 
 It differs from its parent in the following ways:
 
-* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead. See `Varnish caching Graphite-API`_ section for an example.
+* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead. See `Varnish caching InfluxDB API`_ section for an example.
+* Added Memcache integration for caching of InfluxDB data
 * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a `Graphite-API`_ only plugin.
 * Simplified configuration - only InfluxDB database name for Graphite metric series is required.
 * Strict flake-8 compatibility and code test coverage. This project has **100%** code test coverage.
@@ -24,9 +25,11 @@ Installation
 
 ::
 
-    # Install graphite-api with multi fetch support
-    pip install https://github.com/thomsonreuters/graphite-api/archive/1.0.2-rc1.tar.gz
-    pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc5.tar.gz
+  pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc6.tar.gz
+
+To install with optional memcache support ::
+
+  pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc6.tar.gz[memcache]
 
 
 InfluxDB Graphite metric templates
@@ -99,11 +102,9 @@ Users that wish to retrieve all data regardless of time range are advised to que
 Using with graphite-api
 =======================
 
-Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is an unreleased ``1.0.2-rc1`` that has working multi fetch support which is not in the latest official release of ``graphite-api``.
+Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is at least `1.1.1` that has working multi fetch support.
 
-While running with the latest official release does work, performance will suffer as multiple series will need to be retrieved one-by-one.
-
-Use of ``graphite-api`` version as installed by our requirements is **highly** recommended - or latest official version >= ``1.0.2`` once ``1.0.2`` becomes available.
+Use of ``graphite-api`` version as installed by our requirements is **highly** recommended.
 
 In your graphite-api config file at ``/etc/graphite-api.yaml``::
 
@@ -128,6 +129,14 @@ The above is the most minimal configuration. There are several optional configur
        # Values are standard logging levels - info, debug, warning, critical et al
        # Default is 'info'
        log_level: info
+       # (Optional) Memcache integration
+       memcache:
+           host: localhost
+	   # TTL for /metrics/find endpoint only.
+	   # TTL for /render endpoint is dynamic and based on data interval.
+	   # Eg for a 24hr query which would dynamically get a 1min interval, the TTL
+	   # is 1min.
+	   ttl: 900 # (optional)
        aggregation_functions:
            # Aggregation function for metric paths ending in 'metrics.*'
 	   # is 'nonNegativeDerivative'
@@ -141,24 +150,44 @@ The above is the most minimal configuration. There are several optional configur
 	   \.last$ : last
 	   \.sum$ : sum
 
-Varnish caching Graphite-API
+Memcache caching InfluxDB data
+------------------------------
+
+Memcache can be used to cache InfluxDB data so the `Graphite-API` webapp can avoid querying the DB if it does not have to.
+
+TTL configuration for memcache shown above is only for `/metrics/find` endpoint with `/render` endpoint TTL being set to the data interval used.
+
+For example, for a query spanning 24hrs, a data interval of 1min is used. TTL for memcache is set to 1min for that data.
+
+For a query spanning 1 month, a 15min interval is used. TTL is also set to 15min for that data.
+
+Varnish caching InfluxDB API
 ----------------------------
 
-The following is a sample configuration of `Varnish`_ as an HTTP cache in front of `Graphite-API`_ webapp. It uses Varnish's default TTL of 60 sec for all `Graphite-API`_ requests.
+The following is a sample configuration of `Varnish`_ as an HTTP cache in front of InfluxDB's HTTP API. It uses Varnish's default TTL of 60 sec for all InfluxDB queries.
 
-Clients like `Grafana`_ should connect to the Varnish port to talk to InfluxDB on each node.
+Graphite-API webapp should use Varnish port to connect to InfluxDB on each node.
 
-Substitute `<port>` with the Graphite-API webapp port in your installation  ::
+Substitute the default `8086` port with the InfluxDB API port for your installation if needed  ::
 
   backend default {
     .host = "127.0.0.1";
-    .port = "<port>";
+    .port = "8086";
   }
 
   sub vcl_recv {
     unset req.http.cookie;
   }
 
+Graphite API example configuration ::
+
+  finders:
+    - graphite_influxdb.InfluxdbFinder
+  influxdb:
+    db: graphite
+    port: <varnish port>
+
+Where `<varnish_port>` is Varnish's listening port.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api

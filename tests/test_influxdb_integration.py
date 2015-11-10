@@ -244,5 +244,50 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                             msg="Did not get data for requested series %s - got data for %s" % (
                                 series, data.keys(),))
 
+    def test_memcache_configuration_off_by_default(self):
+        self.assertFalse(self.finder.memcache_host)
+
+    def test_memcache_integration(self):
+        del self.finder
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  'memcache' : { 'host': 'localhost',
+                                                 'ttl' : 60},
+                                  },}
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        self.assertTrue(finder.memcache_host)
+        self.assertEqual(finder.memcache_ttl, 60,
+                         msg="Configured TTL of %s sec, got %s sec TTL instead" % (
+                             60, finder.memcache_ttl,))
+        query = Query('*')
+        nodes = [node.name for node in finder.find_nodes(query)]
+        nodes = [node.name for node in finder.find_nodes(query)]
+        self.assertTrue(self.metric_prefix in nodes,
+                        msg="Node list does not contain prefix '%s' - %s" % (
+                            self.metric_prefix, nodes))
+        self.assertTrue(finder.memcache.get(query.pattern.encode('utf8')),
+                        msg="No memcache data for query %s" % (query,))
+        nodes = list(finder.find_nodes(Query(self.series1)))
+        paths = [node.path for node in nodes]
+        time_info, data = finder.fetch_multi(nodes,
+                                             int(self.start_time.strftime("%s")),
+                                             int(self.end_time.strftime("%s")))
+        self.assertTrue(self.series1 in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            self.series1, data.keys(),))
+        aggregation_func = list(set(graphite_influxdb.utils.get_aggregation_func(
+            path, finder.aggregation_functions) for path in paths))[0]
+        memcache_key = graphite_influxdb.utils.gen_memcache_key(
+            int(self.start_time.strftime("%s")), int(self.end_time.strftime("%s")),
+            aggregation_func, paths)
+        self.assertTrue(finder.memcache.get(memcache_key),
+                        msg="Got no memcache data for query %s with key %s" % (
+                            query, memcache_key,))
+
+
 if __name__ == '__main__':
     unittest.main()

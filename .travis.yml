@@ -24,3 +24,5 @@ notifications:
     on_failure: change
 after_success:
   - coveralls
+services:
+  - memcached
