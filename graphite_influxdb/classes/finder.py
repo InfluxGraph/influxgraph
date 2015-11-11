@@ -31,11 +31,12 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
+import cPickle
+import cStringIO
 try:
     import statsd
 except ImportError:
     pass
-import memcache
 try:
     import memcache
 except ImportError:
@@ -72,8 +73,7 @@ class InfluxdbFinder(object):
         self.memcache_host = config.get('memcache_host', None)
         self.memcache_ttl = config['memcache_ttl']
         if self.memcache_host:
-            self.memcache = memcache.Client([self.memcache_host],
-                                            pickleProtocol=-1)
+            self.memcache = memcache.Client([self.memcache_host])
         else:
             self.memcache = None
         self._setup_logger(config['log_level'], config['log_file'])
@@ -112,7 +112,7 @@ class InfluxdbFinder(object):
           if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
-            return cached_series
+            return cPickle.load(cStringIO.StringIO(memcache.decompress(cached_series)))
         # regexes in influxdb are not assumed to be anchored, so anchor them
         # explicitly
         regex = self.compile_regex('^{0}', query)
@@ -129,9 +129,12 @@ class InfluxdbFinder(object):
         series = [key_name for (key_name, _) in data.keys()]
         timer.stop()
         if self.memcache:
-            self.memcache.set(query.pattern.encode('utf8'), series,
-                              time=self.memcache_ttl,
-                              min_compress_len=50)
+            buf = cStringIO.StringIO()
+            cPickle.dump(series, buf)
+            self.memcache.set(query.pattern.encode('utf8'),
+                              memcache.compress(buf.getvalue()),
+                              time=self.memcache_ttl)
+            buf.close()
         return (s for s in series)
 
     def compile_regex(self, fmt, query):
@@ -147,15 +150,13 @@ class InfluxdbFinder(object):
                 '{', '(').replace(',', '|').replace('}', ')')
         ))
 
-    def get_leaves(self, query):
+    def get_leaves(self, query, series, regex):
         """Get LeafNode according to query pattern
 
         :param query: Query to run to get LeafNodes
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        series = self.get_series(query)
         key_leaves = "%s_leaves" % (query.pattern,)
-        regex = self.compile_regex('^{0}$', query)
         logger.debug("get_leaves() key %s", key_leaves)
         timer_name = ".".join(['service_is_graphite-api',
                                'action_is_find_leaves',
@@ -174,16 +175,15 @@ class InfluxdbFinder(object):
                      dt.microseconds)
         return leaves
 
-    def get_branches(self, query):
-        """Get branches according to query.
-
+    def get_branches(self, series, regex):
+        """Get branches from series matching regex
+        
         :param query: Query to run to get BranchNodes
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        series = self.get_series(query)
-        key_branches = "%s_branches" % query.pattern
-        regex = self.compile_regex('^{0}$', query)
-        logger.debug("get_branches() %s", key_branches)
+        seen_branches = set()
+        branches = []
+        logger.debug("get_branches() starting for pattern %s", regex.pattern)
         timer_name = ".".join(['service_is_graphite-api',
                                'action_is_find_branches',
                                'target_type_is_gauge',
@@ -191,27 +191,26 @@ class InfluxdbFinder(object):
         timer = self.statsd_client.timer(timer_name)
         start_time = datetime.datetime.now()
         timer.start()
-        seen_branches = set()
-        branches = []
-        for name in series:
-            while '.' in name:
-                name = name.rsplit('.', 1)[0]
-                if name not in seen_branches:
-                    seen_branches.add(name)
-                    if regex.match(name) is not None:
-                        logger.debug("get_branches() %s found branch name: %s", key_branches, name)
-                        branches.append(name)
+        for path in series:
+            while '.' in path:
+                path = path.rsplit('.', 1)[0]
+                if path not in seen_branches:
+                    seen_branches.add(path)
+                    if regex.match(path):
+                        logger.debug("get_branches() %s found branch name: %s",
+                                     regex.pattern, path)
+                        branches.append(path)
         timer.stop()
         end_time = datetime.datetime.now()
         dt = end_time - start_time
         logger.debug("get_branches() %s Finished find_branches in %s.%ss",
-                     key_branches,
+                     regex.pattern,
                      dt.seconds, dt.microseconds)
         return branches
-
+    
     def find_nodes(self, query):
         """Find matching nodes according to query.
-
+        
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
@@ -222,16 +221,20 @@ class InfluxdbFinder(object):
                                'action_is_yield_nodes',
                                'target_type_is_gauge',
                                'unit_is_ms.what_is_query_duration'])
-        with self.statsd_client.timer(timer_name):
-            for name in self.get_leaves(query):
-                yield InfluxDBLeafNode(name, InfluxdbReader(
-                    self.client, name, self.statsd_client,
+        timer = self.statsd_client.timer(timer_name)
+        timer.start()
+        regex = self.compile_regex('^{0}$', query)
+        series = self.get_series(query)
+        for branch in self.get_branches(series, regex):
+            yield BranchNode(branch)        
+        for path in series:
+            if regex.match(path):
+                yield InfluxDBLeafNode(path, InfluxdbReader(
+                    self.client, path, self.statsd_client,
                     aggregation_functions=self.aggregation_functions,
                     memcache_host=self.memcache_host))
-            for name in self.get_branches(query):
-                logger.debug("Yielding branch %s", name,)
-                yield BranchNode(name)
-
+        timer.stop()
+    
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
         
