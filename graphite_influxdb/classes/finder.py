@@ -31,12 +31,13 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
-import cStringIO
 import zlib
 try:
     import cPickle as pickle
+    import cStringIO as StringIO
 except ImportError:
     import pickle
+    import StringIO
 try:
     import statsd
 except ImportError:
@@ -116,7 +117,7 @@ class InfluxdbFinder(object):
           if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
-            return pickle.load(cStringIO.StringIO(zlib.decompress(cached_series)))
+            return pickle.load(StringIO.StringIO(zlib.decompress(cached_series)))
         # regexes in influxdb are not assumed to be anchored, so anchor them
         # explicitly
         regex = self.compile_regex('^{0}', query)
@@ -133,7 +134,7 @@ class InfluxdbFinder(object):
         series = [key_name for (key_name, _) in data.keys()]
         timer.stop()
         if self.memcache:
-            buf = cStringIO.StringIO()
+            buf = StringIO.StringIO()
             pickle.dump(series, buf)
             self.memcache.set(query.pattern.encode('utf8'),
                               zlib.compress(buf.getvalue()),
