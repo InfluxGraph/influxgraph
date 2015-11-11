@@ -135,7 +135,7 @@ class InfluxdbFinder(object):
                               memcache.compress(buf.getvalue()),
                               time=self.memcache_ttl)
             buf.close()
-        return series
+        return (s for s in series)
 
     def compile_regex(self, fmt, query):
         r"""Turn glob (graphite) queries into compiled regex.
@@ -175,38 +175,24 @@ class InfluxdbFinder(object):
                      dt.microseconds)
         return leaves
 
-    def get_branches(self, series, regex):
-        """Get branches from series matching regex
+    def get_branch(self, path, regex, seen_branches):
+        """Get branch from path matching regex
         
-        :param query: Query to run to get BranchNodes
-        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
+        :param path: Metric path to find branch for
+        :type path: str
+        :param regex: Regular expression that branch must match
+        :type regex: :mod: `re` pattern
+        :param seen_branches: Set of previously seen branches from the query
+        :type seen_branches: set()
         """
-        seen_branches = set()
-        branches = []
-        logger.debug("get_branches() starting for pattern %s", regex.pattern)
-        timer_name = ".".join(['service_is_graphite-api',
-                               'action_is_find_branches',
-                               'target_type_is_gauge',
-                               'unit_is_ms'])
-        timer = self.statsd_client.timer(timer_name)
-        start_time = datetime.datetime.now()
-        timer.start()
-        for path in series:
-            while '.' in path:
-                path = path.rsplit('.', 1)[0]
-                if path not in seen_branches:
-                    seen_branches.add(path)
-                    if regex.match(path):
-                        logger.debug("get_branches() %s found branch name: %s",
-                                     regex.pattern, path)
-                        branches.append(path)
-        timer.stop()
-        end_time = datetime.datetime.now()
-        dt = end_time - start_time
-        logger.debug("get_branches() %s Finished find_branches in %s.%ss",
-                     regex.pattern,
-                     dt.seconds, dt.microseconds)
-        return branches
+        while '.' in path:
+            path = path.rsplit('.', 1)[0]
+            if path not in seen_branches:
+                seen_branches.add(path)
+                if regex.match(path):
+                    logger.debug("get_branch() %s found branch name: %s",
+                                 regex.pattern, path)
+                    return path
     
     def find_nodes(self, query):
         """Find matching nodes according to query.
@@ -225,15 +211,18 @@ class InfluxdbFinder(object):
         timer.start()
         regex = self.compile_regex('^{0}$', query)
         series = self.get_series(query)
-        for branch in self.get_branches(series, regex):
-            yield BranchNode(branch)
-        # import ipdb; ipdb.set_trace()
+        seen_branches = set()
         for path in series:
             if regex.match(path):
                 yield InfluxDBLeafNode(path, InfluxdbReader(
                     self.client, path, self.statsd_client,
                     aggregation_functions=self.aggregation_functions,
                     memcache_host=self.memcache_host))
+            else:
+                branch = self.get_branch(
+                    path, regex, seen_branches)
+                if branch:
+                    yield BranchNode(branch)
         timer.stop()
     
     def fetch_multi(self, nodes, start_time, end_time):

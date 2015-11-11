@@ -74,19 +74,22 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          "Expected compiled pattern %s" % (
                              rec.pattern, metric_query_pat, expected,))
 
-    def test_get_branches(self):
-        """Test finding a series by name"""
+    def test_get_branch(self):
+        """Test getting branch of metric path"""
         query = Query('fakeyfakeyfakefake')
         series = self.finder.get_series(query)
-        branches = list(self.finder.get_branches(
-            series, self.finder.compile_regex('^{0}$', query)))
+        branches = [b for b in [self.finder.get_branch(
+            path, self.finder.compile_regex('^{0}$', query), set())
+            for path in series] if b]
         self.assertEqual(branches, [],
                          msg="Got branches list %s - wanted empty list" % (
                              branches,))
         query = Query('*')
         series = self.finder.get_series(query)
-        branches = list(self.finder.get_branches(
-            series, self.finder.compile_regex('^{0}$', query)))
+        seen_branches = set()
+        branches = [b for b in [self.finder.get_branch(
+            path, self.finder.compile_regex('^{0}$', query), seen_branches)
+            for path in series] if b]
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
@@ -111,8 +114,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.client.write_points(data))
         query = Query(self.metric_prefix + '*')
         series = self.finder.get_series(query)
-        branches = sorted(list(self.finder.get_branches(
-            series, self.finder.compile_regex('^{0}$', query))))
+        branches = sorted([self.finder.get_branch(
+            path, self.finder.compile_regex('^{0}$', query), set())
+            for path in series])
         expected = sorted(branches)
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
