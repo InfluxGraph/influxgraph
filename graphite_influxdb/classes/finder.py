@@ -135,7 +135,7 @@ class InfluxdbFinder(object):
                               memcache.compress(buf.getvalue()),
                               time=self.memcache_ttl)
             buf.close()
-        return (s for s in series)
+        return series
 
     def compile_regex(self, fmt, query):
         r"""Turn glob (graphite) queries into compiled regex.
@@ -226,7 +226,8 @@ class InfluxdbFinder(object):
         regex = self.compile_regex('^{0}$', query)
         series = self.get_series(query)
         for branch in self.get_branches(series, regex):
-            yield BranchNode(branch)        
+            yield BranchNode(branch)
+        # import ipdb; ipdb.set_trace()
         for path in series:
             if regex.match(path):
                 yield InfluxDBLeafNode(path, InfluxdbReader(

@@ -76,11 +76,17 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_get_branches(self):
         """Test finding a series by name"""
-        branches = list(self.finder.get_branches(Query('fakeyfakeyfakefake')))
+        query = Query('fakeyfakeyfakefake')
+        series = self.finder.get_series(query)
+        branches = list(self.finder.get_branches(
+            series, self.finder.compile_regex('^{0}$', query)))
         self.assertEqual(branches, [],
                          msg="Got branches list %s - wanted empty list" % (
                              branches,))
-        branches = list(self.finder.get_branches(Query('*')))
+        query = Query('*')
+        series = self.finder.get_series(query)
+        branches = list(self.finder.get_branches(
+            series, self.finder.compile_regex('^{0}$', query)))
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
@@ -103,7 +109,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
-        branches = sorted(list(self.finder.get_branches(Query(self.metric_prefix + '*'))))
+        query = Query(self.metric_prefix + '*')
+        series = self.finder.get_series(query)
+        branches = sorted(list(self.finder.get_branches(
+            series, self.finder.compile_regex('^{0}$', query))))
         expected = sorted(branches)
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
