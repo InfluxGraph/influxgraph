@@ -31,7 +31,10 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
-import cPickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import cStringIO
 import zlib
 try:
@@ -113,7 +116,7 @@ class InfluxdbFinder(object):
           if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
-            return cPickle.load(cStringIO.StringIO(zlib.decompress(cached_series)))
+            return pickle.load(cStringIO.StringIO(zlib.decompress(cached_series)))
         # regexes in influxdb are not assumed to be anchored, so anchor them
         # explicitly
         regex = self.compile_regex('^{0}', query)
@@ -131,7 +134,7 @@ class InfluxdbFinder(object):
         timer.stop()
         if self.memcache:
             buf = cStringIO.StringIO()
-            cPickle.dump(series, buf)
+            pickle.dump(series, buf)
             self.memcache.set(query.pattern.encode('utf8'),
                               zlib.compress(buf.getvalue()),
                               time=self.memcache_ttl)
@@ -150,31 +153,6 @@ class InfluxdbFinder(object):
             query.pattern.replace('.', r'\.').replace('*', r'[^\.]*').replace(
                 '{', '(').replace(',', '|').replace('}', ')')
         ))
-
-    def get_leaves(self, query, series, regex):
-        """Get LeafNode according to query pattern
-
-        :param query: Query to run to get LeafNodes
-        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
-        """
-        key_leaves = "%s_leaves" % (query.pattern,)
-        logger.debug("get_leaves() key %s", key_leaves)
-        timer_name = ".".join(['service_is_graphite-api',
-                               'action_is_find_leaves',
-                               'target_type_is_gauge',
-                               'unit_is_ms'])
-        timer = self.statsd_client.timer(timer_name)
-        now = datetime.datetime.now()
-        timer.start()
-        leaves = (name for name in series if regex.match(name))
-        timer.stop()
-        end = datetime.datetime.now()
-        dt = end - now
-        logger.debug("get_leaves() key %s Finished find_leaves in %s.%ss",
-                     key_leaves,
-                     dt.seconds,
-                     dt.microseconds)
-        return leaves
 
     def get_branch(self, path, regex, seen_branches):
         """Get branch from path matching regex
