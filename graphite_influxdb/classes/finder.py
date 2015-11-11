@@ -31,12 +31,12 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
+import cStringIO
+import zlib
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import cStringIO
-import zlib
 try:
     import statsd
 except ImportError:
