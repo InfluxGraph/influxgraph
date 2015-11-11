@@ -33,6 +33,7 @@ from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 import cPickle
 import cStringIO
+import zlib
 try:
     import statsd
 except ImportError:
@@ -112,7 +113,7 @@ class InfluxdbFinder(object):
           if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
-            return cPickle.load(cStringIO.StringIO(memcache.decompress(cached_series)))
+            return cPickle.load(cStringIO.StringIO(zlib.decompress(cached_series)))
         # regexes in influxdb are not assumed to be anchored, so anchor them
         # explicitly
         regex = self.compile_regex('^{0}', query)
@@ -132,7 +133,7 @@ class InfluxdbFinder(object):
             buf = cStringIO.StringIO()
             cPickle.dump(series, buf)
             self.memcache.set(query.pattern.encode('utf8'),
-                              memcache.compress(buf.getvalue()),
+                              zlib.compress(buf.getvalue()),
                               time=self.memcache_ttl)
             buf.close()
         return (s for s in series)
