@@ -269,13 +269,17 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                   'db' : self.db_name,
                                   'log_level' : 'debug',
                                   'memcache' : { 'host': 'localhost',
-                                                 'ttl' : 60},
+                                                 'ttl' : 60,
+                                                 'max_value' : 20},
                                   },}
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
                          msg="Configured TTL of %s sec, got %s sec TTL instead" % (
                              60, finder.memcache_ttl,))
+        self.assertEqual(finder.memcache_max_value, 20,
+                         msg="Configured max value of %s MB, got %s instead" % (
+                             20, finder.memcache_max_value,))
         query = Query('*')
         nodes = [node.name for node in finder.find_nodes(query)]
         nodes = [node.name for node in finder.find_nodes(query)]
@@ -301,6 +305,24 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         msg="Got no memcache data for query %s with key %s" % (
                             query, memcache_key,))
 
+    def test_memcache_default_config_values(self):
+        del self.finder
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  'memcache' : { 'host': 'localhost'},
+                                  },}
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        self.assertTrue(finder.memcache_host)
+        self.assertEqual(finder.memcache_ttl, 900,
+                         msg="Default TTL should be 900 sec, got %s sec TTL instead" % (
+                             finder.memcache_ttl,))
+        self.assertEqual(finder.memcache_max_value, 15,
+                         msg="Default max value should be 15 MB, got %s instead" % (
+                             finder.memcache_max_value,))
 
 if __name__ == '__main__':
     unittest.main()

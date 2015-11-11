@@ -31,13 +31,6 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
-import zlib
-try:
-    import cPickle as pickle
-    from cStringIO import StringIO
-except ImportError:
-    import pickle
-    from io import StringIO
 try:
     import statsd
 except ImportError:
@@ -56,7 +49,7 @@ class InfluxdbFinder(object):
     """
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
-                 'memcache', 'memcache_host', 'memcache_ttl')
+                 'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value')
 
     def __init__(self, config):
         config = normalize_config(config)
@@ -77,8 +70,11 @@ class InfluxdbFinder(object):
             self.statsd_client = NullStatsd()
         self.memcache_host = config.get('memcache_host', None)
         self.memcache_ttl = config['memcache_ttl']
+        self.memcache_max_value = config.get('memcache_max_value', 15)
         if self.memcache_host:
-            self.memcache = memcache.Client([self.memcache_host])
+            self.memcache = memcache.Client(
+                [self.memcache_host], pickleProtocol=-1,
+                server_max_value_length=1024*1014*self.memcache_max_value)
         else:
             self.memcache = None
         self._setup_logger(config['log_level'], config['log_file'])
@@ -117,7 +113,7 @@ class InfluxdbFinder(object):
           if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
-            return pickle.load(StringIO(zlib.decompress(cached_series)))
+            return cached_series
         # regexes in influxdb are not assumed to be anchored, so anchor them
         # explicitly
         regex = self.compile_regex('^{0}', query)
@@ -134,12 +130,10 @@ class InfluxdbFinder(object):
         series = [key_name for (key_name, _) in data.keys()]
         timer.stop()
         if self.memcache:
-            buf = StringIO()
-            pickle.dump(series, buf)
             self.memcache.set(query.pattern.encode('utf8'),
-                              zlib.compress(buf.getvalue()),
-                              time=self.memcache_ttl)
-            buf.close()
+                              series,
+                              time=self.memcache_ttl,
+                              min_compress_len=50)
         return (s for s in series)
 
     def compile_regex(self, fmt, query):

@@ -83,6 +83,7 @@ def normalize_config(config):
         cfg.get('aggregation_functions', DEFAULT_AGGREGATIONS))
     ret['memcache_host'] = cfg.get('memcache', {}).get('host', None)
     ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', 900)
+    ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 15)
     return ret
 
 def _compile_aggregation_patterns(aggregation_functions):

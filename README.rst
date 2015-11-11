@@ -137,6 +137,7 @@ The above is the most minimal configuration. There are several optional configur
 	   # Eg for a 24hr query which would dynamically get a 1min interval, the TTL
 	   # is 1min.
 	   ttl: 900 # (optional)
+	   max_value: 15 # (optional) Memcache (compressed) max value length in MB.
        aggregation_functions:
            # Aggregation function for metric paths ending in 'metrics.*'
 	   # is 'nonNegativeDerivative'
