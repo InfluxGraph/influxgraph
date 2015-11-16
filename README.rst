@@ -57,11 +57,11 @@ With InfluxDB versions >= 0.9 it is no longer required that a retention period o
 Aggregation function configuration
 ==================================
 
-The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of `storage-aggregation.conf` in Graphite's `carbon-cache`.
+The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
 
-Default aggregation function used is `mean`, meaning `average`.
+Default aggregation function used is ``mean``, meaning ``average``.
 
-Graphite-influxdb has pre-defined aggregation configuration matching `carbon-cache` defaults, namely ::
+Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
 
   aggregation_functions:
       \.min$ : min
@@ -102,7 +102,7 @@ Users that wish to retrieve all data regardless of time range are advised to que
 Using with graphite-api
 =======================
 
-Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is at least `1.1.1` that has working multi fetch support.
+Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is at least ``1.1.1`` that has working multi fetch support.
 
 Use of ``graphite-api`` version as installed by our requirements is **highly** recommended.
 
@@ -169,7 +169,7 @@ The following is a sample configuration of `Varnish`_ as an HTTP cache in front 
 
 Graphite-API webapp should use Varnish port to connect to InfluxDB on each node.
 
-Substitute the default `8086` port with the InfluxDB API port for your installation if needed  ::
+Substitute the default ``8086`` backend port with the InfluxDB API port for your installation if needed  ::
 
   backend default {
     .host = "127.0.0.1";
@@ -188,7 +188,7 @@ Graphite API example configuration ::
     db: graphite
     port: <varnish port>
 
-Where `<varnish_port>` is Varnish's listening port.
+Where ``<varnish_port>`` is Varnish's listening port.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
