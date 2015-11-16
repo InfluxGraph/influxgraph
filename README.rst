@@ -25,11 +25,11 @@ Installation
 
 ::
 
-  pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc6.tar.gz
+  pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.1-rc1.tar.gz
 
-To install with optional memcache support ::
+Install memcached library separately if wanting to make use of memcached integration ::
 
-  pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.0-rc6.tar.gz[memcache]
+  pip install python-memcached
 
 
 InfluxDB Graphite metric templates
@@ -158,7 +158,7 @@ Memcache can be used to cache InfluxDB data so the `Graphite-API` webapp can avo
 
 TTL configuration for memcache shown above is only for `/metrics/find` endpoint with `/render` endpoint TTL being set to the data interval used.
 
-For example, for a query spanning 24hrs, a data interval of 1min is used. TTL for memcache is set to 1min for that data.
+For example, for a query spanning 24hrs, a data interval of 1 min is used by default. TTL for memcache is set to 1 min for that data.
 
 For a query spanning 1 month, a 15min interval is used. TTL is also set to 15min for that data.
 
