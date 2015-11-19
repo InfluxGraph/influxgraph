@@ -207,7 +207,7 @@ class InfluxdbFinder(object):
         :param start_time: Start time of query
         :param end_time: End time of query
         """
-        paths = [n.path for n in nodes]
+        paths = list(set([n.path for n in nodes]))
         series = ', '.join(['"%s"' % path for path in paths])
         interval = calculate_interval(start_time, end_time)
         time_info = start_time, end_time, interval
