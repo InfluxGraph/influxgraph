@@ -1,2 +1,2 @@
 influxdb>=2.6.0
-graphite-api>=1.1
+graphite-api>=1.1.2
