@@ -13,10 +13,10 @@ This project is a fork of the excellent `graphite_influxdb <https://github.com/v
 
 It differs from its parent in the following ways:
 
-* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead. See `Varnish caching InfluxDB API`_ section for an example.
-* Added Memcache integration for caching of InfluxDB data
+* Added Memcached integration for caching of InfluxDB data.
 * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a `Graphite-API`_ only plugin.
 * Simplified configuration - only InfluxDB database name for Graphite metric series is required.
+* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead. See `Varnish caching InfluxDB API`_ section for an example.
 * Strict flake-8 compatibility and code test coverage. This project has **100%** code test coverage.
 * Python 2.6, 2.7 and 3.4 all fully supported with automated testing.
 
@@ -95,7 +95,7 @@ An interval, or step, used to group data with is automatically calculated depend
 
 This mirrors what `Grafana`_ does when talking directly to InfluxDB.
 
-Overriding the automatically calculated interval is not supported.
+Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Using with graphite-api`_ section for all supported configuration options.
 
 Users that wish to retrieve all data regardless of time range are advised to query `InfluxDB`_ directly.
 
@@ -113,7 +113,7 @@ In your graphite-api config file at ``/etc/graphite-api.yaml``::
     influxdb:
        db:   graphite
 
-The above is the most minimal configuration. There are several optional configuration options, a full list of which is below. ::
+The above is the most minimal configuration. There are several optional configuration values, a full list of which is below. ::
 
     finders:
       - graphite_influxdb.InfluxdbFinder
@@ -139,7 +139,7 @@ The above is the most minimal configuration. There are several optional configur
 	   ttl: 900 # (optional)
 	   max_value: 15 # (optional) Memcache (compressed) max value length in MB.
        aggregation_functions:
-           # Aggregation function for metric paths ending in 'metrics.*'
+           # Aggregation function for metric paths ending in 'metrics.+'
 	   # is 'nonNegativeDerivative'
 	   \.metrics.+$ : nonNegativeDerivative
 	   # The below four aggregation functions are the

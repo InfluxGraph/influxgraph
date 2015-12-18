@@ -65,6 +65,32 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                        ]
         self.setup_db()
 
+    def test_configured_deltas(self):
+        del self.finder
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  # Set data interval to 1 second for queries
+                                  # of one hour or less
+                                  'deltas' : { 3600:1 },
+                                  },}
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        self.assertTrue(finder.deltas)
+        nodes = list(finder.find_nodes(Query(self.series1)))
+        paths = [node.path for node in nodes]
+        time_info, data = finder.fetch_multi(nodes,
+                                             int(self.start_time.strftime("%s")),
+                                             int(self.end_time.strftime("%s")))
+        self.assertTrue(self.series1 in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            self.series1, data.keys(),))
+        self.assertTrue(len(data[self.series1]) == 3601,
+                        msg="Expected exactly %s data points - got %s instead" % (
+                            3601, len(data[self.series1])))
+
     def test_compile_regex(self):
         metric_query_pat = 'metric_prefix.*'
         expected = "^metric_prefix\\.[^\\.]*$"
@@ -282,7 +308,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                              20, finder.memcache_max_value,))
         query = Query('*')
         nodes = [node.name for node in finder.find_nodes(query)]
-        nodes = [node.name for node in finder.find_nodes(query)]
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))
@@ -297,6 +322,12 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.series1 in data,
                         msg="Did not get data for requested series %s - got data for %s" % (
                             self.series1, data.keys(),))
+        time_info, data_cached = finder.fetch_multi(nodes,
+                                                    int(self.start_time.strftime("%s")),
+                                                    int(self.end_time.strftime("%s")))
+        self.assertEqual(len(data[self.series1]), len(data_cached[self.series1]),
+                         msg="Cached data does not match uncached data for series %s" % (
+                             self.series1))
         aggregation_func = list(set(graphite_influxdb.utils.get_aggregation_func(
             path, finder.aggregation_functions) for path in paths))[0]
         memcache_key = graphite_influxdb.utils.gen_memcache_key(
@@ -305,7 +336,19 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(finder.memcache.get(memcache_key),
                         msg="Got no memcache data for query %s with key %s" % (
                             query, memcache_key,))
+        time_info, reader_data = nodes[0].reader.fetch(int(self.start_time.strftime("%s")),
+                                                       int(self.end_time.strftime("%s")))
+        self.assertEqual(len(data[self.series1]), len(reader_data[self.series1]),
+                         msg="Reader cached data does not match finder cached data"
+                         " for series %s" % (self.series1,))
 
+    def test_reader_memcache_integration(self):
+        reader = graphite_influxdb.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), self.series1, graphite_influxdb.utils.NullStatsd(),
+            memcache_host='localhost')
+        self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),
+                                     int(self.end_time.strftime("%s"))))
+    
     def test_memcache_default_config_values(self):
         del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',

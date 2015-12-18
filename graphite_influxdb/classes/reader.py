@@ -46,6 +46,7 @@ class InfluxdbReader(object):
         :param end_time: end_time in seconds from epoch
         """
         interval = calculate_interval(start_time, end_time, deltas=self.deltas)
+        time_info = start_time, end_time, interval
         aggregation_func = get_aggregation_func(self.path, self.aggregation_functions)
         logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d, aggregation=%s",
                      self.path, start_time, end_time, interval, aggregation_func)
@@ -54,7 +55,7 @@ class InfluxdbReader(object):
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
-            return data
+            return time_info, data
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -69,14 +70,15 @@ class InfluxdbReader(object):
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
         data = read_influxdb_values(data)
         timer.stop()
-        time_info = start_time, end_time, interval
         values = [v for v in data[self.path]] if self.path in data else []
         if self.memcache:
-            self.memcache.set(memcache_key, data,
+            self.memcache.set(memcache_key, values,
                               time=interval,
                               min_compress_len=50)
         return time_info, values
     
     def get_intervals(self):
-        """Noop function - Used by Graphite-Web but not needed for Graphite-Api"""
+        """Noop function - Used for whisper backends but not
+        needed for Graphite-Influxdb
+        """
         pass
