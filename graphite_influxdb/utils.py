@@ -5,14 +5,14 @@ import datetime
 import hashlib
 from .constants import INFLUXDB_AGGREGATIONS, DEFAULT_AGGREGATIONS
 
-def calculate_interval(start_time, end_time):
+def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
     
     Returns interval in seconds
     :param start_time: Start time in seconds from epoch
     :param end_time: End time in seconds from epoch"""
     time_delta = end_time - start_time
-    deltas = {
+    deltas = deltas if deltas else {
         # # 1 hour -> 1s
         # 3600 : 1,
         # # 1 day -> 30s
@@ -85,6 +85,7 @@ def normalize_config(config):
     ret['memcache_host'] = cfg.get('memcache', {}).get('host', None)
     ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', 900)
     ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 15)
+    ret['deltas'] = cfg.get('deltas', None)
     return ret
 
 def _compile_aggregation_patterns(aggregation_functions):

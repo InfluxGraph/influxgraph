@@ -49,7 +49,8 @@ class InfluxdbFinder(object):
     """
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
-                 'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value')
+                 'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
+                 'deltas')
 
     def __init__(self, config):
         config = normalize_config(config)
@@ -79,6 +80,7 @@ class InfluxdbFinder(object):
             self.memcache = None
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
+        self.deltas = config.get('deltas', None)
         logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
 
     def _setup_logger(self, level, log_file):
@@ -176,8 +178,6 @@ class InfluxdbFinder(object):
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         logger.debug("find_nodes() query %s", query)
-        # TODO(retention_periods): once we can query influx better for retention periods,
-        # honour the start/end time in the FindQuery object
         timer_name = ".".join(['service_is_graphite-api',
                                'action_is_yield_nodes',
                                'target_type_is_gauge',
@@ -192,7 +192,8 @@ class InfluxdbFinder(object):
                 yield InfluxDBLeafNode(path, InfluxdbReader(
                     self.client, path, self.statsd_client,
                     aggregation_functions=self.aggregation_functions,
-                    memcache_host=self.memcache_host))
+                    memcache_host=self.memcache_host,
+                    deltas=self.deltas))
             else:
                 branch = self.get_branch(
                     path, regex, seen_branches)
@@ -210,7 +211,7 @@ class InfluxdbFinder(object):
         """
         paths = list(set([n.path for n in nodes]))
         series = ', '.join(['"%s"' % path for path in paths])
-        interval = calculate_interval(start_time, end_time)
+        interval = calculate_interval(start_time, end_time, deltas=self.deltas)
         time_info = start_time, end_time, interval
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
                                      for path in paths))
@@ -241,16 +242,8 @@ class InfluxdbFinder(object):
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
         data = read_influxdb_values(data)
         timer.stop()
-        # some series we requested might not be in the resultset.
-        # this is because influx doesn't include series that had no values
-        # this is a behavior that some people actually appreciate when graphing,
-        # but graphite doesn't do this (yet),
-        # and we want to look the same, so we must add those back in.
-        # a better reason though, is because for advanced alerting cases like bosun,
-        # you want all entries even if they have no data, so you can properly
-        # compare, join, or do logic with the targets returned for requests for the
-        # same data but from different time ranges, you want them to all
-        # include the same keys.
+        # Graphite API requires that data contain keys for
+        # all requested paths even if they have no data
         query_keys = set([node.path for node in nodes])
         for key in query_keys:
             data.setdefault(key, [])

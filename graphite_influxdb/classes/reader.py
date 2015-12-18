@@ -22,11 +22,12 @@ class InfluxdbReader(object):
     Retrieves a single metric series from InfluxDB
     """
     __slots__ = ('client', 'path', 'statsd_client', 'aggregation_functions',
-                 'memcache')
+                 'memcache', 'deltas')
 
     def __init__(self, client, path, statsd_client,
                  memcache_host=None,
-                 aggregation_functions=None):
+                 aggregation_functions=None,
+                 deltas=None):
         self.client = client
         self.path = path
         self.statsd_client = statsd_client
@@ -36,6 +37,7 @@ class InfluxdbReader(object):
                                             pickleProtocol=-1)
         else:
             self.memcache = None
+        self.deltas = deltas
 
     def fetch(self, start_time, end_time):
         """Fetch single series' data from > start_time and <= end_time
@@ -43,7 +45,7 @@ class InfluxdbReader(object):
         :param start_time: start_time in seconds from epoch
         :param end_time: end_time in seconds from epoch
         """
-        interval = calculate_interval(start_time, end_time)
+        interval = calculate_interval(start_time, end_time, deltas=self.deltas)
         aggregation_func = get_aggregation_func(self.path, self.aggregation_functions)
         logger.debug("fetch() path=%s start_time=%s, end_time=%s, interval=%d, aggregation=%s",
                      self.path, start_time, end_time, interval, aggregation_func)

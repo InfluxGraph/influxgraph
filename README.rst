@@ -150,6 +150,33 @@ The above is the most minimal configuration. There are several optional configur
 	   \.max$ : max
 	   \.last$ : last
 	   \.sum$ : sum
+	# (Optional) Time intervals to use for query time ranges
+	# Key is time range of query, value is time delta of query.
+	# Eg to use a one second query interval for a query spanning
+	# one hour or less use `3600 : 1`
+	# Shown below is the default configuration, change/add/remove
+	# as necessary.
+        deltas:
+            # 1 hour -> 1s
+            # 3600 : 1
+            # 1 day -> 30s
+            # 86400 : 30
+            # 3 days -> 1min
+            259200 : 60
+            # 7 days -> 5min
+            604800 : 300
+            # 14 days -> 10min
+            1209600 : 600
+            # 28 days -> 15min
+            2419200 : 900
+            # 2 months -> 30min
+            4838400 : 1800
+            # 4 months -> 1hour
+            9676800 : 3600
+            # 12 months -> 3hours
+            31536000 : 7200
+            # 4 years -> 12hours
+            126144000 : 43200
 
 Memcache caching InfluxDB data
 ------------------------------
