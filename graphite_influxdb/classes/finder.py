@@ -28,7 +28,7 @@ from graphite_api.node import BranchNode
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
-     gen_memcache_key
+     gen_memcache_key, gen_memcache_pattern_key
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 try:
@@ -109,7 +109,8 @@ class InfluxdbFinder(object):
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        cached_series = self.memcache.get(query.pattern.encode('utf8')) \
+        memcache_key = gen_memcache_pattern_key(query.pattern)
+        cached_series = self.memcache.get(memcache_key) \
           if self.memcache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
@@ -130,7 +131,7 @@ class InfluxdbFinder(object):
         series = [key_name for (key_name, _) in data.keys()]
         timer.stop()
         if self.memcache:
-            self.memcache.set(query.pattern.encode('utf8'),
+            self.memcache.set(memcache_key,
                               series,
                               time=self.memcache_ttl,
                               min_compress_len=50)

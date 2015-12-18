@@ -286,8 +286,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))
-        self.assertTrue(finder.memcache.get(query.pattern.encode('utf8')),
-                        msg="No memcache data for query %s" % (query,))
+        self.assertTrue(finder.memcache.get(
+            graphite_influxdb.utils.gen_memcache_pattern_key(query.pattern)),
+            msg="No memcache data for query %s" % (query,))
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
         time_info, data = finder.fetch_multi(nodes,
