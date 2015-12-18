@@ -132,5 +132,5 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
       datetime.datetime.fromtimestamp(float(end_time))
     td = end_time_dt - start_time_dt
     delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
-    key_prefix = hashlib.md5("".join(paths)).hexdigest()
+    key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
