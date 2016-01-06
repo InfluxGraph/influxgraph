@@ -18,6 +18,10 @@
 Read metric series from an InfluxDB database via a Graphite compatible API.
 """
 
+import gevent
+import gevent.monkey
+gevent.monkey.patch_socket()
+gevent.monkey.patch_select()
 import datetime
 from influxdb import InfluxDBClient
 import logging
@@ -28,7 +32,7 @@ from graphite_api.node import BranchNode
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
-     gen_memcache_key, gen_memcache_pattern_key
+     gen_memcache_key, gen_memcache_pattern_key, Query
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 try:
@@ -50,7 +54,8 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas')
+                 'deltas', 'leaf_paths', 'branch_paths', 'compiled_queries',
+                 'loader')
 
     def __init__(self, config):
         config = normalize_config(config)
@@ -81,6 +86,11 @@ class InfluxdbFinder(object):
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
         self.deltas = config.get('deltas', None)
+        self.leaf_paths = set()
+        self.branch_paths = {}
+        self.compiled_queries = {}
+        self.loader = gevent.spawn(self._series_loader)
+        # import ipdb; ipdb.set_trace()
         logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
 
     def _setup_logger(self, level, log_file):
@@ -170,6 +180,13 @@ class InfluxdbFinder(object):
                     logger.debug("get_branch() %s found branch name: %s",
                                  regex.pattern, path)
                     return path
+
+    def _series_loader(self, interval=900):
+        pattern = '*'
+        query = Query(pattern)
+        while True:
+            [b for b in self.find_nodes(query)]
+            gevent.sleep(interval)
     
     def find_nodes(self, query):
         """Find matching nodes according to query.
@@ -184,20 +201,29 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        regex = self.compile_regex('^{0}$', query)
+        regex = self.compiled_queries.setdefault(
+            query.pattern, self.compile_regex('^{0}$', query))
         series = self.get_series(query)
         seen_branches = set()
         for path in series:
-            if regex.match(path):
+            leaf_path_key = path + query.pattern
+            if leaf_path_key in self.leaf_paths or regex.match(path):
+                self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
                     self.client, path, self.statsd_client,
                     aggregation_functions=self.aggregation_functions,
                     memcache_host=self.memcache_host,
                     deltas=self.deltas))
             else:
+                # if path in self.branch_paths:
+                #     yield BranchNode(self.branch_paths[path])
+                # else:
                 branch = self.get_branch(
                     path, regex, seen_branches)
                 if branch:
+                    branches = self.branch_paths.get(path, set(branch))
+                    branches.add(branch)
+                    self.branch_paths[path] = branches
                     yield BranchNode(branch)
         timer.stop()
     

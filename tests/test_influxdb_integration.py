@@ -4,12 +4,8 @@ from influxdb import InfluxDBClient
 import influxdb.exceptions
 import graphite_influxdb
 import graphite_influxdb.utils
+from graphite_influxdb.utils import Query
 import datetime
-
-class Query(object):
-
-    def __init__(self, pattern):
-        self.pattern = pattern
 
 os.environ['TZ'] = 'UTC'
 

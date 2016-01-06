@@ -40,6 +40,13 @@ def calculate_interval(start_time, end_time, deltas=None):
     # 1 day default, or if time range > 4 years
     return 86400
 
+
+class Query(object):
+
+    def __init__(self, pattern):
+        self.pattern = pattern
+
+
 class NullStatsd(object):
     """Fake StatsClient compatible class to use when statsd is not configured"""
 
@@ -60,6 +67,7 @@ class NullStatsd(object):
 
     def stop(self):
         pass
+
 
 def normalize_config(config):
     cfg = config.get('influxdb', None)
