@@ -6,6 +6,7 @@ import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
 import datetime
+import time
 
 os.environ['TZ'] = 'UTC'
 
@@ -305,6 +306,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_max_value, 20,
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
+        time.sleep(1)
         query = Query('*')
         nodes = [node.name for node in finder.find_nodes(query)]
         self.assertTrue(self.metric_prefix in nodes,
@@ -312,7 +314,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                             self.metric_prefix, nodes))
         self.assertTrue(finder.memcache.get(
             graphite_influxdb.utils.gen_memcache_pattern_key(query.pattern)),
-            msg="No memcache data for query %s" % (query,))
+            msg="No memcache data for query %s" % (query.pattern,))
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
         time_info, data = finder.fetch_multi(nodes,
@@ -340,7 +342,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(len(data[self.series1]), len(reader_data[self.series1]),
                          msg="Reader cached data does not match finder cached data"
                          " for series %s" % (self.series1,))
-
+    
     def test_reader_memcache_integration(self):
         reader = graphite_influxdb.InfluxdbReader(InfluxDBClient(
             database=self.db_name), self.series1, graphite_influxdb.utils.NullStatsd(),

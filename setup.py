@@ -26,11 +26,13 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 3',
         'Topic :: System :: Monitoring',
     ),
-    install_requires=['graphite_api','influxdb>=2.6.0'],
+    install_requires=['graphite_api', 'influxdb>=2.6.0'],
     extras_require={
-        'memcached': ['python-memcached'],
+        'memcached': ['python-memcached', 'gevent'],
+        'statsd' : ['statsd'],
     },
     **convert_2_to_3
 )

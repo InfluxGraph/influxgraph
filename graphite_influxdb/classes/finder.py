@@ -18,10 +18,15 @@
 Read metric series from an InfluxDB database via a Graphite compatible API.
 """
 
-import gevent
-import gevent.monkey
-gevent.monkey.patch_socket()
-gevent.monkey.patch_select()
+try:
+    import memcache
+    import gevent
+    import gevent.monkey
+except ImportError:
+    pass
+else:
+    gevent.monkey.patch_socket()
+    gevent.monkey.patch_select()
 import datetime
 from influxdb import InfluxDBClient
 import logging
@@ -37,10 +42,6 @@ from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 try:
     import statsd
-except ImportError:
-    pass
-try:
-    import memcache
 except ImportError:
     pass
 
@@ -187,9 +188,20 @@ class InfluxdbFinder(object):
                     return path
 
     def _series_loader(self, interval=900):
+        """Loads influxdb series list into memcache at a rate of no
+        more than once a minute
+        """
+        series_loader_mutex_key = 'graphite_influxdb_series_loader'
         pattern = '*'
         query = Query(pattern)
         while True:
+            if self.memcache.get(series_loader_mutex_key):
+                logger.debug("Series loader mutex exists %s - "
+                             "skipping series load",
+                             series_loader_mutex_key)
+                gevent.sleep(interval)
+                continue
+            self.memcache.set(series_loader_mutex_key, 1, time=60)
             start_time = datetime.datetime.now()
             logger.debug("Starting series list loader..")
             [b for b in self.find_nodes(query, cache=False)]
