@@ -1,2 +1,2 @@
 python-memcached
-gevent>=1.0
+gevent>=1.1rc3
