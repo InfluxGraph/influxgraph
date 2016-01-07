@@ -76,22 +76,24 @@ class InfluxdbFinder(object):
             self.statsd_client = NullStatsd()
         self.memcache_host = config.get('memcache_host', None)
         self.memcache_ttl = config['memcache_ttl']
-        self.memcache_max_value = config.get('memcache_max_value', 15)
+        self.memcache_max_value = config.get('memcache_max_value', 1)
         if self.memcache_host:
             self.memcache = memcache.Client(
                 [self.memcache_host], pickleProtocol=-1,
-                server_max_value_length=1024*1014*self.memcache_max_value)
+                server_max_value_length=1024**2*self.memcache_max_value)
         else:
             self.memcache = None
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
+        series_loader_interval = config.get('series_loader_interval', 900)
         self.deltas = config.get('deltas', None)
         self.leaf_paths = set()
         self.branch_paths = {}
         self.compiled_queries = {}
-        self.loader = gevent.spawn(self._series_loader)
-        # import ipdb; ipdb.set_trace()
+        self.loader = gevent.spawn(self._series_loader,
+                                   interval=series_loader_interval)
         logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
+        gevent.sleep(0)
 
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
@@ -115,7 +117,7 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
 
-    def get_series(self, query):
+    def get_series(self, query, cache=True):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
@@ -123,7 +125,7 @@ class InfluxdbFinder(object):
         """
         memcache_key = gen_memcache_pattern_key(query.pattern)
         cached_series = self.memcache.get(memcache_key) \
-          if self.memcache else None
+          if self.memcache and cache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
             return cached_series
@@ -185,10 +187,14 @@ class InfluxdbFinder(object):
         pattern = '*'
         query = Query(pattern)
         while True:
-            [b for b in self.find_nodes(query)]
+            start_time = datetime.datetime.now()
+            logger.debug("Starting series list loader..")
+            [b for b in self.find_nodes(query, cache=False)]
+            dt = datetime.datetime.now() - start_time
+            logger.debug("Series list loader finished in %s", dt)
             gevent.sleep(interval)
     
-    def find_nodes(self, query):
+    def find_nodes(self, query, cache=True):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
@@ -203,7 +209,7 @@ class InfluxdbFinder(object):
         timer.start()
         regex = self.compiled_queries.setdefault(
             query.pattern, self.compile_regex('^{0}$', query))
-        series = self.get_series(query)
+        series = self.get_series(query, cache=cache)
         seen_branches = set()
         for path in series:
             leaf_path_key = path + query.pattern
@@ -213,6 +219,7 @@ class InfluxdbFinder(object):
                     self.client, path, self.statsd_client,
                     aggregation_functions=self.aggregation_functions,
                     memcache_host=self.memcache_host,
+                    memcache_max_value=self.memcache_max_value,
                     deltas=self.deltas))
             else:
                 # if path in self.branch_paths:

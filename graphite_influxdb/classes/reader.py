@@ -27,14 +27,17 @@ class InfluxdbReader(object):
     def __init__(self, client, path, statsd_client,
                  memcache_host=None,
                  aggregation_functions=None,
-                 deltas=None):
+                 deltas=None,
+                 # 1MB default
+                 memcache_max_value=1048576):
         self.client = client
         self.path = path
         self.statsd_client = statsd_client
         self.aggregation_functions = aggregation_functions
         if memcache_host:
-            self.memcache = memcache.Client([memcache_host],
-                                            pickleProtocol=-1)
+            self.memcache = memcache.Client(
+                [memcache_host], pickleProtocol=-1,
+                server_max_value_length=memcache_max_value)
         else:
             self.memcache = None
         self.deltas = deltas
