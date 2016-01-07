@@ -111,7 +111,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          msg="Got branches list %s - wanted empty list" % (
                              branches,))
         query = Query('*')
-        series = self.finder.get_series(query)
+        series = list(self.finder.get_series(query))
         seen_branches = set()
         branches = [b for b in [self.finder.get_branch(
             path, self.finder.compile_regex('^{0}$', query), seen_branches)
@@ -119,7 +119,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
-                                                                  expected,))
+                                                                   expected,))
         branches = ['branch_node1', 'branch_node2']
         series = [".".join([self.metric_prefix,
                             branch, 'leaf_node',])
@@ -139,9 +139,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 ]]
         self.assertTrue(self.client.write_points(data))
         query = Query(self.metric_prefix + '*')
-        series = self.finder.get_series(query)
+        series = list(self.finder.get_series(query))
+        seen_branches = set()
+        import ipdb; ipdb.set_trace()
         branches = sorted([self.finder.get_branch(
-            path, self.finder.compile_regex('^{0}$', query), set())
+            path, self.finder.compile_regex('^{0}$', query), seen_branches)
             for path in series])
         expected = sorted(branches)
         self.assertEqual(branches, expected,
