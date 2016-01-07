@@ -61,6 +61,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                        ]
         self.setup_db()
 
+    def tearDown(self):
+        self.client.drop_database(self.db_name)
+
     def test_configured_deltas(self):
         del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',

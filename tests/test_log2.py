@@ -1,12 +1,8 @@
-import os
 import uuid
 import unittest
 import graphite_influxdb
 
 class GraphiteInfluxDBLogFileConfigTestCase(unittest.TestCase):
-
-    def setUp(self):
-        pass
     
     def test_create_root_log_file_should_fail(self):
         _config = { 'influxdb' : { 'host' : 'localhost',

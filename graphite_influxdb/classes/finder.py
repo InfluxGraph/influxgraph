@@ -90,9 +90,12 @@ class InfluxdbFinder(object):
         self.leaf_paths = set()
         self.branch_paths = {}
         self.compiled_queries = {}
-        self.loader = gevent.spawn(self._series_loader,
-                                   interval=series_loader_interval)
-        logger.debug("Configured aggregation functions - %s", self.aggregation_functions,)
+        if self.memcache:
+            # No memcached configured? No need for series loader
+            self.loader = gevent.spawn(self._series_loader,
+                                       interval=series_loader_interval)
+        logger.debug("Configured aggregation functions - %s",
+                     self.aggregation_functions,)
         gevent.sleep(0)
 
     def _setup_logger(self, level, log_file):
