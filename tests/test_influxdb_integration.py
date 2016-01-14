@@ -112,10 +112,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                              branches,))
         query = Query('*')
         series = list(self.finder.get_series(query))
+        # import ipdb; ipdb.set_trace()
         seen_branches = set()
-        branches = [b for b in [self.finder.get_branch(
-            path, self.finder.compile_regex('^{0}$', query), seen_branches)
-            for path in series] if b]
+        branches = [b for b in [self.finder.get_branch(path)
+                                for path in series] if b]
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,

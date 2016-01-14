@@ -133,20 +133,20 @@ class InfluxdbFinder(object):
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
             return cached_series
-        # regexes in influxdb are not assumed to be anchored, so anchor them
-        # explicitly
-        regex = self.compile_regex('^{0}', query)
+        regex_string = self.make_regex_string(query)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        _query = "show series from /%s/" % (regex.pattern,)
+        _query = "show measurements with measurement =~ /%s/" % (regex_string)
+        # _query = "show series from /%s/" % (regex.pattern,)
         logger.debug("get_series() Calling influxdb with query - %s", _query)
         timer = self.statsd_client.timer(timer_name)
         timer.start()
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        series = [key_name for (key_name, _) in data.keys()]
+        # import ipdb; ipdb.set_trace()
+        series = [d['name'] for d in data['measurements']]
         timer.stop()
         if self.memcache:
             self.memcache.set(memcache_key,
@@ -155,38 +155,11 @@ class InfluxdbFinder(object):
                               min_compress_len=50)
         return (s for s in series)
 
-    def compile_regex(self, fmt, query):
-        r"""Turn glob (graphite) queries into compiled regex.
-        
-        * becomes .*
-        . becomes \.
-        fmt argument is so that caller can control
-        anchoring (must contain exactly one {0} !
-        """
-        return re.compile(fmt.format(
-            query.pattern.replace('.', r'\.').replace('*', r'[^\.]*').replace(
+    def make_regex_string(self, query):
+        """Make InfluxDB regex strings from Graphite wildcard queries"""
+        return query.pattern.replace('.', r'\.').replace('*', '').replace(
                 '{', '(').replace(',', '|').replace('}', ')')
-        ))
-
-    def get_branch(self, path, regex, seen_branches):
-        """Get branch from path matching regex
-        
-        :param path: Metric path to find branch for
-        :type path: str
-        :param regex: Regular expression that branch must match
-        :type regex: :mod: `re` pattern
-        :param seen_branches: Set of previously seen branches from the query
-        :type seen_branches: set()
-        """
-        while '.' in path:
-            path = path.rsplit('.', 1)[0]
-            if path not in seen_branches:
-                seen_branches.add(path)
-                if regex.match(path):
-                    logger.debug("get_branch() %s found branch name: %s",
-                                 regex.pattern, path)
-                    return path
-
+    
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
         more than once a minute
@@ -208,6 +181,9 @@ class InfluxdbFinder(object):
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             gevent.sleep(interval)
+
+    def get_branch(self, path):
+        return path
     
     def find_nodes(self, query, cache=True):
         """Find matching nodes according to query.
@@ -222,8 +198,8 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        regex = self.compiled_queries.setdefault(
-            query.pattern, self.compile_regex('^{0}$', query))
+        # regex = self.compiled_queries.setdefault(
+        #     query.pattern, self.compile_regex('^{0}$', query))
         series = self.get_series(query, cache=cache)
         seen_branches = set()
         for path in series:
@@ -240,13 +216,21 @@ class InfluxdbFinder(object):
                 # if path in self.branch_paths:
                 #     yield BranchNode(self.branch_paths[path])
                 # else:
-                branch = self.get_branch(
-                    path, regex, seen_branches)
-                if branch:
-                    branches = self.branch_paths.get(path, set(branch))
-                    branches.add(branch)
-                    self.branch_paths[path] = branches
-                    yield BranchNode(branch)
+                # 
+                if path in self.branch_paths:
+                    yield BranchNode(self.branch_paths[path])
+                else:
+                    branch = self.get_branch(path)
+                    if branch:
+                        branches = self.branch_paths.get(path, set(branch))
+                        branches.add(branch)
+                        yield BranchNode(branch)
+                # branch = self.get_branch(
+                #     path, regex, seen_branches)
+                # if branch:
+                #     branches = self.branch_paths.get(path, set(branch))
+                #     branches.add(branch)
+                #     self.branch_paths[path] = branches
         timer.stop()
     
     def fetch_multi(self, nodes, start_time, end_time):
