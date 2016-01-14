@@ -120,10 +120,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
                                                                    expected,))
-        branches = ['branch_node1', 'branch_node2']
-        series = [".".join([self.metric_prefix,
+        prefix = 'branch_test_prefix'
+        written_branches = ['branch_node1', 'branch_node2']
+        written_series = [".".join([prefix,
                             branch, 'leaf_node',])
-                            for branch in branches]
+                            for branch in written_branches]
         data = [{
             "measurement": series,
             "tags": {},
@@ -132,20 +133,20 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 "value": 1,
                 }
             }
-            for series in series
+            for series in written_series
             for _time in [
                 (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
-        query = Query(self.metric_prefix + '*')
+        query = Query(prefix + '.*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
-        import ipdb; ipdb.set_trace()
-        branches = sorted([self.finder.get_branch(
+        # import ipdb; ipdb.set_trace()
+        branches = sorted([b for b in [self.finder.get_branch(
             path, self.finder.compile_regex('^{0}$', query), seen_branches)
-            for path in series])
-        expected = sorted(branches)
+            for path in series] if b])
+        expected = [".".join([prefix, b]) for b in written_branches]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
                                                                   expected,))
