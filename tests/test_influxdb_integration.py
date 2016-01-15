@@ -103,10 +103,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                              branches,))
         query = Query('*')
         series = list(self.finder.get_series(query))
-        # import ipdb; ipdb.set_trace()
         seen_branches = set()
-        branches = list(set([b for b in [self.finder.get_branch(path, query, seen_branches)
-                                    for path in series] if b]))
+        # import ipdb; ipdb.set_trace()
+        branches = [b for b in [self.finder.get_branch(path, query, seen_branches)
+                                for path in series] if b]
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
@@ -156,10 +156,17 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))
+    
+    def test_find_series_glob_expansion(self):
+        """Test finding metric prefix by glob expansion"""
+        query = Query('{%s}' % (self.metric_prefix))
+        nodes = [node.name for node in self.finder.find_nodes(query)]
+        self.assertTrue(self.metric_prefix in nodes,
+                        msg="Node list does not contain prefix '%s' - %s" % (
+                            self.metric_prefix, nodes))
 
     def test_find_leaf_nodes(self):
         """Test finding leaf nodes by wildcard"""
-        import ipdb; ipdb.set_trace()
         nodes = [node.name
                  for node in self.finder.find_nodes(Query(self.metric_prefix + ".leaf*"))]
         expected = self.nodes

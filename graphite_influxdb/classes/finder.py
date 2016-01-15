@@ -34,6 +34,7 @@ from logging.handlers import TimedRotatingFileHandler
 import re
 import sys
 from graphite_api.node import BranchNode
+from graphite_api.utils import is_pattern
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
@@ -139,13 +140,12 @@ class InfluxdbFinder(object):
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        _query = "show measurements with measurement =~ /%s/" % (regex_string)
-        # _query = "show series from /%s/" % (regex.pattern,)
+        _query = "show measurements with measurement =~ /%s/" % (
+            regex_string) if regex_string else "show measurements"
         logger.debug("get_series() Calling influxdb with query - %s", _query)
         timer = self.statsd_client.timer(timer_name)
         timer.start()
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        # import ipdb; ipdb.set_trace()
         series = [d['name'] for d in data['measurements']]
         timer.stop()
         if self.memcache:
@@ -157,8 +157,13 @@ class InfluxdbFinder(object):
 
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
-        return query.pattern.replace('.', r'\.').replace('*', '').replace(
-                '{', '(').replace(',', '|').replace('}', ')')
+        if not is_pattern(query.pattern):
+            return query.pattern
+        if query.pattern == '*':
+            return '^[a-zA-Z0-9-_:#]+\.'
+        return "^%s$" % (query.pattern.replace('.', r'\.').replace(
+            '*', '([a-zA-Z0-9-_:#]+(\.)?)+').replace(
+                '{', '(').replace(',', '|').replace('}', ')'))
     
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
@@ -183,13 +188,17 @@ class InfluxdbFinder(object):
             gevent.sleep(interval)
 
     def get_branch(self, path, query, seen_branches):
-        if not self.is_wildcard_query(query):
+        if not is_pattern(query.pattern):
             return
         if path in seen_branches:
-            return path
+            return
         # Return root branch immediately for single wildcard query
         if query.pattern == '*':
-            return path[:path.find('.')]
+            return_path = path[:path.find('.')]
+            if return_path in seen_branches:
+                return
+            seen_branches.add(return_path)
+            return return_path
         query_path_prefix_ind = query.pattern.rfind('.')
         query_path_prefix = query.pattern[:query_path_prefix_ind] \
           if query_path_prefix_ind else None
@@ -197,18 +206,14 @@ class InfluxdbFinder(object):
         if query_path_prefix:
             if not path.startswith(query_path_prefix):
                 return
-        return path[:prefix_ind]
-
-    def is_wildcard_query(self, query):
-        """Check if query is wildcard query
-
-        :param query: Query
-        :rtype: bool"""
-        return ('*' or ',' or '{' or '}') in query.pattern
+        return_path = path[:prefix_ind]
+        if return_path in seen_branches:
+            return
+        seen_branches.add(return_path)
+        return return_path
 
     def is_wildcard_suffix_query(self, query):
-        """Check if query ends with wildcard and
-        is therefore a wildcard leaf query"""
+        """Check if query ends with wildcard"""
         return query.pattern.endswith('*') \
           or query.pattern.endswith('}')
     
@@ -233,8 +238,10 @@ class InfluxdbFinder(object):
         seen_branches = set()
         for path in series:
             leaf_path_key = path + query.pattern
-            if (not self.is_wildcard_query(query) or self.is_wildcard_suffix_query(query)) \
-              or leaf_path_key in self.leaf_paths:
+            if not query.pattern == '*' \
+              and (not is_pattern(query.pattern)
+                   or self.is_wildcard_suffix_query(query)) \
+                   or leaf_path_key in self.leaf_paths:
                 leaf = self.find_leaf_node(path)
                 self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
