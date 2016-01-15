@@ -161,6 +161,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         """Test finding metric prefix by glob expansion"""
         query = Query('{%s}' % (self.metric_prefix))
         nodes = [node.name for node in self.finder.find_nodes(query)]
+        # import ipdb; ipdb.set_trace()
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))

@@ -161,9 +161,12 @@ class InfluxdbFinder(object):
             return query.pattern
         if query.pattern == '*':
             return '^[a-zA-Z0-9-_:#]+\.'
-        return "^%s$" % (query.pattern.replace('.', r'\.').replace(
+        pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
             '*', '([a-zA-Z0-9-_:#]+(\.)?)+').replace(
                 '{', '(').replace(',', '|').replace('}', ')'))
+        if not self.is_wildcard_suffix_query(query):
+            return "%s$" % (pat)
+        return pat
     
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
