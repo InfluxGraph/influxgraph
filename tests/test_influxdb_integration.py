@@ -112,7 +112,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                              branches,))
         query = Query('*')
         series = list(self.finder.get_series(query))
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         # seen_branches = set()
         branches = list(set([b for b in [self.finder.get_branch(query, path)
                                     for path in series] if b]))

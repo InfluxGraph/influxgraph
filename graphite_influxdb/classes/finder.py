@@ -195,9 +195,6 @@ class InfluxdbFinder(object):
         if query_path_prefix:
             if not path.startswith(query_path_prefix):
                 return
-        branch_start_ind = path.rfind('.', 0, prefix_ind)
-        if branch_start_ind:
-            return path[branch_start_ind+1:prefix_ind]
         return path[:prefix_ind]
     
     def find_nodes(self, query, cache=True):
