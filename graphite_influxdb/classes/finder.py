@@ -182,9 +182,11 @@ class InfluxdbFinder(object):
             logger.debug("Series list loader finished in %s", dt)
             gevent.sleep(interval)
 
-    def get_branch(self, query, path):
-        if not ('*' or '{' or '}') in query.pattern:
+    def get_branch(self, path, query, seen_branches):
+        if not self.is_wildcard_query(query):
             return
+        if path in seen_branches:
+            return path
         # Return root branch immediately for single wildcard query
         if query.pattern == '*':
             return path[:path.find('.')]
@@ -196,6 +198,22 @@ class InfluxdbFinder(object):
             if not path.startswith(query_path_prefix):
                 return
         return path[:prefix_ind]
+
+    def is_wildcard_query(self, query):
+        """Check if query is wildcard query
+
+        :param query: Query
+        :rtype: bool"""
+        return ('*' or ',' or '{' or '}') in query.pattern
+
+    def is_wildcard_suffix_query(self, query):
+        """Check if query ends with wildcard and
+        is therefore a wildcard leaf query"""
+        return query.pattern.endswith('*') \
+          or query.pattern.endswith('}')
+    
+    def find_leaf_node(self, path):
+        return path[path.rfind('.')+1:]
     
     def find_nodes(self, query, cache=True):
         """Find matching nodes according to query.
@@ -210,13 +228,14 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        # regex = self.compiled_queries.setdefault(
-        #     query.pattern, self.compile_regex('^{0}$', query))
         series = self.get_series(query, cache=cache)
+        # import ipdb; ipdb.set_trace()
         seen_branches = set()
         for path in series:
             leaf_path_key = path + query.pattern
-            if leaf_path_key in self.leaf_paths or regex.match(path):
+            if (not self.is_wildcard_query(query) or self.is_wildcard_suffix_query(query)) \
+              or leaf_path_key in self.leaf_paths:
+                leaf = self.find_leaf_node(path)
                 self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
                     self.client, path, self.statsd_client,
@@ -225,24 +244,14 @@ class InfluxdbFinder(object):
                     memcache_max_value=self.memcache_max_value,
                     deltas=self.deltas))
             else:
-                # if path in self.branch_paths:
-                #     yield BranchNode(self.branch_paths[path])
-                # else:
-                # 
                 if path in self.branch_paths:
                     yield BranchNode(self.branch_paths[path])
                 else:
-                    branch = self.get_branch(path)
+                    branch = self.get_branch(path, query, seen_branches)
                     if branch:
                         branches = self.branch_paths.get(path, set(branch))
                         branches.add(branch)
                         yield BranchNode(branch)
-                # branch = self.get_branch(
-                #     path, regex, seen_branches)
-                # if branch:
-                #     branches = self.branch_paths.get(path, set(branch))
-                #     branches.add(branch)
-                #     self.branch_paths[path] = branches
         timer.stop()
     
     def fetch_multi(self, nodes, start_time, end_time):

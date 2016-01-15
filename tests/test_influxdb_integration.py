@@ -91,21 +91,12 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         msg="Expected exactly %s data points - got %s instead" % (
                             3601, len(data[self.series1])))
 
-    def test_compile_regex(self):
-        metric_query_pat = 'metric_prefix.*'
-        expected = "^metric_prefix\\.[^\\.]*$"
-        rec = self.finder.compile_regex('^{0}$', Query(metric_query_pat))
-        self.assertEqual(rec.pattern, expected,
-                         msg="Got unexpected compiled regex pattern %s from graphite metric query %s. "
-                         "Expected compiled pattern %s" % (
-                             rec.pattern, metric_query_pat, expected,))
-
     def test_get_branch(self):
         """Test getting branch of metric path"""
         query = Query('fakeyfakeyfakefake')
         series = self.finder.get_series(query)
         branches = [b for b in [self.finder.get_branch(
-            path, self.finder.compile_regex('^{0}$', query), set())
+            path, query, set())
             for path in series] if b]
         self.assertEqual(branches, [],
                          msg="Got branches list %s - wanted empty list" % (
@@ -113,8 +104,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query('*')
         series = list(self.finder.get_series(query))
         # import ipdb; ipdb.set_trace()
-        # seen_branches = set()
-        branches = list(set([b for b in [self.finder.get_branch(query, path)
+        seen_branches = set()
+        branches = list(set([b for b in [self.finder.get_branch(path, query, seen_branches)
                                     for path in series] if b]))
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
@@ -141,11 +132,12 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.client.write_points(data))
         query = Query(prefix + '.*')
         series = list(self.finder.get_series(query))
-        # seen_branches = set()
+        seen_branches = set()
         # import ipdb; ipdb.set_trace()
-        branches = sorted(list(set([b for b in [self.finder.get_branch(query, path)
-                                    for path in series] if b])))
-        expected = [".".join([prefix, b]) for b in written_branches]
+        branches = sorted([b for b in [self.finder.get_branch(
+            path, query, seen_branches)
+            for path in series] if b])
+        expected = sorted([".".join([prefix, b]) for b in written_branches])
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
                                                                   expected,))
@@ -167,6 +159,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_find_leaf_nodes(self):
         """Test finding leaf nodes by wildcard"""
+        import ipdb; ipdb.set_trace()
         nodes = [node.name
                  for node in self.finder.find_nodes(Query(self.metric_prefix + ".leaf*"))]
         expected = self.nodes
