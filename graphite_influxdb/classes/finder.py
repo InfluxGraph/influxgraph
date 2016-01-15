@@ -182,8 +182,23 @@ class InfluxdbFinder(object):
             logger.debug("Series list loader finished in %s", dt)
             gevent.sleep(interval)
 
-    def get_branch(self, path):
-        return path
+    def get_branch(self, query, path):
+        if not ('*' or '{' or '}') in query.pattern:
+            return
+        # Return root branch immediately for single wildcard query
+        if query.pattern == '*':
+            return path[:path.find('.')]
+        query_path_prefix_ind = query.pattern.rfind('.')
+        query_path_prefix = query.pattern[:query_path_prefix_ind] \
+          if query_path_prefix_ind else None
+        prefix_ind = path.rfind('.')
+        if query_path_prefix:
+            if not path.startswith(query_path_prefix):
+                return
+        branch_start_ind = path.rfind('.', 0, prefix_ind)
+        if branch_start_ind:
+            return path[branch_start_ind+1:prefix_ind]
+        return path[:prefix_ind]
     
     def find_nodes(self, query, cache=True):
         """Find matching nodes according to query.
