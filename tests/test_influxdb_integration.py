@@ -168,6 +168,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_find_leaf_nodes(self):
         """Test finding leaf nodes by wildcard"""
+        # import ipdb; ipdb.set_trace()
         nodes = [node.name
                  for node in self.finder.find_nodes(Query(self.metric_prefix + ".leaf*"))]
         expected = self.nodes

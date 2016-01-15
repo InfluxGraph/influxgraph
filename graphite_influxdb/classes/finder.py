@@ -202,8 +202,9 @@ class InfluxdbFinder(object):
                 return
             seen_branches.add(return_path)
             return return_path
-        query_path_prefix_ind = query.pattern.rfind('.')
-        query_path_prefix = query.pattern[:query_path_prefix_ind] \
+        pattern_no_expansion = query.pattern.replace('{', '').replace('}', '')
+        query_path_prefix_ind = pattern_no_expansion.rfind('.')
+        query_path_prefix = pattern_no_expansion[:query_path_prefix_ind] \
           if query_path_prefix_ind else None
         prefix_ind = path.rfind('.')
         if query_path_prefix:
@@ -242,6 +243,8 @@ class InfluxdbFinder(object):
         for path in series:
             leaf_path_key = path + query.pattern
             if not query.pattern == '*' \
+              and ('.' in query.pattern or ('.' in query.pattern \
+                   and self.is_wildcard_suffix_query(query))) \
               and (not is_pattern(query.pattern)
                    or self.is_wildcard_suffix_query(query)) \
                    or leaf_path_key in self.leaf_paths:
