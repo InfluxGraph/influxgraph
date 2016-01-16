@@ -15,7 +15,8 @@
 
 """Graphite-Api storage finder for InfluxDB.
 
-Read metric series from an InfluxDB database via a Graphite compatible API.
+Read metric series from an InfluxDB database via a Graphite-API storage plugin
+compatible API.
 """
 
 try:
@@ -122,7 +123,7 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
 
-    def get_series(self, query, cache=True):
+    def get_series(self, query, cache=True, limit=500, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
@@ -140,8 +141,15 @@ class InfluxdbFinder(object):
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        _query = "show measurements with measurement =~ /%s/" % (
-            regex_string) if regex_string else "show measurements"
+        _params = { 'limit' : limit,
+                     'offset' : offset,
+        }
+        _query = "SHOW MEASUREMENTS LIMIT %(limit)s OFFSET %(offset)s"
+        if regex_string:
+            _query = "SHOW MEASUREMENTS WITH measurement =~ /%(regex)s/ " \
+                     "LIMIT %(limit)s OFFSET %(offset)s"
+            _params['regex'] = regex_string
+        _query = _query % _params
         logger.debug("get_series() Calling influxdb with query - %s", _query)
         timer = self.statsd_client.timer(timer_name)
         timer.start()
