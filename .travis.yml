@@ -13,7 +13,7 @@ before_install:
   - sudo /etc/init.d/influxdb start
 install:
   - pip install -r requirements.txt
-  - pip install -r test_requirements.txt
+  - pip install -r requirements_test.txt
   - pip install coverage coveralls
 script:
   - nosetests --with-coverage --cover-package=graphite_influxdb
