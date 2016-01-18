@@ -129,26 +129,20 @@ class InfluxdbFinder(object):
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        memcache_key = gen_memcache_pattern_key(query.pattern)
+        memcache_key = gen_memcache_pattern_key("_".join([
+            query.pattern, str(limit), str(offset)]))
         cached_series = self.memcache.get(memcache_key) \
           if self.memcache and cache else None
         if cached_series:
             logger.debug("Found cached series for query %s", query.pattern)
             return cached_series
-        regex_string = self.make_regex_string(query)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        _params = { 'limit' : limit,
-                     'offset' : offset,
-        }
-        _query = "SHOW MEASUREMENTS LIMIT %(limit)s OFFSET %(offset)s"
-        if regex_string:
-            _query = "SHOW MEASUREMENTS WITH measurement =~ /%(regex)s/ " \
-                     "LIMIT %(limit)s OFFSET %(offset)s"
-            _params['regex'] = regex_string
+        _query, _params = self._make_series_query(
+            query, limit=limit, offset=offset)
         _query = _query % _params
         logger.debug("get_series() Calling influxdb with query - %s", _query)
         timer = self.statsd_client.timer(timer_name)
@@ -161,7 +155,31 @@ class InfluxdbFinder(object):
                               series,
                               time=self.memcache_ttl,
                               min_compress_len=50)
-        return (s for s in series)
+        return series
+
+    def _make_series_query(self, query, limit=500, offset=0):
+        regex_string = self.make_regex_string(query)
+        _query = "SHOW MEASUREMENTS"
+        _params = {}
+        if regex_string:
+            _query += " WITH measurement =~ /%(regex)s/"
+            _params['regex'] = regex_string
+        if limit or offset:
+            _params['limit'] = limit
+            _params['offset'] = offset
+            _query += " LIMIT %(limit)s OFFSET %(offset)s"
+        return _query, _params
+
+    def get_all_series(self, query, cache=True, limit=500, offset=0, _data=None):
+        data = self.get_series(
+            query, cache=cache, limit=limit, offset=offset)
+        if data:
+            offset = limit + offset
+            if not _data:
+                _data = []
+            return data + self.get_all_series(
+                query, cache=cache, limit=limit, offset=offset, _data=_data)
+        return _data
 
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
@@ -245,8 +263,7 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        series = self.get_series(query, cache=cache)
-        # import ipdb; ipdb.set_trace()
+        series = self.get_all_series(query, cache=cache)
         seen_branches = set()
         for path in series:
             leaf_path_key = path + query.pattern

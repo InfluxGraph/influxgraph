@@ -142,6 +142,12 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          msg="Got branches list %s - wanted %s" % (branches,
                                                                   expected,))
 
+    def test_get_all_series(self):
+        """ """
+        query = Query('*')
+        series = self.finder.get_all_series(query, cache=True, limit=1)
+        self.assertTrue(len(series) == len(self.series))
+
     def test_find_series(self):
         """Test finding a series by name"""
         nodes = [node.name for node in self.finder.find_nodes(Query(self.series1))
