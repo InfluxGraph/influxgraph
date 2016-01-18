@@ -36,7 +36,7 @@ import re
 import sys
 from graphite_api.node import BranchNode
 from graphite_api.utils import is_pattern
-from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS
+from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, SERIES_LOADER_MUTEX_KEY
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
      gen_memcache_key, gen_memcache_pattern_key, Query
@@ -198,17 +198,16 @@ class InfluxdbFinder(object):
         """Loads influxdb series list into memcache at a rate of no
         more than once a minute
         """
-        series_loader_mutex_key = 'graphite_influxdb_series_loader'
         pattern = '*'
         query = Query(pattern)
         while True:
-            if self.memcache.get(series_loader_mutex_key):
+            if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
                 logger.debug("Series loader mutex exists %s - "
                              "skipping series load",
-                             series_loader_mutex_key)
+                             SERIES_LOADER_MUTEX_KEY)
                 gevent.sleep(interval)
                 continue
-            self.memcache.set(series_loader_mutex_key, 1, time=60)
+            self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1, time=60)
             start_time = datetime.datetime.now()
             logger.debug("Starting series list loader..")
             [b for b in self.find_nodes(query, cache=False)]

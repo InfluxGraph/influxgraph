@@ -5,8 +5,10 @@ import influxdb.exceptions
 import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
+from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY
 import datetime
-import time
+import gevent
+import memcache
 
 os.environ['TZ'] = 'UTC'
 
@@ -54,6 +56,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
           ".".join([self.metric_prefix, self.nodes[1]])
+        self.default_nodes_limit = 500
         self.series = [self.series1, self.series2,
                        'integration_test.agg_path.min',
                        'integration_test.agg_path.max',
@@ -296,6 +299,36 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_memcache_configuration_off_by_default(self):
         self.assertFalse(self.finder.memcache_host)
 
+    def test_series_loader(self):
+        query = Query('*')
+        loader_memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+            query.pattern, str(self.default_nodes_limit), str(0)]))
+        del self.finder
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  'memcache' : { 'host': 'localhost',
+                                                 'ttl' : 60,
+                                                 'max_value' : 20},
+                                  },}
+        _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        self.assertTrue(finder.memcache_host)
+        self.assertEqual(finder.memcache_ttl, 60,
+                         msg="Configured TTL of %s sec, got %s sec TTL instead" % (
+                             60, finder.memcache_ttl,))
+        self.assertEqual(finder.memcache_max_value, 20,
+                         msg="Configured max value of %s MB, got %s instead" % (
+                             20, finder.memcache_max_value,))
+        # Give series loader more than long enough to finish
+        gevent.sleep(3)
+        self.assertTrue(finder.memcache.get(loader_memcache_key),
+                        msg="No memcache data for series loader query %s" % (query.pattern,))
+
     def test_memcache_integration(self):
         del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
@@ -316,7 +349,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_max_value, 20,
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
-        time.sleep(1)
         query, limit = Query('*'), 1
         nodes = [node.name for node in finder.find_nodes(query, limit=limit)]
         self.assertTrue(self.metric_prefix in nodes,

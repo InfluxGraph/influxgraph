@@ -12,3 +12,4 @@ DEFAULT_AGGREGATIONS = { '\.min$' : 'min',
 
 # Tell influxdb to return time as seconds from epoch
 _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
+SERIES_LOADER_MUTEX_KEY = 'graphite_influxdb_series_loader'
