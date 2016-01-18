@@ -317,14 +317,17 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
         time.sleep(1)
-        query = Query('*')
-        nodes = [node.name for node in finder.find_nodes(query)]
+        query, limit = Query('*'), 1
+        nodes = [node.name for node in finder.find_nodes(query, limit=limit)]
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))
-        self.assertTrue(finder.memcache.get(
-            graphite_influxdb.utils.gen_memcache_pattern_key(query.pattern)),
-            msg="No memcache data for query %s" % (query.pattern,))
+        memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+            query.pattern, str(limit), str(offset)]))
+                         for offset in range(len(self.series))]
+        for memcache_key in memcache_keys:
+            self.assertTrue(finder.memcache.get(memcache_key),
+                            msg="No memcache data for query %s" % (query.pattern,))
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
         time_info, data = finder.fetch_multi(nodes,

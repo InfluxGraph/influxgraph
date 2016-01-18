@@ -250,7 +250,7 @@ class InfluxdbFinder(object):
     def find_leaf_node(self, path):
         return path[path.rfind('.')+1:]
     
-    def find_nodes(self, query, cache=True):
+    def find_nodes(self, query, cache=True, limit=500):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
@@ -263,7 +263,8 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        series = self.get_all_series(query, cache=cache)
+        series = self.get_all_series(query, cache=cache,
+                                     limit=limit)
         seen_branches = set()
         for path in series:
             leaf_path_key = path + query.pattern
