@@ -134,7 +134,8 @@ class InfluxdbFinder(object):
         cached_series = self.memcache.get(memcache_key) \
           if self.memcache and cache else None
         if cached_series:
-            logger.debug("Found cached series for query %s", query.pattern)
+            logger.debug("Found cached series for query %s, limit %s, " \
+                         "offset %s", query.pattern, limit, offset)
             return cached_series
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
@@ -177,8 +178,8 @@ class InfluxdbFinder(object):
             _data = []
         if data:
             offset = limit + offset
-            return data + self.get_all_series(
-                query, cache=cache, limit=limit, offset=offset, _data=_data)
+            return _data + self.get_all_series(
+                query, cache=cache, limit=limit, offset=offset, _data=data)
         return _data
 
     def make_regex_string(self, query):

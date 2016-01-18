@@ -341,6 +341,13 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'ttl' : 60,
                                                  'max_value' : 20},
                                   },}
+        _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+        query, limit = Query('*'), 1
+        memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+            query.pattern, str(limit), str(offset)]))
+                         for offset in range(len(self.series))]
+        for _key in memcache_keys:
+            _memcache.delete(_key)
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
@@ -349,17 +356,20 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_max_value, 20,
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
-        query, limit = Query('*'), 1
-        nodes = [node.name for node in finder.find_nodes(query, limit=limit)]
-        self.assertTrue(self.metric_prefix in nodes,
+        node_names = [node.name for node in finder.find_nodes(query,
+                                                              limit=limit)]
+        self.assertTrue(self.metric_prefix in node_names,
                         msg="Node list does not contain prefix '%s' - %s" % (
-                            self.metric_prefix, nodes))
-        memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
-            query.pattern, str(limit), str(offset)]))
-                         for offset in range(len(self.series))]
+                            self.metric_prefix, node_names))
         for memcache_key in memcache_keys:
             self.assertTrue(finder.memcache.get(memcache_key),
                             msg="No memcache data for query %s" % (query.pattern,))
+        query, limit = Query(self.metric_prefix + ".agg_path.*"), 1
+        nodes = sorted([node.path
+                        for node in finder.find_nodes(query, limit=limit)])
+        expected = sorted(self.series[2:])
+        self.assertEqual(nodes, expected,
+                         msg="Did not get correct series list")
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
         time_info, data = finder.fetch_multi(nodes,
