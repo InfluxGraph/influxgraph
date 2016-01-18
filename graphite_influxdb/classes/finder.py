@@ -173,10 +173,10 @@ class InfluxdbFinder(object):
     def get_all_series(self, query, cache=True, limit=500, offset=0, _data=None):
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
+        if not _data:
+            _data = []
         if data:
             offset = limit + offset
-            if not _data:
-                _data = []
             return data + self.get_all_series(
                 query, cache=cache, limit=limit, offset=offset, _data=_data)
         return _data
