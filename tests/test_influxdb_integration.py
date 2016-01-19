@@ -107,7 +107,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query('*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
-        # import ipdb; ipdb.set_trace()
         branches = [b for b in [self.finder.get_branch(path, query, seen_branches)
                                 for path in series] if b]
         expected = [self.metric_prefix]
@@ -116,9 +115,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                                    expected,))
         prefix = 'branch_test_prefix'
         written_branches = ['branch_node1', 'branch_node2']
+        leaf_nodes = ['leaf_node1', 'leaf_node2']
         written_series = [".".join([prefix,
-                            branch, 'leaf_node',])
-                            for branch in written_branches]
+                                    branch, leaf_node,])
+                                    for branch in written_branches
+                                    for leaf_node in leaf_nodes]
         data = [{
             "measurement": series,
             "tags": {},
@@ -136,7 +137,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query(prefix + '.*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
-        # import ipdb; ipdb.set_trace()
         branches = sorted([b for b in [self.finder.get_branch(
             path, query, seen_branches)
             for path in series] if b])
@@ -144,6 +144,15 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
                                                                   expected,))
+        # Test getting leaf nodes with wildcard
+        query = Query(prefix + '.branch_node*.*')
+        series = list(self.finder.get_series(query))
+        seen_branches = set()
+        nodes = sorted([n.path for n in (self.finder.find_nodes(query))])
+        expected = sorted(written_series)
+        self.assertEqual(nodes, expected,
+                         msg="Got node list %s - wanted %s" % (nodes,
+                                                               expected,))
 
     def test_get_all_series(self):
         """ """
