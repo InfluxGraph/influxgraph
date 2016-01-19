@@ -73,8 +73,8 @@ def normalize_config(config):
     cfg = config.get('influxdb', None)
     ret = {}
     if not cfg:
-        sys.stderr.write("Missing required 'influxdb' configuration in graphite-api"
-                         "config - please update your configuration file to include"
+        sys.stderr.write("Missing required 'influxdb' configuration in graphite-api "
+                         "config - please update your configuration file to include "
                          "at least 'influxdb: db: <db_name>'\n")
         sys.exit(1)
     ret['host'] = cfg.get('host', 'localhost')
@@ -103,7 +103,7 @@ def _compile_aggregation_patterns(aggregation_functions):
     compiled_aggregations = {}
     for pattern in aggregation_functions.keys():
         if not aggregation_functions[pattern] in INFLUXDB_AGGREGATIONS:
-            sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB"
+            sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB "
                              "aggregation function - ignoring..\n" % (
                                  aggregation_functions[pattern],))
             continue
