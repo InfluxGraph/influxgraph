@@ -146,9 +146,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                                   expected,))
         # Test getting leaf nodes with wildcard
         query = Query(prefix + '.branch_node*.*')
-        series = list(self.finder.get_series(query))
-        seen_branches = set()
-        nodes = sorted([n.path for n in (self.finder.find_nodes(query))])
+        _nodes = list(self.finder.find_nodes(query))
+        nodes = sorted([n.path for n in _nodes])
         expected = sorted(written_series)
         self.assertEqual(nodes, expected,
                          msg="Got node list %s - wanted %s" % (nodes,
@@ -186,7 +185,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_find_leaf_nodes(self):
         """Test finding leaf nodes by wildcard"""
-        # import ipdb; ipdb.set_trace()
         nodes = [node.name
                  for node in self.finder.find_nodes(Query(self.metric_prefix + ".leaf*"))]
         expected = self.nodes
@@ -197,6 +195,37 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(nodes, [],
                          msg="Expected empty leaf node list - got %s" % (nodes,))
 
+    def test_find_branch_nodes(self):
+        """Test finding branch nodes by wildcard"""
+        prefix = 'branch_test_prefix'
+        written_branches = ['branch_node1', 'branch_node2']
+        leaf_nodes = ['leaf_node1', 'leaf_node2']
+        written_series = [".".join([prefix,
+                                    branch, leaf_node,])
+                                    for branch in written_branches
+                                    for leaf_node in leaf_nodes]
+        data = [{
+            "measurement": series,
+            "tags": {},
+            "time": _time,
+            "fields": {
+                "value": 1,
+                }
+            }
+            for series in written_series
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+        query = Query(prefix + '.*')
+        nodes = list(self.finder.find_nodes(query))
+        expected = sorted([".".join([prefix, b]) for b in written_branches])
+        paths = sorted([n.path for n in nodes])
+        self.assertEqual(paths, expected,
+                         msg="Got nodes list %s - wanted %s" % (
+                             paths, expected,))
+    
     def test_multi_fetch_data(self):
         """Test fetching data for a single series by name"""
         nodes = list(self.finder.find_nodes(Query(self.series1)))
