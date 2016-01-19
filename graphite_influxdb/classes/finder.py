@@ -249,6 +249,27 @@ class InfluxdbFinder(object):
     
     def find_leaf_node(self, path):
         return path[path.rfind('.')+1:]
+
+    def is_leaf_node(self, query, path):
+        if path == query.pattern:
+            return True
+        query_pat_index = query.pattern.rfind('.')
+        leaf_path_key = path + query.pattern
+        if query_pat_index:
+            if not path[query_pat_index+1:].find('.') >= 0:
+              if not is_pattern(query.pattern[query_pat_index+1:]):
+                return False
+              return True
+        # import ipdb; ipdb.set_trace()
+        if query.pattern == '*' and path.find('.') > 0:
+            return False
+        if ('.' in query.pattern or (
+            '.' in query.pattern and self.is_wildcard_suffix_query(query))) \
+            or ((not is_pattern(query.pattern)
+                  or self.is_wildcard_suffix_query(query))
+                  or leaf_path_key in self.leaf_paths):
+            return False
+        return True
     
     def find_nodes(self, query, cache=True, limit=500):
         """Find matching nodes according to query.
@@ -256,7 +277,7 @@ class InfluxdbFinder(object):
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
-        logger.debug("find_nodes() query %s", query)
+        logger.debug("find_nodes() query %s", query.pattern)
         timer_name = ".".join(['service_is_graphite-api',
                                'action_is_yield_nodes',
                                'target_type_is_gauge',
@@ -267,13 +288,8 @@ class InfluxdbFinder(object):
                                      limit=limit)
         seen_branches = set()
         for path in series:
-            leaf_path_key = path + query.pattern
-            if not query.pattern == '*' \
-              and ('.' in query.pattern or ('.' in query.pattern \
-                   and self.is_wildcard_suffix_query(query))) \
-              and (not is_pattern(query.pattern)
-                   or self.is_wildcard_suffix_query(query)) \
-                   or leaf_path_key in self.leaf_paths:
+            if self.is_leaf_node(query, path):
+                leaf_path_key = path + query.pattern
                 leaf = self.find_leaf_node(path)
                 self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
@@ -335,9 +351,8 @@ class InfluxdbFinder(object):
         data = read_influxdb_values(data)
         timer.stop()
         # Graphite API requires that data contain keys for
-        # all requested paths even if they have no data
-        query_keys = set([node.path for node in nodes])
-        for key in query_keys:
+        # all requested paths even if they have no datapoints
+        for key in paths:
             data.setdefault(key, [])
         for key in data:
             data[key] = [v for v in data[key]]
