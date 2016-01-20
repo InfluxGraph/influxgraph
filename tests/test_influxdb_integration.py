@@ -223,7 +223,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         nodes = list(self.finder.find_nodes(query))
         expected = sorted([b.split('.')[0] for b in written_branches])
         branches = sorted([n.name for n in nodes])
-        # import ipdb; ipdb.set_trace()
         self.assertEqual(branches, expected,
                          msg="Got branches %s - wanted %s" % (
                              branches, expected,))

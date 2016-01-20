@@ -229,14 +229,14 @@ class InfluxdbFinder(object):
             seen_branches.add(return_path)
             return return_path
         pattern_no_expansion = query.pattern.replace('{', '').replace('}', '')
-        query_path_prefix_ind = pattern_no_expansion.rfind('.')
+        query_path_prefix_ind = pattern_no_expansion.find('.')
         query_path_prefix = pattern_no_expansion[:query_path_prefix_ind] \
           if query_path_prefix_ind else None
-        prefix_ind = path.rfind('.')
         if query_path_prefix:
             if not path.startswith(query_path_prefix):
                 return
-        return_path = path[:prefix_ind]
+        branch_end_ind = path.find('.', query_path_prefix_ind+1)
+        return_path = path[query_path_prefix_ind+1:branch_end_ind]
         if return_path in seen_branches:
             return
         seen_branches.add(return_path)
