@@ -246,8 +246,9 @@ class InfluxdbFinder(object):
     
     def find_leaf_node(self, path):
         return path[path.rfind('.')+1:]
-
+    
     def is_leaf_node(self, query, path):
+        """Check if path is a leaf node according to query"""
         if path == query.pattern:
             return True
         query_pat_index = query.pattern.rfind('.')
@@ -257,15 +258,21 @@ class InfluxdbFinder(object):
               if not is_pattern(query.pattern[query_pat_index+1:]):
                 return False
               return True
-        # import ipdb; ipdb.set_trace()
         if query.pattern == '*' and path.find('.') > 0:
+            return False
+        split_pat = query.pattern.split('.')
+        if split_pat[-1:][0].endswith('*'):
+            split_pat = split_pat[:-1]
+        branch_no = len(split_pat)
+        split_path = path.split('.')
+        if len(split_path[branch_no-1:]) > branch_no:
             return False
         if ('.' in query.pattern or (
             '.' in query.pattern and self.is_wildcard_suffix_pattern(query.pattern))) \
-            or ((not is_pattern(query.pattern)
+            and ((not is_pattern(query.pattern)
                   or self.is_wildcard_suffix_pattern(query.pattern))
                   or leaf_path_key in self.leaf_paths):
-            return False
+            return True
         return True
     
     def find_nodes(self, query, cache=True, limit=500):
