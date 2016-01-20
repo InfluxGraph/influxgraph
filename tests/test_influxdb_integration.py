@@ -56,7 +56,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
           ".".join([self.metric_prefix, self.nodes[1]])
-        self.default_nodes_limit = 500
+        self.default_nodes_limit = 50000
         self.series = [self.series1, self.series2,
                        'integration_test.agg_path.min',
                        'integration_test.agg_path.max',
