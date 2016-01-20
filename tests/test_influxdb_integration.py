@@ -185,11 +185,40 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_find_leaf_nodes(self):
         """Test finding leaf nodes by wildcard"""
-        nodes = [node.name
-                 for node in self.finder.find_nodes(Query(self.metric_prefix + ".leaf*"))]
-        expected = self.nodes
-        self.assertEqual(nodes, expected,
-                         msg="Expected leaf node list '%s' - got %s" % (expected, nodes))
+        prefix = 'branch_test_prefix'
+        written_branches = ['branch_node1.sub_branch1.sub_branch2.sub_branch3',
+                            'branch_node2.sub_branch11.sub_branch22.sub_branch33']
+        leaf_nodes = ['leaf_node1', 'leaf_node2']
+        written_series = [".".join([prefix,
+                                    branch, leaf_node,])
+                                    for branch in written_branches
+                                    for leaf_node in leaf_nodes]
+        data = [{
+            "measurement": series,
+            "tags": {},
+            "time": _time,
+            "fields": {
+                "value": 1,
+                }
+            }
+            for series in written_series
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+        query = Query(".".join([prefix, "branch_node*",
+                                "sub_branch*", "sub_branch*", "sub_branch*",
+                                "leaf*"]))
+        nodes = list(self.finder.find_nodes(query))
+        expected = sorted(leaf_nodes + leaf_nodes)
+        found_leaves = sorted([n.name for n in nodes])
+        self.assertEqual(found_leaves, expected,
+                         msg="Expected leaf node list '%s' - got %s" % (
+                             expected, found_leaves))
+        for node in nodes:
+            self.assertTrue(node.is_leaf,
+                            msg="Leaf node %s is not marked as leaf node" % (node))
         nodes = [node.name
                  for node in self.finder.find_nodes(Query("fakeyfakeyfakefake.*"))]
         self.assertEqual(nodes, [],
