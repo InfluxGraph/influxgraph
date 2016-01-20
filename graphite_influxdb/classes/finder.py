@@ -191,7 +191,7 @@ class InfluxdbFinder(object):
         pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
             '*', '([a-zA-Z0-9-_:#]+(\.)?)+').replace(
                 '{', '(').replace(',', '|').replace('}', ')'))
-        if not self.is_wildcard_suffix_query(query):
+        if not self.is_wildcard_suffix_pattern(query.pattern):
             return "%s$" % (pat)
         return pat
     
@@ -216,7 +216,7 @@ class InfluxdbFinder(object):
             logger.debug("Series list loader finished in %s", dt)
             gevent.sleep(interval)
 
-    def get_branch(self, path, query, seen_branches):
+    def find_branch(self, path, query, seen_branches):
         if not is_pattern(query.pattern):
             return
         if path in seen_branches:
@@ -228,24 +228,21 @@ class InfluxdbFinder(object):
                 return
             seen_branches.add(return_path)
             return return_path
-        pattern_no_expansion = query.pattern.replace('{', '').replace('}', '')
-        query_path_prefix_ind = pattern_no_expansion.find('.')
-        query_path_prefix = pattern_no_expansion[:query_path_prefix_ind] \
-          if query_path_prefix_ind else None
-        if query_path_prefix:
-            if not path.startswith(query_path_prefix):
-                return
-        branch_end_ind = path.find('.', query_path_prefix_ind+1)
-        return_path = path[query_path_prefix_ind+1:branch_end_ind]
+        branch_no = len(query.pattern.split('.'))
+        split_path = path.split('.')
+        try:
+            return_path = split_path[branch_no-1:][0]
+        except IndexError:
+            return
         if return_path in seen_branches:
             return
         seen_branches.add(return_path)
         return return_path
 
-    def is_wildcard_suffix_query(self, query):
+    def is_wildcard_suffix_pattern(self, pattern):
         """Check if query ends with wildcard"""
-        return query.pattern.endswith('*') \
-          or query.pattern.endswith('}')
+        return pattern.endswith('*') \
+          or pattern.endswith('}')
     
     def find_leaf_node(self, path):
         return path[path.rfind('.')+1:]
@@ -264,9 +261,9 @@ class InfluxdbFinder(object):
         if query.pattern == '*' and path.find('.') > 0:
             return False
         if ('.' in query.pattern or (
-            '.' in query.pattern and self.is_wildcard_suffix_query(query))) \
+            '.' in query.pattern and self.is_wildcard_suffix_pattern(query.pattern))) \
             or ((not is_pattern(query.pattern)
-                  or self.is_wildcard_suffix_query(query))
+                  or self.is_wildcard_suffix_pattern(query.pattern))
                   or leaf_path_key in self.leaf_paths):
             return False
         return True
@@ -302,7 +299,7 @@ class InfluxdbFinder(object):
                 if path in self.branch_paths:
                     yield BranchNode(self.branch_paths[path])
                 else:
-                    branch = self.get_branch(path, query, seen_branches)
+                    branch = self.find_branch(path, query, seen_branches)
                     if branch:
                         branches = self.branch_paths.get(path, set(branch))
                         branches.add(branch)

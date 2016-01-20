@@ -94,11 +94,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         msg="Expected exactly %s data points - got %s instead" % (
                             3601, len(data[self.series1])))
 
-    def test_get_branch(self):
+    def test_find_branch(self):
         """Test getting branch of metric path"""
         query = Query('fakeyfakeyfakefake')
         series = self.finder.get_series(query)
-        branches = [b for b in [self.finder.get_branch(
+        branches = [b for b in [self.finder.find_branch(
             path, query, set())
             for path in series] if b]
         self.assertEqual(branches, [],
@@ -107,7 +107,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query('*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
-        branches = [b for b in [self.finder.get_branch(path, query, seen_branches)
+        branches = [b for b in [self.finder.find_branch(path, query, seen_branches)
                                 for path in series] if b]
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
@@ -137,10 +137,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query(prefix + '.*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
-        branches = sorted([b for b in [self.finder.get_branch(
+        branches = sorted([b for b in [self.finder.find_branch(
             path, query, seen_branches)
             for path in series] if b])
-        expected = sorted([".".join([prefix, b]) for b in written_branches])
+        expected = sorted([b for b in written_branches])
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
                                                                   expected,))
@@ -226,14 +226,16 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(branches, expected,
                          msg="Got branches %s - wanted %s" % (
                              branches, expected,))
-        query = Query(prefix + '.branch_node1.*')
+        query = Query(prefix + '.branch_node*.*')
         nodes = list(self.finder.find_nodes(query))
         expected = sorted([b.split('.')[1] for b in written_branches])
         branches = sorted([n.name for n in nodes])
         self.assertEqual(branches, expected,
                          msg="Got branches %s - wanted %s" % (
                              branches, expected,))
-        query = Query(prefix + '.branch_node1.sub_branch1.*')
+        query = Query(prefix + '.branch_node*.sub_branch*.*')
+        # import ipdb; ipdb.set_trace()
+        nodes = list(self.finder.find_nodes(query))
         expected = sorted([b.split('.')[2] for b in written_branches])
         branches = sorted([n.name for n in nodes])
         self.assertEqual(branches, expected,
