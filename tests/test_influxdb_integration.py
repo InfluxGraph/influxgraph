@@ -198,7 +198,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_find_branch_nodes(self):
         """Test finding branch nodes by wildcard"""
         prefix = 'branch_test_prefix'
-        written_branches = ['branch_node1', 'branch_node2']
+        written_branches = ['branch_node1.sub_branch1.sub_branch2.sub_branch3',
+                            'branch_node2.sub_branch11.sub_branch22.sub_branch33']
         leaf_nodes = ['leaf_node1', 'leaf_node2']
         written_series = [".".join([prefix,
                                     branch, leaf_node,])
@@ -220,11 +221,25 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.client.write_points(data))
         query = Query(prefix + '.*')
         nodes = list(self.finder.find_nodes(query))
-        expected = sorted([".".join([prefix, b]) for b in written_branches])
-        paths = sorted([n.path for n in nodes])
-        self.assertEqual(paths, expected,
-                         msg="Got nodes list %s - wanted %s" % (
-                             paths, expected,))
+        expected = sorted([b.split('.')[0] for b in written_branches])
+        branches = sorted([n.name for n in nodes])
+        # import ipdb; ipdb.set_trace()
+        self.assertEqual(branches, expected,
+                         msg="Got branches %s - wanted %s" % (
+                             branches, expected,))
+        query = Query(prefix + '.branch_node1.*')
+        nodes = list(self.finder.find_nodes(query))
+        expected = sorted([b.split('.')[1] for b in written_branches])
+        branches = sorted([n.name for n in nodes])
+        self.assertEqual(branches, expected,
+                         msg="Got branches %s - wanted %s" % (
+                             branches, expected,))
+        query = Query(prefix + '.branch_node1.sub_branch1.*')
+        expected = sorted([b.split('.')[2] for b in written_branches])
+        branches = sorted([n.name for n in nodes])
+        self.assertEqual(branches, expected,
+                         msg="Got branches list %s - wanted %s" % (
+                             branches, expected,))
     
     def test_multi_fetch_data(self):
         """Test fetching data for a single series by name"""
