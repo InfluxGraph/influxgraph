@@ -158,7 +158,8 @@ class InfluxdbFinder(object):
         return series
 
     def _make_series_query(self, query, limit=50000, offset=0):
-        regex_string = self.make_regex_string(query)
+        regex_string = self.make_regex_string(query) \
+          if is_pattern(query.pattern) else None
         _query = "SHOW MEASUREMENTS"
         _params = {}
         if regex_string:
@@ -287,6 +288,14 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
+        if not is_pattern(query.pattern):
+            yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
+                self.client, query.pattern, self.statsd_client,
+                aggregation_functions=self.aggregation_functions,
+                memcache_host=self.memcache_host,
+                memcache_max_value=self.memcache_max_value,
+                deltas=self.deltas))
+            raise StopIteration
         series = self.get_all_series(query, cache=cache,
                                      limit=limit)
         seen_branches = set()
