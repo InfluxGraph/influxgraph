@@ -412,6 +412,20 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(finder.memcache.get(loader_memcache_key),
                         msg="No memcache data for series loader query %s" % (query.pattern,))
 
+    def test_get_series_pagination(self):
+        query, limit = Query('*'), 5
+        series = self.finder.get_all_series(
+            query, limit=limit)
+        self.assertTrue(len(series) == len(self.series),
+                        msg="Did not get data for all series with page limit %s" % (
+                            limit,))
+        query, limit = Query('*'), 10
+        series = self.finder.get_all_series(
+            query, limit=limit)
+        self.assertTrue(len(series) == len(self.series),
+                        msg="Did not get data for all series with page limit %s" % (
+                            limit,))
+
     def test_memcache_integration(self):
         del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
@@ -446,7 +460,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                             self.metric_prefix, node_names))
         for memcache_key in memcache_keys:
             self.assertTrue(finder.memcache.get(memcache_key),
-                            msg="No memcache data for query %s" % (query.pattern,))
+                            msg="No memcache data for key %s" % (memcache_key,))
         query, limit = Query(self.metric_prefix + ".agg_path.*"), 1
         nodes = sorted([node.path
                         for node in finder.find_nodes(query, limit=limit)])

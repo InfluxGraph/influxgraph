@@ -177,6 +177,8 @@ class InfluxdbFinder(object):
         if not _data:
             _data = []
         if data:
+            if len(data) < limit:
+                return _data + data
             offset = limit + offset
             return _data + self.get_all_series(
                 query, cache=cache, limit=limit, offset=offset, _data=data)
@@ -282,20 +284,19 @@ class InfluxdbFinder(object):
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         logger.debug("find_nodes() query %s", query.pattern)
+        if not is_pattern(query.pattern):
+            yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
+                self.client, query.pattern, self.statsd_client,
+                aggregation_functions=self.aggregation_functions,
+                memcache_host=self.memcache_host,
+                memcache_max_value=self.memcache_max_value, deltas=self.deltas))
+            raise StopIteration
         timer_name = ".".join(['service_is_graphite-api',
                                'action_is_yield_nodes',
                                'target_type_is_gauge',
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        if not is_pattern(query.pattern):
-            yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
-                self.client, query.pattern, self.statsd_client,
-                aggregation_functions=self.aggregation_functions,
-                memcache_host=self.memcache_host,
-                memcache_max_value=self.memcache_max_value,
-                deltas=self.deltas))
-            raise StopIteration
         series = self.get_all_series(query, cache=cache,
                                      limit=limit)
         seen_branches = set()
