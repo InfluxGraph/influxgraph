@@ -97,9 +97,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_find_branch(self):
         """Test getting branch of metric path"""
         query = Query('fakeyfakeyfakefake')
-        series = self.finder.get_series(query)
+        series = self.finder.get_all_series(query)
+        seen_branches = set()
         branches = [b for b in [self.finder.find_branch(
-            path, query, set())
+            path, query, seen_branches)
             for path in series] if b]
         self.assertEqual(branches, [],
                          msg="Got branches list %s - wanted empty list" % (
@@ -518,6 +519,16 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_max_value, 15,
                          msg="Default max value should be 15 MB, got %s instead" % (
                              finder.memcache_max_value,))
+
+    def test_named_branch_query(self):
+        query = Query(self.metric_prefix)
+        nodes = list(self.finder.find_nodes(query))
+        node_names = [n.name for n in nodes]
+        self.assertEqual(node_names, [self.metric_prefix],
+                         msg="Expected node names %s, got %s" % (
+                             [self.metric_prefix], node_names,))
+        self.assertFalse(nodes[0].is_leaf,
+                         msg="Root branch node incorrectly marked as leaf node")
     
     def test_parent_branch_series(self):
         prefix = 'branch_test_prefix'
@@ -560,6 +571,14 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         gevent.sleep(3)
+        query = Query(prefix)
+        nodes = list(finder.find_nodes(query))
+        expected = [prefix]
+        branches = sorted([n.name for n in nodes])
+        self.assertEqual(expected, branches,
+                         msg="Expected branches %s, got %s" % (expected, branches,))
+        self.assertFalse(nodes[0].is_leaf,
+                         msg="Root branch node marked as leaf")
         query = Query(prefix + '.branch_node*.sub_branch*.*')
         nodes = list(finder.find_nodes(query))
         expected = sorted([b.split('.')[2] for b in written_branches])
