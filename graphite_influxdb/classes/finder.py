@@ -34,6 +34,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from graphite_api.node import BranchNode
 from graphite_api.utils import is_pattern
+from graphite_api.finders import match_entries
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, SERIES_LOADER_MUTEX_KEY
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
@@ -44,7 +45,6 @@ try:
     import statsd
 except ImportError:
     pass
-from fnmatch import fnmatch
 
 logger = logging.getLogger('graphite_influxdb')
 
@@ -141,10 +141,7 @@ class InfluxdbFinder(object):
             parent_branch_series = self.memcache.get(_memcache_key)
         logger.debug("Found cached parent branch series for parent query %s",
                      _pattern,)
-        # query_prefix = ".".join([p for p in query.pattern.split('.')
-        #                          if not is_pattern(p)])
-        series = [s for s in parent_branch_series
-                  if fnmatch(s, query.pattern)]
+        series = match_entries(parent_branch_series, query.pattern)
         original_query_key = gen_memcache_pattern_key("_".join([
             query.pattern, str(limit), str(offset)]))
         self.memcache.set(original_query_key, series, time=self.memcache_ttl)
@@ -303,13 +300,6 @@ class InfluxdbFinder(object):
             return False
         if not self.is_suffix_pattern(query.pattern):
             return False
-        # if ('.' in query.pattern or (
-        #     '.' in query.pattern and self.is_suffix_pattern(query.pattern))) \
-        #     and ((not is_pattern(query.pattern)
-        #           or self.is_suffix_pattern(query.pattern))
-        #           or leaf_path_key in self.leaf_paths):
-        #     import ipdb; ipdb.set_trace()
-        #     return True
         return True
     
     def find_nodes(self, query, cache=True, limit=50000):

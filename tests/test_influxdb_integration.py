@@ -554,11 +554,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'max_value' : 20},
                                   },}
         _memcache = memcache.Client([config['influxdb']['memcache']['host']])
-        memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
-            '*', str(self.default_nodes_limit), str(offset)]))
-            for offset in range(len(self.series))]
-        for _key in memcache_keys:
-            _memcache.delete(_key)
+        memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+            '*', str(self.default_nodes_limit), str(0)]))
+        _memcache.delete(memcache_key)
+        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         gevent.sleep(3)
         query = Query(prefix + '.branch_node*.sub_branch*.*')
@@ -580,6 +579,15 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         for node in nodes:
             self.assertTrue(node.is_leaf,
                             msg="Leaf node %s is not marked as leaf node" % (node))
-
+        query = Query(".".join([prefix, "branch_node*",
+                                "sub_branch*", "sub_branch*", "sub_branch*",
+                                "{%s}" % (",".join(leaf_nodes),)]))
+        nodes = list(finder.find_nodes(query))
+        expected = sorted(leaf_nodes + leaf_nodes)
+        found_leaves = sorted([n.name for n in nodes])
+        self.assertEqual(found_leaves, expected,
+                         msg="Expected leaf node list '%s' - got %s" % (
+                             expected, found_leaves))
+        
 if __name__ == '__main__':
     unittest.main()
