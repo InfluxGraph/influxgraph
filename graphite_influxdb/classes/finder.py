@@ -122,6 +122,31 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
 
+    def _get_parent_branch_series(self, query, limit=50000, offset=0):
+        _pattern = ".".join(query.pattern.split('.')[:-1])
+        _memcache_key = gen_memcache_pattern_key("_".join([
+            _pattern, str(limit), str(offset)]))
+        parent_branch_series = self.memcache.get(_memcache_key)
+        while not parent_branch_series:
+            logger.debug("No cached series list for parent branch query %s, "
+                         "continuing with more parents", _pattern)
+            _pattern = ".".join(_pattern.split('.')[:-1])
+            if not _pattern:
+                _pattern = '*'
+            _memcache_key = gen_memcache_pattern_key("_".join([
+                _pattern, str(limit), str(offset)]))
+            parent_branch_series = self.memcache.get(_memcache_key)
+        logger.debug("Found cached parent branch series for parent query %s",
+                     _pattern,)
+        query_prefix = ".".join([p for p in query.pattern.split('.')
+                                 if not is_pattern(p)])
+        series = [s for s in parent_branch_series
+                  if s.startswith(query_prefix)]
+        original_query_key = gen_memcache_pattern_key("_".join([
+            query.pattern, str(limit), str(offset)]))
+        self.memcache.set(original_query_key, series, time=self.memcache_ttl)
+        return series
+
     def get_series(self, query, cache=True, limit=50000, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
@@ -136,6 +161,8 @@ class InfluxdbFinder(object):
             logger.debug("Found cached series for query %s, limit %s, " \
                          "offset %s", query.pattern, limit, offset)
             return cached_series
+        if self.memcache and not query.pattern == '*' and not cached_series:
+            return self._get_parent_branch_series(query, limit=limit, offset=offset)
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -151,9 +178,7 @@ class InfluxdbFinder(object):
         series = [d['name'] for d in data['measurements']]
         timer.stop()
         if self.memcache:
-            self.memcache.set(memcache_key,
-                              series,
-                              time=self.memcache_ttl,
+            self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
         return series
 
@@ -171,7 +196,8 @@ class InfluxdbFinder(object):
             _query += " LIMIT %(limit)s OFFSET %(offset)s"
         return _query, _params
 
-    def get_all_series(self, query, cache=True, limit=50000, offset=0, _data=None):
+    def get_all_series(self, query, cache=True,
+                       limit=50000, offset=0, _data=None):
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
         if not _data:
@@ -193,7 +219,7 @@ class InfluxdbFinder(object):
         pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
             '*', '([a-zA-Z0-9-_:#]+(\.)?)+').replace(
                 '{', '(').replace(',', '|').replace('}', ')'))
-        if not self.is_wildcard_suffix_pattern(query.pattern):
+        if not self.is_suffix_pattern(query.pattern):
             return "%s$" % (pat)
         return pat
     
@@ -240,8 +266,8 @@ class InfluxdbFinder(object):
             return
         seen_branches.add(return_path)
         return return_path
-
-    def is_wildcard_suffix_pattern(self, pattern):
+    
+    def is_suffix_pattern(self, pattern):
         """Check if query ends with wildcard"""
         return pattern.endswith('*') \
           or pattern.endswith('}')
@@ -253,6 +279,11 @@ class InfluxdbFinder(object):
         """Check if path is a leaf node according to query"""
         if path == query.pattern:
             return True
+        if query.pattern == '*' and path.find('.') > 0:
+            return False
+        leaf_path_key = path + query.pattern
+        if leaf_path_key in self.leaf_paths:
+            return True
         query_pat_index = query.pattern.rfind('.')
         leaf_path_key = path + query.pattern
         if query_pat_index:
@@ -260,8 +291,6 @@ class InfluxdbFinder(object):
               if not is_pattern(query.pattern[query_pat_index+1:]):
                 return False
               return True
-        if query.pattern == '*' and path.find('.') > 0:
-            return False
         split_pat = query.pattern.split('.')
         if split_pat[-1:][0].endswith('*'):
             split_pat = split_pat[:-1]
@@ -269,12 +298,15 @@ class InfluxdbFinder(object):
         split_path = path.split('.')
         if len(split_path[branch_no-1:]) > branch_no:
             return False
-        if ('.' in query.pattern or (
-            '.' in query.pattern and self.is_wildcard_suffix_pattern(query.pattern))) \
-            and ((not is_pattern(query.pattern)
-                  or self.is_wildcard_suffix_pattern(query.pattern))
-                  or leaf_path_key in self.leaf_paths):
-            return True
+        if not self.is_suffix_pattern(query.pattern):
+            return False
+        # if ('.' in query.pattern or (
+        #     '.' in query.pattern and self.is_suffix_pattern(query.pattern))) \
+        #     and ((not is_pattern(query.pattern)
+        #           or self.is_suffix_pattern(query.pattern))
+        #           or leaf_path_key in self.leaf_paths):
+        #     import ipdb; ipdb.set_trace()
+        #     return True
         return True
     
     def find_nodes(self, query, cache=True, limit=50000):
