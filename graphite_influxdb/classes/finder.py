@@ -212,7 +212,7 @@ class InfluxdbFinder(object):
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
         if not is_pattern(query.pattern):
-            return query.pattern
+            return "^%s$" % (query.pattern,)
         if query.pattern == '*':
             return '^[a-zA-Z0-9-_:#]+\.'
         pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
@@ -274,6 +274,7 @@ class InfluxdbFinder(object):
     
     def is_leaf_node(self, query, path):
         """Check if path is a leaf node according to query"""
+        # import ipdb; ipdb.set_trace()
         if query.pattern == '*' and path.find('.') > 0:
             return False
         leaf_path_key = path + query.pattern
@@ -281,12 +282,15 @@ class InfluxdbFinder(object):
             return True
         query_pat_index = query.pattern.rfind('.')
         leaf_path_key = path + query.pattern
+        split_pat = query.pattern.split('.')
         if query_pat_index:
             if not path[query_pat_index+1:].find('.') >= 0:
-                if not is_pattern(query.pattern[query_pat_index+1:]):
+                if not is_pattern(query.pattern[query_pat_index+1:]) \
+                  and not path == query.pattern:
                     return False
                 return True
-        split_pat = query.pattern.split('.')
+        if query.pattern == '*' and path.find('.') > 0:
+            return False
         if not len(split_pat) > 1 and path == query.pattern:
             return True
         if split_pat[-1:][0].endswith('*'):
@@ -295,6 +299,12 @@ class InfluxdbFinder(object):
         split_path = path.split('.')
         if len(split_path[branch_no-1:]) > branch_no:
             return False
+        if ('.' in query.pattern or (
+            '.' in query.pattern and self.is_wildcard_suffix_pattern(query.pattern))) \
+            and ((not is_pattern(query.pattern)
+                  or self.is_wildcard_suffix_pattern(query.pattern))
+                  or leaf_path_key in self.leaf_paths):
+            return True
         if not self.is_suffix_pattern(query.pattern):
             return False
         return True
