@@ -183,8 +183,7 @@ class InfluxdbFinder(object):
         return series
 
     def _make_series_query(self, query, limit=50000, offset=0):
-        regex_string = self.make_regex_string(query) \
-          if is_pattern(query.pattern) else None
+        regex_string = self.make_regex_string(query)
         _query = "SHOW MEASUREMENTS"
         _params = {}
         if regex_string:
@@ -245,8 +244,6 @@ class InfluxdbFinder(object):
             gevent.sleep(interval)
 
     def find_branch(self, path, query, seen_branches):
-        if not is_pattern(query.pattern):
-            return
         if path in seen_branches:
             return
         # Return root branch immediately for single wildcard query
@@ -277,8 +274,6 @@ class InfluxdbFinder(object):
     
     def is_leaf_node(self, query, path):
         """Check if path is a leaf node according to query"""
-        if path == query.pattern:
-            return True
         if query.pattern == '*' and path.find('.') > 0:
             return False
         leaf_path_key = path + query.pattern
@@ -288,10 +283,12 @@ class InfluxdbFinder(object):
         leaf_path_key = path + query.pattern
         if query_pat_index:
             if not path[query_pat_index+1:].find('.') >= 0:
-              if not is_pattern(query.pattern[query_pat_index+1:]):
-                return False
-              return True
+                if not is_pattern(query.pattern[query_pat_index+1:]):
+                    return False
+                return True
         split_pat = query.pattern.split('.')
+        if not len(split_pat) > 1 and path == query.pattern:
+            return True
         if split_pat[-1:][0].endswith('*'):
             split_pat = split_pat[:-1]
         branch_no = len(split_pat)
@@ -309,13 +306,17 @@ class InfluxdbFinder(object):
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         logger.debug("find_nodes() query %s", query.pattern)
-        if not is_pattern(query.pattern):
-            yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
-                self.client, query.pattern, self.statsd_client,
-                aggregation_functions=self.aggregation_functions,
-                memcache_host=self.memcache_host,
-                memcache_max_value=self.memcache_max_value, deltas=self.deltas))
-            raise StopIteration
+        # if not is_pattern(query.pattern):
+        #     import ipdb; ipdb.set_trace()
+        #     if self.is_leaf_node(query, query.pattern):
+        #         yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
+        #             self.client, query.pattern, self.statsd_client,
+        #             aggregation_functions=self.aggregation_functions,
+        #             memcache_host=self.memcache_host,
+        #             memcache_max_value=self.memcache_max_value, deltas=self.deltas))
+        #         raise StopIteration
+        #     yield BranchNode(query.pattern)
+        #     raise StopIteration
         timer_name = ".".join(['service_is_graphite-api',
                                'action_is_yield_nodes',
                                'target_type_is_gauge',
