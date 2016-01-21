@@ -44,6 +44,7 @@ try:
     import statsd
 except ImportError:
     pass
+from fnmatch import fnmatch
 
 logger = logging.getLogger('graphite_influxdb')
 
@@ -123,6 +124,8 @@ class InfluxdbFinder(object):
             handler.setFormatter(formatter)
 
     def _get_parent_branch_series(self, query, limit=50000, offset=0):
+        """Iterate through parent branches, find cached series for parent
+        branch and return series matching query"""
         _pattern = ".".join(query.pattern.split('.')[:-1])
         _memcache_key = gen_memcache_pattern_key("_".join([
             _pattern, str(limit), str(offset)]))
@@ -138,10 +141,10 @@ class InfluxdbFinder(object):
             parent_branch_series = self.memcache.get(_memcache_key)
         logger.debug("Found cached parent branch series for parent query %s",
                      _pattern,)
-        query_prefix = ".".join([p for p in query.pattern.split('.')
-                                 if not is_pattern(p)])
+        # query_prefix = ".".join([p for p in query.pattern.split('.')
+        #                          if not is_pattern(p)])
         series = [s for s in parent_branch_series
-                  if s.startswith(query_prefix)]
+                  if fnmatch(s, query.pattern)]
         original_query_key = gen_memcache_pattern_key("_".join([
             query.pattern, str(limit), str(offset)]))
         self.memcache.set(original_query_key, series, time=self.memcache_ttl)

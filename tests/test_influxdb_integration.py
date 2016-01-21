@@ -178,7 +178,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         """Test finding metric prefix by glob expansion"""
         query = Query('{%s}' % (self.metric_prefix))
         nodes = [node.name for node in self.finder.find_nodes(query)]
-        # import ipdb; ipdb.set_trace()
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))
@@ -263,7 +262,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          msg="Got branches %s - wanted %s" % (
                              branches, expected,))
         query = Query(prefix + '.branch_node*.sub_branch*.*')
-        # import ipdb; ipdb.set_trace()
         nodes = list(self.finder.find_nodes(query))
         expected = sorted([b.split('.')[2] for b in written_branches])
         branches = sorted([n.name for n in nodes])
@@ -520,6 +518,68 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_max_value, 15,
                          msg="Default max value should be 15 MB, got %s instead" % (
                              finder.memcache_max_value,))
+    
+    def test_parent_branch_series(self):
+        prefix = 'branch_test_prefix'
+        written_branches = ['branch_node1.sub_branch1.sub_branch2.sub_branch3',
+                            'branch_node2.sub_branch11.sub_branch22.sub_branch33']
+        leaf_nodes = ['leaf_node1', 'leaf_node2']
+        written_series = [".".join([prefix,
+                                    branch, leaf_node,])
+                                    for branch in written_branches
+                                    for leaf_node in leaf_nodes]
+        data = [{
+            "measurement": series,
+            "tags": {},
+            "time": _time,
+            "fields": {
+                "value": 1,
+                }
+            }
+            for series in written_series
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+        del self.finder
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  'memcache' : { 'host': 'localhost',
+                                                 'ttl' : 60,
+                                                 'max_value' : 20},
+                                  },}
+        _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+        memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+            '*', str(self.default_nodes_limit), str(offset)]))
+            for offset in range(len(self.series))]
+        for _key in memcache_keys:
+            _memcache.delete(_key)
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        gevent.sleep(3)
+        query = Query(prefix + '.branch_node*.sub_branch*.*')
+        nodes = list(finder.find_nodes(query))
+        expected = sorted([b.split('.')[2] for b in written_branches])
+        branches = sorted([n.name for n in nodes])
+        self.assertEqual(branches, expected,
+                         msg="Got branches list %s - wanted %s" % (
+                             branches, expected,))
+        query = Query(".".join([prefix, "branch_node*",
+                                "sub_branch*", "sub_branch*", "sub_branch*",
+                                "leaf*"]))
+        nodes = list(finder.find_nodes(query))
+        expected = sorted(leaf_nodes + leaf_nodes)
+        found_leaves = sorted([n.name for n in nodes])
+        self.assertEqual(found_leaves, expected,
+                         msg="Expected leaf node list '%s' - got %s" % (
+                             expected, found_leaves))
+        for node in nodes:
+            self.assertTrue(node.is_leaf,
+                            msg="Leaf node %s is not marked as leaf node" % (node))
 
 if __name__ == '__main__':
     unittest.main()
