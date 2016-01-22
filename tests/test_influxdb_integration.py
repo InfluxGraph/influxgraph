@@ -6,7 +6,7 @@ import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
 import datetime
-import gevent
+import time
 import memcache
 
 os.environ['TZ'] = 'UTC'
@@ -55,7 +55,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
           ".".join([self.metric_prefix, self.nodes[1]])
-        self.default_nodes_limit = 50000
+        self.default_nodes_limit = 2000
         self.series = [self.series1, self.series2,
                        'integration_test.agg_path.min',
                        'integration_test.agg_path.max',
@@ -405,7 +405,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
         # Give series loader more than long enough to finish
-        gevent.sleep(3)
+        time.sleep(1)
         self.assertTrue(finder.memcache.get(loader_memcache_key),
                         msg="No memcache data for series loader query %s" % (query.pattern,))
 
@@ -570,7 +570,15 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
             '*', str(self.default_nodes_limit), str(0)]))
         _memcache.delete(memcache_key)
         finder = graphite_influxdb.InfluxdbFinder(config)
-        gevent.sleep(3)
+        time.sleep(1)
+        query = Query(prefix + '.*.*.*.*.' + leaf_nodes[0])
+        nodes = list(finder.find_nodes(query))
+        self.assertTrue(len(nodes)==len(leaf_nodes),
+                        msg="Did not get all leaf nodes for wildcard query")
+        for node in nodes:
+            self.assertTrue(node.is_leaf,
+                            msg="Leaf node %s from query %s not marked as leaf" % (
+                                node.name, query.pattern,))
         query = Query(prefix)
         nodes = list(finder.find_nodes(query))
         expected = [prefix]

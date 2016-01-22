@@ -1,3 +1,4 @@
+# Copyright (C) [2015-] [Thomson Reuters LLC]
 # Copyright (C) [2015-] [Panos Kittenis]
 # Copyright (C) [2014-2015] [Vimeo, LLC]
 
@@ -95,7 +96,7 @@ class InfluxdbFinder(object):
             # No memcached configured? Cannot use series loader
             self.memcache.delete(SERIES_LOADER_MUTEX_KEY)
             self.loader = multiprocessing.Process(target=self._series_loader,
-                                                  kwargs={'interval' :series_loader_interval})
+                                                  kwargs={'interval': series_loader_interval})
             self.loader.daemon = True
             self.loader.start()
     
@@ -121,7 +122,7 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
     
-    def _get_parent_branch_series(self, query, limit=50000, offset=0):
+    def _get_parent_branch_series(self, query, limit=2000, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
         # import ipdb; ipdb.set_trace()
@@ -158,7 +159,7 @@ class InfluxdbFinder(object):
         self.memcache.set(original_query_key, series, time=self.memcache_ttl)
         return series
     
-    def get_series(self, query, cache=True, limit=50000, offset=0):
+    def get_series(self, query, cache=True, limit=2000, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
@@ -195,7 +196,7 @@ class InfluxdbFinder(object):
                               min_compress_len=50)
         return series
 
-    def _make_series_query(self, query, limit=50000, offset=0):
+    def _make_series_query(self, query, limit=2000, offset=0):
         regex_string = self.make_regex_string(query)
         _query = "SHOW MEASUREMENTS"
         _params = {}
@@ -209,7 +210,7 @@ class InfluxdbFinder(object):
         return _query, _params
 
     def get_all_series(self, query, cache=True,
-                       limit=50000, offset=0, _data=None):
+                       limit=2000, offset=0, _data=None):
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
         if not _data:
@@ -282,9 +283,6 @@ class InfluxdbFinder(object):
         return pattern.endswith('*') \
           or pattern.endswith('}')
     
-    def find_leaf_node(self, path):
-        return path[path.rfind('.')+1:]
-    
     def is_leaf_node(self, query, path):
         """Check if path is a leaf node according to query"""
         _path_search = path.find('.')
@@ -312,17 +310,9 @@ class InfluxdbFinder(object):
         split_path = path.split('.')
         if len(split_path[branch_no-1:]) > branch_no:
             return False
-        if ('.' in query.pattern or (
-            '.' in query.pattern and self.is_suffix_pattern(query.pattern))) \
-            and ((not is_pattern(query.pattern)
-                  or self.is_suffix_pattern(query.pattern))
-                  or leaf_path_key in self.leaf_paths):
-            return True
-        if not self.is_suffix_pattern(query.pattern):
-            return False
         return True
     
-    def find_nodes(self, query, cache=True, limit=50000):
+    def find_nodes(self, query, cache=True, limit=2000):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
@@ -353,7 +343,6 @@ class InfluxdbFinder(object):
         for path in series:
             if self.is_leaf_node(query, path):
                 leaf_path_key = path + query.pattern
-                leaf = self.find_leaf_node(path)
                 self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
                     self.client, path, self.statsd_client,
