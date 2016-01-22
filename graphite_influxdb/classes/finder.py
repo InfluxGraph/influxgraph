@@ -96,6 +96,7 @@ class InfluxdbFinder(object):
                      self.aggregation_functions,)
         if self.memcache:
             # No memcached configured? Cannot use series loader
+            self.memcache.delete(SERIES_LOADER_MUTEX_KEY)
             self.loader = gevent.spawn(self._series_loader,
                                        interval=series_loader_interval)
             logger.info("Waiting up to 1 min for series list loader to finish")
@@ -126,13 +127,13 @@ class InfluxdbFinder(object):
     def _get_parent_branch_series(self, query, limit=50000, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
+        # import ipdb; ipdb.set_trace()
         _pattern = ".".join(query.pattern.split('.')[:-1])
         if not _pattern:
             _pattern = '*'
         _memcache_key = gen_memcache_pattern_key("_".join([
             _pattern, str(limit), str(offset)]))
         parent_branch_series = self.memcache.get(_memcache_key)
-        # import ipdb; ipdb.set_trace()
         while not parent_branch_series:
             logger.debug("No cached series list for parent branch query %s, "
                          "continuing with more parents", _pattern)
@@ -144,7 +145,7 @@ class InfluxdbFinder(object):
             parent_branch_series = self.memcache.get(_memcache_key)
         logger.debug("Found cached parent branch series for parent query %s",
                      _pattern,)
-        if not is_pattern(query.pattern):
+        if not is_pattern(query.pattern) and not '.' in query.pattern:
             split_parents = [s.split('.')[:-1] for s in parent_branch_series]
             series = set([a for p in split_parents for a in p
                           if a == query.pattern])
@@ -282,8 +283,10 @@ class InfluxdbFinder(object):
     
     def is_leaf_node(self, query, path):
         """Check if path is a leaf node according to query"""
-        # import ipdb; ipdb.set_trace()
-        if query.pattern == '*' and path.find('.') > 0:
+        _path_search = path.find('.')
+        if query.pattern == '*' and _path_search > 0:
+            return False
+        if not is_pattern(query.pattern) and _path_search < 0:
             return False
         leaf_path_key = path + query.pattern
         if leaf_path_key in self.leaf_paths:
@@ -297,8 +300,6 @@ class InfluxdbFinder(object):
                   and not path == query.pattern:
                     return False
                 return True
-        if query.pattern == '*' and path.find('.') > 0:
-            return False
         if not len(split_pat) > 1 and path == query.pattern:
             return True
         if split_pat[-1:][0].endswith('*'):
@@ -379,6 +380,8 @@ class InfluxdbFinder(object):
         series = ', '.join(['"%s"' % path for path in paths])
         interval = calculate_interval(start_time, end_time, deltas=self.deltas)
         time_info = start_time, end_time, interval
+        if not nodes:
+            return time_info, {}
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
                                      for path in paths))
         if len(aggregation_funcs) > 1:

@@ -5,7 +5,6 @@ import influxdb.exceptions
 import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
-from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY
 import datetime
 import gevent
 import memcache
@@ -397,7 +396,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'max_value' : 20},
                                   },}
         _memcache = memcache.Client([config['influxdb']['memcache']['host']])
-        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
@@ -468,6 +466,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          msg="Did not get correct series list")
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
+        self.assertEqual(paths, [self.series1],
+                         msg="Did not get requested node %s, got %s" % (
+                             self.series1, paths,))
         time_info, data = finder.fetch_multi(nodes,
                                              int(self.start_time.strftime("%s")),
                                              int(self.end_time.strftime("%s")))
@@ -568,7 +569,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
             '*', str(self.default_nodes_limit), str(0)]))
         _memcache.delete(memcache_key)
-        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         gevent.sleep(3)
         query = Query(prefix)
