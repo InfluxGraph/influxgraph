@@ -21,13 +21,8 @@ compatible API.
 
 try:
     import memcache
-    import gevent
-    import gevent.monkey
 except ImportError:
     pass
-else:
-    gevent.monkey.patch_socket()
-    gevent.monkey.patch_select()
 import datetime
 from influxdb import InfluxDBClient
 import logging
@@ -41,6 +36,8 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key, gen_memcache_pattern_key, Query
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
+import multiprocessing
+import time
 try:
     import statsd
 except ImportError:
@@ -97,10 +94,10 @@ class InfluxdbFinder(object):
         if self.memcache:
             # No memcached configured? Cannot use series loader
             self.memcache.delete(SERIES_LOADER_MUTEX_KEY)
-            self.loader = gevent.spawn(self._series_loader,
-                                       interval=series_loader_interval)
-            logger.info("Waiting up to 1 min for series list loader to finish")
-            gevent.sleep(1)
+            self.loader = multiprocessing.Process(target=self._series_loader,
+                                                  kwargs={'interval' :series_loader_interval})
+            self.loader.daemon = True
+            self.loader.start()
     
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
@@ -128,21 +125,26 @@ class InfluxdbFinder(object):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
         # import ipdb; ipdb.set_trace()
+        root_branch_query = False
         _pattern = ".".join(query.pattern.split('.')[:-1])
         if not _pattern:
             _pattern = '*'
+            root_branch_query = True
         _memcache_key = gen_memcache_pattern_key("_".join([
             _pattern, str(limit), str(offset)]))
         parent_branch_series = self.memcache.get(_memcache_key)
-        while not parent_branch_series:
+        while not parent_branch_series and not root_branch_query:
             logger.debug("No cached series list for parent branch query %s, "
                          "continuing with more parents", _pattern)
             _pattern = ".".join(_pattern.split('.')[:-1])
             if not _pattern:
                 _pattern = '*'
+                root_branch_query = True
             _memcache_key = gen_memcache_pattern_key("_".join([
                 _pattern, str(limit), str(offset)]))
             parent_branch_series = self.memcache.get(_memcache_key)
+        if not parent_branch_series:
+            return
         logger.debug("Found cached parent branch series for parent query %s",
                      _pattern,)
         if not is_pattern(query.pattern) and not '.' in query.pattern:
@@ -171,7 +173,9 @@ class InfluxdbFinder(object):
                          "offset %s", query.pattern, limit, offset)
             return cached_series
         if self.memcache and not query.pattern == '*' and not cached_series:
-            return self._get_parent_branch_series(query, limit=limit, offset=offset)
+            cached_series_from_parents = self._get_parent_branch_series(query, limit=limit, offset=offset)
+            if cached_series_from_parents:
+                return cached_series_from_parents
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -242,7 +246,7 @@ class InfluxdbFinder(object):
                 logger.debug("Series loader mutex exists %s - "
                              "skipping series load",
                              SERIES_LOADER_MUTEX_KEY)
-                gevent.sleep(interval)
+                time.sleep(interval)
                 continue
             self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1, time=60)
             start_time = datetime.datetime.now()
@@ -250,7 +254,7 @@ class InfluxdbFinder(object):
             [b for b in self.find_nodes(query, cache=False)]
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
-            gevent.sleep(interval)
+            time.sleep(interval)
 
     def find_branch(self, path, query, seen_branches):
         if path in seen_branches:
