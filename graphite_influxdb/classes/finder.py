@@ -58,7 +58,7 @@ class InfluxdbFinder(object):
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
                  'deltas', 'leaf_paths', 'branch_paths', 'compiled_queries',
                  'loader')
-
+    
     def __init__(self, config):
         config = normalize_config(config)
         self.config = config
@@ -100,7 +100,7 @@ class InfluxdbFinder(object):
                                        interval=series_loader_interval)
             logger.info("Waiting up to 1 min for series list loader to finish")
             gevent.sleep(1)
-
+    
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
         if logger.handlers:
@@ -122,14 +122,17 @@ class InfluxdbFinder(object):
         else:
             logger.addHandler(handler)
             handler.setFormatter(formatter)
-
+    
     def _get_parent_branch_series(self, query, limit=50000, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
         _pattern = ".".join(query.pattern.split('.')[:-1])
+        if not _pattern:
+            _pattern = '*'
         _memcache_key = gen_memcache_pattern_key("_".join([
             _pattern, str(limit), str(offset)]))
         parent_branch_series = self.memcache.get(_memcache_key)
+        # import ipdb; ipdb.set_trace()
         while not parent_branch_series:
             logger.debug("No cached series list for parent branch query %s, "
                          "continuing with more parents", _pattern)
@@ -141,12 +144,17 @@ class InfluxdbFinder(object):
             parent_branch_series = self.memcache.get(_memcache_key)
         logger.debug("Found cached parent branch series for parent query %s",
                      _pattern,)
+        if not is_pattern(query.pattern):
+            split_parents = [s.split('.')[:-1] for s in parent_branch_series]
+            series = set([a for p in split_parents for a in p
+                          if a == query.pattern])
+            return list(series)
         series = match_entries(parent_branch_series, query.pattern)
         original_query_key = gen_memcache_pattern_key("_".join([
             query.pattern, str(limit), str(offset)]))
         self.memcache.set(original_query_key, series, time=self.memcache_ttl)
         return series
-
+    
     def get_series(self, query, cache=True, limit=50000, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
@@ -212,7 +220,7 @@ class InfluxdbFinder(object):
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
         if not is_pattern(query.pattern):
-            return "^%s$" % (query.pattern,)
+            return "^%s" % (query.pattern,)
         if query.pattern == '*':
             return '^[a-zA-Z0-9-_:#]+\.'
         pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
@@ -300,9 +308,9 @@ class InfluxdbFinder(object):
         if len(split_path[branch_no-1:]) > branch_no:
             return False
         if ('.' in query.pattern or (
-            '.' in query.pattern and self.is_wildcard_suffix_pattern(query.pattern))) \
+            '.' in query.pattern and self.is_suffix_pattern(query.pattern))) \
             and ((not is_pattern(query.pattern)
-                  or self.is_wildcard_suffix_pattern(query.pattern))
+                  or self.is_suffix_pattern(query.pattern))
                   or leaf_path_key in self.leaf_paths):
             return True
         if not self.is_suffix_pattern(query.pattern):
@@ -335,6 +343,7 @@ class InfluxdbFinder(object):
         timer.start()
         series = self.get_all_series(query, cache=cache,
                                      limit=limit)
+        # import ipdb; ipdb.set_trace()
         seen_branches = set()
         for path in series:
             if self.is_leaf_node(query, path):
