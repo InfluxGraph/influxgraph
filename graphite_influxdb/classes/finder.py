@@ -124,7 +124,6 @@ class InfluxdbFinder(object):
     def _get_parent_branch_series(self, query, limit=2000, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
-        # import ipdb; ipdb.set_trace()
         root_branch_query = False
         _pattern = ".".join(query.pattern.split('.')[:-1])
         if not _pattern:
