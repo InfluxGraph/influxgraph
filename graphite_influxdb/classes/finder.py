@@ -255,7 +255,7 @@ class InfluxdbFinder(object):
             logger.debug("Starting series list loader..")
             try:
                 list(self.get_all_series(query, cache=False))
-            except Exception, ex:
+            except Exception as ex:
                 logger.error("Error calling InfluxDB from series loader - %s",
                              ex,)
                 time.sleep(interval)

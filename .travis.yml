@@ -16,7 +16,9 @@ install:
   - pip install -r requirements_test.txt
   - pip install coverage coveralls
 script:
-  - python setup.py nosetests --with-coverage --cover-package=graphite_influxdb
+  - nosetests --with-coverage --cover-package=graphite_influxdb
+  - nosetests --with-coverage --cover-package=graphite_influxdb tests/test_log1.py
+  - nosetests --with-coverage --cover-package=graphite_influxdb tests/test_log2.py
 notifications:
   email:
     on_failure: change
