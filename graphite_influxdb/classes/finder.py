@@ -256,18 +256,19 @@ class InfluxdbFinder(object):
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
-
-    def find_branch(self, path, query, seen_branches):
+    
+    def find_branch(self, split_pattern, split_path, path, pattern,
+                    seen_branches):
         if path in seen_branches:
             return
         # Return root branch immediately for single wildcard query
-        if query.pattern == '*':
+        if pattern == '*':
             return_path = path[:path.find('.')]
             if return_path in seen_branches:
                 return
             seen_branches.add(return_path)
             return return_path
-        branch_no = len(query.pattern.split('.'))
+        branch_no = len(split_pattern)
         split_path = path.split('.')
         try:
             return_path = split_path[branch_no-1:][0]
@@ -283,32 +284,12 @@ class InfluxdbFinder(object):
         return pattern.endswith('*') \
           or pattern.endswith('}')
     
-    def is_leaf_node(self, query, path):
+    def is_leaf_node(self, split_pattern, split_path):
         """Check if path is a leaf node according to query"""
-        _path_search = path.find('.')
-        if query.pattern == '*' and _path_search > 0:
+        branch_no = len(split_pattern)
+        if len(split_path) == branch_no == 1:
             return False
-        if not is_pattern(query.pattern) and _path_search < 0:
-            return False
-        leaf_path_key = path + query.pattern
-        if leaf_path_key in self.leaf_paths:
-            return True
-        query_pat_index = query.pattern.rfind('.')
-        leaf_path_key = path + query.pattern
-        split_pat = query.pattern.split('.')
-        if query_pat_index:
-            if not path[query_pat_index+1:].find('.') >= 0:
-                if not is_pattern(query.pattern[query_pat_index+1:]) \
-                  and not path == query.pattern:
-                    return False
-                return True
-        if not len(split_pat) > 1 and path == query.pattern:
-            return True
-        if split_pat[-1:][0].endswith('*'):
-            split_pat = split_pat[:-1]
-        branch_no = len(split_pat)
-        split_path = path.split('.')
-        if len(split_path[branch_no-1:]) > branch_no:
+        if len(split_path) > branch_no:
             return False
         return True
     
@@ -318,6 +299,7 @@ class InfluxdbFinder(object):
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
+        split_pattern = query.pattern.split('.')
         logger.debug("find_nodes() query %s", query.pattern)
         # if not is_pattern(query.pattern):
         #     import ipdb; ipdb.set_trace()
@@ -341,7 +323,8 @@ class InfluxdbFinder(object):
         # import ipdb; ipdb.set_trace()
         seen_branches = set()
         for path in series:
-            if self.is_leaf_node(query, path):
+            split_path = path.split('.')
+            if self.is_leaf_node(split_pattern, split_path):
                 leaf_path_key = path + query.pattern
                 self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
@@ -354,7 +337,8 @@ class InfluxdbFinder(object):
                 if path in self.branch_paths:
                     yield BranchNode(self.branch_paths[path])
                 else:
-                    branch = self.find_branch(path, query, seen_branches)
+                    branch = self.find_branch(split_pattern, split_path,
+                                              path, query.pattern, seen_branches)
                     if branch:
                         branches = self.branch_paths.get(path, set(branch))
                         branches.add(branch)

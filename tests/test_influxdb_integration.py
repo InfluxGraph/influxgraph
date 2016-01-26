@@ -98,8 +98,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query('fakeyfakeyfakefake')
         series = self.finder.get_all_series(query)
         seen_branches = set()
+        split_pattern = query.pattern.split('.')
         branches = [b for b in [self.finder.find_branch(
-            path, query, seen_branches)
+            split_pattern, path.split('.'), path, query, seen_branches)
             for path in series] if b]
         self.assertEqual(branches, [],
                          msg="Got branches list %s - wanted empty list" % (
@@ -107,8 +108,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query('*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
-        branches = [b for b in [self.finder.find_branch(path, query, seen_branches)
-                                for path in series] if b]
+        split_pattern = query.pattern.split('.')
+        branches = [b for b in [self.finder.find_branch(
+            split_pattern, path.split('.'), path, query.pattern, seen_branches)
+            for path in series] if b]
         expected = [self.metric_prefix]
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (branches,
@@ -137,8 +140,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         query = Query(prefix + '.*')
         series = list(self.finder.get_series(query))
         seen_branches = set()
+        split_pattern = query.pattern.split('.')
         branches = sorted([b for b in [self.finder.find_branch(
-            path, query, seen_branches)
+            split_pattern, path.split('.'), path, query, seen_branches)
             for path in series] if b])
         expected = sorted([b for b in written_branches])
         self.assertEqual(branches, expected,
@@ -580,6 +584,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                             msg="Leaf node %s from query %s not marked as leaf" % (
                                 node.name, query.pattern,))
         query = Query(prefix)
+        # import ipdb; ipdb.set_trace()
         nodes = list(finder.find_nodes(query))
         expected = [prefix]
         branches = sorted([n.name for n in nodes])
