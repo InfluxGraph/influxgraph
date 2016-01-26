@@ -3,7 +3,7 @@ import sys
 import re
 import datetime
 import hashlib
-from .constants import INFLUXDB_AGGREGATIONS, DEFAULT_AGGREGATIONS
+from .constants import INFLUXDB_AGGREGATIONS, DEFAULT_AGGREGATIONS, MEMCACHE_SERIES_DEFAULT_TTL
 
 def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
@@ -91,7 +91,7 @@ def normalize_config(config):
     ret['aggregation_functions'] = _compile_aggregation_patterns(
         cfg.get('aggregation_functions', DEFAULT_AGGREGATIONS))
     ret['memcache_host'] = cfg.get('memcache', {}).get('host', None)
-    ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', 1800)
+    ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
     ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 15)
     ret['deltas'] = cfg.get('deltas', None)
     return ret

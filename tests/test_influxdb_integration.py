@@ -5,7 +5,7 @@ import influxdb.exceptions
 import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
-from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY
+from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY, MEMCACHE_SERIES_DEFAULT_TTL
 import datetime
 import time
 import memcache
@@ -521,9 +521,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                   },}
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
-        self.assertEqual(finder.memcache_ttl, 900,
-                         msg="Default TTL should be 900 sec, got %s sec TTL instead" % (
-                             finder.memcache_ttl,))
+        self.assertEqual(finder.memcache_ttl, MEMCACHE_SERIES_DEFAULT_TTL,
+                         msg="Default TTL should be %s sec, got %s sec TTL instead" % (
+                             MEMCACHE_SERIES_DEFAULT_TTL, finder.memcache_ttl,))
         self.assertEqual(finder.memcache_max_value, 15,
                          msg="Default max value should be 15 MB, got %s instead" % (
                              finder.memcache_max_value,))
