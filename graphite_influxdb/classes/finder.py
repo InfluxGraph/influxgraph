@@ -94,7 +94,6 @@ class InfluxdbFinder(object):
                      self.aggregation_functions,)
         if self.memcache:
             # No memcached configured? Cannot use series loader
-            self.memcache.delete(SERIES_LOADER_MUTEX_KEY)
             self.loader = multiprocessing.Process(target=self._series_loader,
                                                   kwargs={'interval': series_loader_interval})
             self.loader.daemon = True
@@ -173,8 +172,10 @@ class InfluxdbFinder(object):
             logger.debug("Found cached series for query %s, limit %s, " \
                          "offset %s", query.pattern, limit, offset)
             return cached_series
-        if self.memcache and not query.pattern == '*' and not cached_series:
-            cached_series_from_parents = self._get_parent_branch_series(query, limit=limit, offset=offset)
+        if self.memcache and cache and not query.pattern == '*' \
+          and not cached_series:
+            cached_series_from_parents = self._get_parent_branch_series(
+                query, limit=limit, offset=offset)
             if cached_series_from_parents:
                 return cached_series_from_parents
         timer_name = ".".join(['service_is_graphite-api',
@@ -228,7 +229,7 @@ class InfluxdbFinder(object):
         if not is_pattern(query.pattern):
             return "^%s" % (query.pattern,)
         if query.pattern == '*':
-            return '^[a-zA-Z0-9-_:#]+\.'
+            return
         pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
             '*', '([a-zA-Z0-9-_:#]+(\.)?)+').replace(
                 '{', '(').replace(',', '|').replace('}', ')'))
@@ -238,7 +239,7 @@ class InfluxdbFinder(object):
     
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
-        more than once a minute
+        more than once per interval
         """
         pattern = '*'
         query = Query(pattern)
@@ -249,10 +250,16 @@ class InfluxdbFinder(object):
                              SERIES_LOADER_MUTEX_KEY)
                 time.sleep(interval)
                 continue
-            self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1, time=60)
+            self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1, time=interval)
             start_time = datetime.datetime.now()
             logger.debug("Starting series list loader..")
-            [b for b in self.find_nodes(query, cache=False)]
+            try:
+                list(self.get_all_series(query, cache=False))
+            except Exception, ex:
+                logger.error("Error calling InfluxDB from series loader - %s",
+                             ex,)
+                time.sleep(interval)
+                continue
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)

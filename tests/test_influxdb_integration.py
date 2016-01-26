@@ -5,6 +5,7 @@ import influxdb.exceptions
 import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
+from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY
 import datetime
 import time
 import memcache
@@ -400,6 +401,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'max_value' : 20},
                                   },}
         _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
@@ -446,6 +448,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          for offset in range(len(self.series))]
         for _key in memcache_keys:
             _memcache.delete(_key)
+        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
@@ -573,6 +576,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
             '*', str(self.default_nodes_limit), str(0)]))
         _memcache.delete(memcache_key)
+        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = graphite_influxdb.InfluxdbFinder(config)
         time.sleep(1)
         query = Query(prefix + '.*.*.*.*.' + leaf_nodes[0])
