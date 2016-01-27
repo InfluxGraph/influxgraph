@@ -220,30 +220,37 @@ class InfluxdbFinder(object):
             _query += " LIMIT %(limit)s OFFSET %(offset)s"
         return _query, _params
 
+    def _store_last_offset(self, query, limit, offset):
+        if offset and self.memcache:
+            # Store empty list at offset+last limit to indicate
+            # that this is the last page
+            last_offset = offset + limit
+            logger.debug("Pagination finished for query pattern %s "
+                         "- storing empty array for limit %s and "
+                         "last offset %s",
+                         query.pattern, limit, offset,)
+            memcache_key = gen_memcache_pattern_key("_".join([
+                query.pattern, str(limit), str(last_offset)]))
+            self.memcache.set(memcache_key, [], time=self.memcache_ttl)
+
     def get_all_series(self, query, cache=True,
                        limit=2000, offset=0, _data=None):
         """Retrieve all series for query"""
+        # import ipdb; ipdb.set_trace()
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
         if not _data:
             _data = []
         if data:
             if len(data) < limit:
-                if offset and self.memcache:
-                    # Store empty list at offset+last limit to indicate
-                    # that this is the last page
-                    last_offset = offset + limit
-                    logger.debug("Pagination finished for query pattern %s "
-                                 "- storing empty array for limit %s and "
-                                 "last offset %s",
-                                 query.pattern, limit, offset,)
-                    memcache_key = gen_memcache_pattern_key("_".join([
-                        query.pattern, str(limit), str(last_offset)]))
-                    self.memcache.set(memcache_key, [], time=self.memcache_ttl)
+                self._store_last_offset(query, limit, offset)
                 return _data + data
+            if len(data) > limit:
+                return data
             offset = limit + offset
             return data + self.get_all_series(
                 query, cache=cache, limit=limit, offset=offset, _data=_data)
+        self._store_last_offset(query, limit, offset)
         return data
 
     def make_regex_string(self, query):
