@@ -120,8 +120,20 @@ class InfluxdbFinder(object):
         else:
             logger.addHandler(handler)
             handler.setFormatter(formatter)
+
+    def get_all_cached_series(self, pattern, limit=2000, offset=0):
+        """Retrieve all pages of series list from cache only"""
+        _memcache_key = gen_memcache_pattern_key("_".join([
+            pattern, str(limit), str(offset)]))
+        series = self.memcache.get(_memcache_key)
+        if not series:
+            return []
+        if len(series) > limit:
+            return series
+        return series + self.get_all_cached_series(pattern, limit=limit,
+                                                   offset=limit+offset)
     
-    def _get_parent_branch_series(self, query, limit=1, offset=0):
+    def _get_parent_branch_series(self, query, limit=2000, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
         root_branch_query = False
@@ -129,9 +141,8 @@ class InfluxdbFinder(object):
         if not _pattern:
             _pattern = '*'
             root_branch_query = True
-        _memcache_key = gen_memcache_pattern_key("_".join([
-            _pattern, str(limit), str(offset)]))
-        parent_branch_series = self.memcache.get(_memcache_key)
+        parent_branch_series = self.get_all_cached_series(
+            _pattern, limit=limit, offset=offset)
         while not parent_branch_series and not root_branch_query:
             logger.debug("No cached series list for parent branch query %s, "
                          "continuing with more parents", _pattern)
@@ -139,32 +150,31 @@ class InfluxdbFinder(object):
             if not _pattern:
                 _pattern = '*'
                 root_branch_query = True
-            _memcache_key = gen_memcache_pattern_key("_".join([
-                _pattern, str(limit), str(offset)]))
-            parent_branch_series = self.memcache.get(_memcache_key)
+            parent_branch_series = self.get_all_cached_series(
+                _pattern, limit=limit, offset=offset)
         if not parent_branch_series:
             return
-        logger.debug("Found cached parent branch series for parent query %s",
-                     _pattern,)
+        logger.debug("Found cached parent branch series for parent query %s "
+                     "limit %s offset %s",
+                     _pattern, limit, offset)
         # import ipdb; ipdb.set_trace()
-        if not is_pattern(query.pattern) and not '.' in query.pattern:
-            split_parents = [s.split('.')[:-1] for s in parent_branch_series]
-            series = set([a for p in split_parents for a in p
-                          if a == query.pattern])
-            return list(series)
+        # if not is_pattern(query.pattern) and not '.' in query.pattern:
+        #     split_parents = [s.split('.')[:-1] for s in parent_branch_series]
+        #     series = set([a for p in split_parents for a in p
+        #                   if a == query.pattern])
+        #     return list(series)
         series = match_entries(parent_branch_series, query.pattern) \
           if is_pattern(query.pattern) \
           else [b for b in parent_branch_series if
                 b.startswith(query.pattern)]
-        # import ipdb; ipdb.set_trace()
         series = list(self.find_branches(series, query.pattern)) \
           if len(series) > 1 else series
-        original_query_key = gen_memcache_pattern_key("_".join([
-            query.pattern, str(limit), str(offset)]))
-        self.memcache.set(original_query_key, series, time=self.memcache_ttl)
+        # original_query_key = gen_memcache_pattern_key("_".join([
+        #     query.pattern, str(limit), str(offset)]))
+        # self.memcache.set(original_query_key, series, time=self.memcache_ttl)
         return series
     
-    def get_series(self, query, cache=True, limit=1, offset=0):
+    def get_series(self, query, cache=True, limit=2000, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
@@ -178,8 +188,6 @@ class InfluxdbFinder(object):
             logger.debug("Found cached series for query %s, limit %s, " \
                          "offset %s", query.pattern, limit, offset)
             return cached_series
-        elif offset and not cached_series:
-            return []
         if self.memcache and cache and not query.pattern == '*' \
           and not cached_series:
             cached_series_from_parents = self._get_parent_branch_series(
@@ -219,18 +227,25 @@ class InfluxdbFinder(object):
         return _query, _params
 
     def get_all_series(self, query, cache=True,
-                       limit=1, offset=0, _data=None):
+                       limit=2, offset=0, _data=None):
+        """Retrieve all series for query"""
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
-        if not _data:
-            _data = []
         if data:
             if len(data) < limit:
-                return _data + data
+                return _data + data if _data else data
             offset = limit + offset
-            return _data + self.get_all_series(
-                query, cache=cache, limit=limit, offset=offset, _data=data)
-        return _data
+            return data + self.get_all_series(
+                query, cache=cache, limit=limit, offset=offset, _data=_data)
+        # Store empty list at offset+last limit to indicate
+        # that this is the last page
+        # last_offset = offset+limit
+        logger.debug("Pagination finished - storing empty array for "
+                     "last offset %s", offset,)
+        memcache_key = gen_memcache_pattern_key("_".join([
+            query.pattern, str(limit), str(offset)]))
+        self.memcache.set(memcache_key, [], time=self.memcache_ttl)
+        return _data if _data else []
 
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
@@ -319,7 +334,7 @@ class InfluxdbFinder(object):
             return False
         return True
     
-    def find_nodes(self, query, cache=True, limit=1):
+    def find_nodes(self, query, cache=True, limit=2):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
