@@ -16,13 +16,16 @@ except ImportError:
 
 logger = logging.getLogger('graphite_influxdb')
 
+class Interval(object):
+    intervals = set()
+
 class InfluxdbReader(object):
     """Graphite-Api reader class for InfluxDB.
     
     Retrieves a single metric series from InfluxDB
     """
     __slots__ = ('client', 'path', 'statsd_client', 'aggregation_functions',
-                 'memcache', 'deltas')
+                 'memcache', 'deltas', 'intervals')
 
     def __init__(self, client, path, statsd_client,
                  memcache_host=None,
@@ -41,6 +44,7 @@ class InfluxdbReader(object):
         else:
             self.memcache = None
         self.deltas = deltas
+        self.intervals = Interval()
 
     def fetch(self, start_time, end_time):
         """Fetch single series' data from > start_time and <= end_time
@@ -84,4 +88,4 @@ class InfluxdbReader(object):
         """Noop function - Used for whisper backends but not
         needed for Graphite-Influxdb
         """
-        pass
+        return self.intervals

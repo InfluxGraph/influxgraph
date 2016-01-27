@@ -37,7 +37,7 @@ from ..utils import NullStatsd, normalize_config, \
      gen_memcache_key, gen_memcache_pattern_key, Query
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
-import multiprocessing
+import threading
 import time
 try:
     import statsd
@@ -94,8 +94,8 @@ class InfluxdbFinder(object):
                      self.aggregation_functions,)
         if self.memcache:
             # No memcached configured? Cannot use series loader
-            self.loader = multiprocessing.Process(target=self._series_loader,
-                                                  kwargs={'interval': series_loader_interval})
+            self.loader = threading.Thread(target=self._series_loader,
+                                           kwargs={'interval': series_loader_interval})
             self.loader.daemon = True
             self.loader.start()
     
@@ -123,12 +123,14 @@ class InfluxdbFinder(object):
 
     def get_all_cached_series(self, pattern, limit=2000, offset=0):
         """Retrieve all pages of series list from cache only"""
+        logger.debug("Finding cached series list for pattern %s, "
+                     "limit %s, offset %s", pattern, limit, offset)
         _memcache_key = gen_memcache_pattern_key("_".join([
             pattern, str(limit), str(offset)]))
         series = self.memcache.get(_memcache_key)
         if not series:
             return []
-        if len(series) > limit:
+        if len(series) < limit:
             return series
         return series + self.get_all_cached_series(pattern, limit=limit,
                                                    offset=limit+offset)
@@ -152,6 +154,7 @@ class InfluxdbFinder(object):
                 root_branch_query = True
             parent_branch_series = self.get_all_cached_series(
                 _pattern, limit=limit, offset=offset)
+        # import ipdb; ipdb.set_trace()
         if not parent_branch_series:
             return
         logger.debug("Found cached parent branch series for parent query %s "
@@ -184,7 +187,7 @@ class InfluxdbFinder(object):
             query.pattern, str(limit), str(offset)]))
         cached_series = self.memcache.get(memcache_key) \
           if self.memcache and cache else None
-        if cached_series:
+        if cached_series is not None:
             logger.debug("Found cached series for query %s, limit %s, " \
                          "offset %s", query.pattern, limit, offset)
             return cached_series
@@ -193,6 +196,9 @@ class InfluxdbFinder(object):
             cached_series_from_parents = self._get_parent_branch_series(
                 query, limit=limit, offset=offset)
             if cached_series_from_parents:
+                logger.debug("Found cached series from parent branches for "
+                             "query %s, limit %s, offset %s",
+                             query.pattern, limit, offset)
                 return cached_series_from_parents
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
@@ -227,25 +233,31 @@ class InfluxdbFinder(object):
         return _query, _params
 
     def get_all_series(self, query, cache=True,
-                       limit=2, offset=0, _data=None):
+                       limit=30, offset=0, _data=None):
         """Retrieve all series for query"""
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
+        if not _data:
+            _data = []
         if data:
             if len(data) < limit:
-                return _data + data if _data else data
+                # offset = limit + offset
+                # Store empty list at offset+last limit to indicate
+                # that this is the last page
+                if offset:
+                    last_offset = offset + limit
+                    logger.debug("Pagination finished for query pattern %s "
+                                 "- storing empty array for limit %s and "
+                                 "last offset %s",
+                                 query.pattern, limit, offset,)
+                    memcache_key = gen_memcache_pattern_key("_".join([
+                        query.pattern, str(limit), str(last_offset)]))
+                    self.memcache.set(memcache_key, [], time=self.memcache_ttl)
+                return _data + data
             offset = limit + offset
             return data + self.get_all_series(
-                query, cache=cache, limit=limit, offset=offset, _data=_data)
-        # Store empty list at offset+last limit to indicate
-        # that this is the last page
-        # last_offset = offset+limit
-        logger.debug("Pagination finished - storing empty array for "
-                     "last offset %s", offset,)
-        memcache_key = gen_memcache_pattern_key("_".join([
-            query.pattern, str(limit), str(offset)]))
-        self.memcache.set(memcache_key, [], time=self.memcache_ttl)
-        return _data if _data else []
+                query, cache=cache, limit=limit, offset=offset, _data=data)
+        return _data
 
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
@@ -334,7 +346,7 @@ class InfluxdbFinder(object):
             return False
         return True
     
-    def find_nodes(self, query, cache=True, limit=2):
+    def find_nodes(self, query, cache=True, limit=30):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
@@ -361,7 +373,6 @@ class InfluxdbFinder(object):
         timer.start()
         series = self.get_all_series(query, cache=cache,
                                      limit=limit)
-        # import ipdb; ipdb.set_trace()
         seen_branches = set()
         for path in series:
             split_path = path.split('.')
