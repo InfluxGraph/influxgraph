@@ -154,28 +154,15 @@ class InfluxdbFinder(object):
                 root_branch_query = True
             parent_branch_series = self.get_all_cached_series(
                 _pattern, limit=limit, offset=offset)
-        # import ipdb; ipdb.set_trace()
         if not parent_branch_series:
             return
         logger.debug("Found cached parent branch series for parent query %s "
                      "limit %s offset %s",
                      _pattern, limit, offset)
-        # import ipdb; ipdb.set_trace()
-        # if not is_pattern(query.pattern) and not '.' in query.pattern:
-        #     split_parents = [s.split('.')[:-1] for s in parent_branch_series]
-        #     series = set([a for p in split_parents for a in p
-        #                   if a == query.pattern])
-        #     return list(series)
-        # import ipdb; ipdb.set_trace()
         series = match_entries(parent_branch_series, query.pattern) \
           if is_pattern(query.pattern) \
           else [b for b in parent_branch_series if
                 b.startswith(query.pattern)]
-        series = list(self.get_nodes(series, query.pattern)) \
-          if len(series) > 1 else series
-        # original_query_key = gen_memcache_pattern_key("_".join([
-        #     query.pattern, str(limit), str(offset)]))
-        # self.memcache.set(original_query_key, series, time=self.memcache_ttl)
         return series
     
     def get_series(self, query, cache=True, limit=2000, offset=0):
@@ -201,7 +188,6 @@ class InfluxdbFinder(object):
                              "query %s, limit %s, offset %s",
                              query.pattern, limit, offset)
                 return cached_series_from_parents
-        # import ipdb; ipdb.set_trace()
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -235,7 +221,7 @@ class InfluxdbFinder(object):
         return _query, _params
 
     def get_all_series(self, query, cache=True,
-                       limit=30, offset=0, _data=None):
+                       limit=2000, offset=0, _data=None):
         """Retrieve all series for query"""
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
@@ -243,7 +229,7 @@ class InfluxdbFinder(object):
             _data = []
         if data:
             if len(data) < limit:
-                if offset:
+                if offset and self.memcache:
                     # Store empty list at offset+last limit to indicate
                     # that this is the last page
                     last_offset = offset + limit
@@ -257,8 +243,8 @@ class InfluxdbFinder(object):
                 return _data + data
             offset = limit + offset
             return data + self.get_all_series(
-                query, cache=cache, limit=limit, offset=offset, _data=data)
-        return _data
+                query, cache=cache, limit=limit, offset=offset, _data=_data)
+        return data
 
     def make_regex_string(self, query):
         """Make InfluxDB regex strings from Graphite wildcard queries"""
@@ -299,19 +285,6 @@ class InfluxdbFinder(object):
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
-
-    def get_nodes(self, series, pattern):
-        """Get all nodes for pattern from series"""
-        seen_branches = set()
-        split_pattern = pattern.split('.')
-        for path in series:
-            split_path = path.split('.')
-            if self.is_leaf_node(split_pattern, split_path):
-                yield split_path[-1:][0]
-            branch = self.find_branch(split_pattern, split_path,
-                                      path, pattern, seen_branches)
-            if branch:
-                yield branch
     
     def find_branch(self, split_pattern, split_path, path, pattern,
                     seen_branches):
@@ -348,7 +321,7 @@ class InfluxdbFinder(object):
             return False
         return True
     
-    def find_nodes(self, query, cache=True, limit=30):
+    def find_nodes(self, query, cache=True, limit=2000):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
@@ -373,8 +346,8 @@ class InfluxdbFinder(object):
                                'unit_is_ms.what_is_query_duration'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        series = self.get_all_series(query, cache=cache,
-                                     limit=limit)
+        series = list(set(self.get_all_series(query, cache=cache,
+                                              limit=limit)))
         seen_branches = set()
         for path in series:
             split_path = path.split('.')

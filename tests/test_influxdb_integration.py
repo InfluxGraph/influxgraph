@@ -162,7 +162,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         """ """
         query = Query('*')
         series = self.finder.get_all_series(query, cache=True, limit=1)
-        self.assertTrue(len(series) == len(self.series))
+        self.assertTrue(len(series) == len(self.series),
+                        msg="Got series list %s for root branch query - expected %s" % (
+                            series, self.series,))
 
     def test_find_series(self):
         """Test finding a series by name"""
@@ -470,7 +472,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         for node in finder.find_nodes(query, limit=limit)])
         expected = sorted(self.series[2:])
         self.assertEqual(nodes, expected,
-                         msg="Did not get correct series list")
+                         msg="Did not get correct series list - "
+                         "wanted %s series, got %s" % (
+                             len(expected), len(nodes),))
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
         self.assertEqual(paths, [self.series1],
