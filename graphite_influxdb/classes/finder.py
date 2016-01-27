@@ -166,11 +166,12 @@ class InfluxdbFinder(object):
         #     series = set([a for p in split_parents for a in p
         #                   if a == query.pattern])
         #     return list(series)
+        # import ipdb; ipdb.set_trace()
         series = match_entries(parent_branch_series, query.pattern) \
           if is_pattern(query.pattern) \
           else [b for b in parent_branch_series if
                 b.startswith(query.pattern)]
-        series = list(self.find_branches(series, query.pattern)) \
+        series = list(self.get_nodes(series, query.pattern)) \
           if len(series) > 1 else series
         # original_query_key = gen_memcache_pattern_key("_".join([
         #     query.pattern, str(limit), str(offset)]))
@@ -200,6 +201,7 @@ class InfluxdbFinder(object):
                              "query %s, limit %s, offset %s",
                              query.pattern, limit, offset)
                 return cached_series_from_parents
+        # import ipdb; ipdb.set_trace()
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -241,10 +243,9 @@ class InfluxdbFinder(object):
             _data = []
         if data:
             if len(data) < limit:
-                # offset = limit + offset
-                # Store empty list at offset+last limit to indicate
-                # that this is the last page
                 if offset:
+                    # Store empty list at offset+last limit to indicate
+                    # that this is the last page
                     last_offset = offset + limit
                     logger.debug("Pagination finished for query pattern %s "
                                  "- storing empty array for limit %s and "
@@ -299,13 +300,14 @@ class InfluxdbFinder(object):
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
 
-    def find_branches(self, series, pattern):
+    def get_nodes(self, series, pattern):
+        """Get all nodes for pattern from series"""
         seen_branches = set()
         split_pattern = pattern.split('.')
         for path in series:
             split_path = path.split('.')
             if self.is_leaf_node(split_pattern, split_path):
-                continue
+                yield split_path[-1:][0]
             branch = self.find_branch(split_pattern, split_path,
                                       path, pattern, seen_branches)
             if branch:
