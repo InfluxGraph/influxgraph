@@ -121,7 +121,7 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
     
-    def _get_parent_branch_series(self, query, limit=2000, offset=0):
+    def _get_parent_branch_series(self, query, limit=1, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
         root_branch_query = False
@@ -146,18 +146,25 @@ class InfluxdbFinder(object):
             return
         logger.debug("Found cached parent branch series for parent query %s",
                      _pattern,)
+        # import ipdb; ipdb.set_trace()
         if not is_pattern(query.pattern) and not '.' in query.pattern:
             split_parents = [s.split('.')[:-1] for s in parent_branch_series]
             series = set([a for p in split_parents for a in p
                           if a == query.pattern])
             return list(series)
-        series = match_entries(parent_branch_series, query.pattern)
+        series = match_entries(parent_branch_series, query.pattern) \
+          if is_pattern(query.pattern) \
+          else [b for b in parent_branch_series if
+                b.startswith(query.pattern)]
+        # import ipdb; ipdb.set_trace()
+        series = list(self.find_branches(series, query.pattern)) \
+          if len(series) > 1 else series
         original_query_key = gen_memcache_pattern_key("_".join([
             query.pattern, str(limit), str(offset)]))
         self.memcache.set(original_query_key, series, time=self.memcache_ttl)
         return series
     
-    def get_series(self, query, cache=True, limit=2000, offset=0):
+    def get_series(self, query, cache=True, limit=1, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
@@ -171,6 +178,8 @@ class InfluxdbFinder(object):
             logger.debug("Found cached series for query %s, limit %s, " \
                          "offset %s", query.pattern, limit, offset)
             return cached_series
+        elif offset and not cached_series:
+            return []
         if self.memcache and cache and not query.pattern == '*' \
           and not cached_series:
             cached_series_from_parents = self._get_parent_branch_series(
@@ -210,7 +219,7 @@ class InfluxdbFinder(object):
         return _query, _params
 
     def get_all_series(self, query, cache=True,
-                       limit=2000, offset=0, _data=None):
+                       limit=1, offset=0, _data=None):
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
         if not _data:
@@ -262,6 +271,18 @@ class InfluxdbFinder(object):
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
+
+    def find_branches(self, series, pattern):
+        seen_branches = set()
+        split_pattern = pattern.split('.')
+        for path in series:
+            split_path = path.split('.')
+            if self.is_leaf_node(split_pattern, split_path):
+                continue
+            branch = self.find_branch(split_pattern, split_path,
+                                      path, pattern, seen_branches)
+            if branch:
+                yield branch
     
     def find_branch(self, split_pattern, split_path, path, pattern,
                     seen_branches):
@@ -275,7 +296,6 @@ class InfluxdbFinder(object):
             seen_branches.add(return_path)
             return return_path
         branch_no = len(split_pattern)
-        split_path = path.split('.')
         try:
             return_path = split_path[branch_no-1:][0]
         except IndexError:
@@ -299,7 +319,7 @@ class InfluxdbFinder(object):
             return False
         return True
     
-    def find_nodes(self, query, cache=True, limit=2000):
+    def find_nodes(self, query, cache=True, limit=1):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
