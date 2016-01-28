@@ -339,8 +339,16 @@ class InfluxdbFinder(object):
         """
         split_pattern = query.pattern.split('.')
         logger.debug("find_nodes() query %s", query.pattern)
-        # TODO - have to check whether pattern is a branch first
+        # TODO - need a way to determine if path is a branch or leaf node
+        # prior to querying influxdb for data.
+        # An InfluxDB query to check if a series exists is quite expensive
+        # at ~3s with 10k series so that is not an option.
+        #
+        # Perhaps storing found branches as <branch name>: 1 in memcache
+        # could be used as a key/val lookup for is_this_path_here
+        # a known branch.
         # if not is_pattern(query.pattern):
+        #     import ipdb; ipdb.set_trace()
         #     if self.is_leaf_node(split_pattern, split_pattern):
         #         yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
         #             self.client, query.pattern, self.statsd_client,
