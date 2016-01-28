@@ -54,8 +54,7 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'leaf_paths', 'branch_paths', 'compiled_queries',
-                 'loader')
+                 'deltas', 'compiled_queries', 'loader')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -87,18 +86,22 @@ class InfluxdbFinder(object):
         self.aggregation_functions = config.get('aggregation_functions', None)
         series_loader_interval = config.get('series_loader_interval', 900)
         self.deltas = config.get('deltas', None)
-        self.leaf_paths = set()
-        self.branch_paths = {}
         self.compiled_queries = {}
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         # self.get_all_series(Query('*'), cache=False)
+        self.loader = self._start_loader(series_loader_interval)
+
+    def _start_loader(self, series_loader_interval):
         if self.memcache:
             # No memcached configured? Cannot use series loader
-            self.loader = threading.Thread(target=self._series_loader,
+            loader = threading.Thread(target=self._series_loader,
                                            kwargs={'interval': series_loader_interval})
-            self.loader.daemon = True
-            self.loader.start()
+            loader.daemon = True
+            loader.start()
+        else:
+            loader = None
+        return loader
     
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
@@ -336,6 +339,7 @@ class InfluxdbFinder(object):
         """
         split_pattern = query.pattern.split('.')
         logger.debug("find_nodes() query %s", query.pattern)
+        # TODO - have to check whether pattern is a branch first
         # if not is_pattern(query.pattern):
         #     if self.is_leaf_node(split_pattern, split_pattern):
         #         yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
@@ -364,7 +368,6 @@ class InfluxdbFinder(object):
             split_path = path.split('.')
             if self.is_leaf_node(split_pattern, split_path):
                 leaf_path_key = path + query.pattern
-                self.leaf_paths.add(leaf_path_key)
                 yield InfluxDBLeafNode(path, InfluxdbReader(
                     self.client, path, self.statsd_client,
                     aggregation_functions=self.aggregation_functions,
@@ -372,16 +375,10 @@ class InfluxdbFinder(object):
                     memcache_max_value=self.memcache_max_value,
                     deltas=self.deltas))
             else:
-                if path in self.branch_paths:
-                    yield BranchNode(self.branch_paths[path])
-                else:
-                    branch = self.find_branch(split_pattern, split_path,
-                                              path, query.pattern, seen_branches)
-                    if branch:
-                        branches = self.branch_paths.get(path, set(branch))
-                        branches.add(branch)
-                        yield BranchNode(branch)
-
+                branch = self.find_branch(split_pattern, split_path,
+                                          path, query.pattern, seen_branches)
+                if branch:
+                    yield BranchNode(branch)
     
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
