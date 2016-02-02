@@ -258,25 +258,20 @@ class InfluxdbFinder(object):
         """Retrieve all series for query"""
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
-        if not _data:
-            _data = []
-        if data:
-            if len(data) < limit:
-                self._store_last_offset(query, limit, offset)
-                return _data + data
-            if len(data) > limit:
-                return data
-            offset = limit + offset
-            return data + self.get_all_series(
-                query, cache=cache, limit=limit, offset=offset, _data=_data)
-        self._store_last_offset(query, limit, offset)
-        return data
-
-    def get_all_series_list(self, limit=LOADER_LIMIT, offset=0, _data=None):
+        return self._pagination_runner(data, query, self.get_all_series, cache=cache,
+                                       limit=limit, offset=offset)
+    
+    def get_all_series_list(self, limit=LOADER_LIMIT, offset=0, _data=None,
+                            *args, **kwargs):
         """Retrieve all series for series loader"""
         query = Query('*')
         data = self._get_series(limit=limit, offset=offset)
-        # import ipdb; ipdb.set_trace()
+        return self._pagination_runner(data, query, self.get_all_series_list,
+                                       limit=limit, offset=offset)
+    
+    def _pagination_runner(self, data, query, get_series_func,
+                           limit=None, offset=None, _data=None,
+                           *args, **kwargs):
         if not _data:
             _data = []
         if data:
@@ -286,8 +281,8 @@ class InfluxdbFinder(object):
             if len(data) > limit:
                 return data
             offset = limit + offset
-            return data + self.get_all_series_list(
-                limit=limit, offset=offset, _data=_data)
+            return data + get_series_func(query,
+                *args, limit=limit, offset=offset, _data=_data, **kwargs)
         self._store_last_offset(query, limit, offset)
         return data
 
