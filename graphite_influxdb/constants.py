@@ -30,3 +30,4 @@ DEFAULT_AGGREGATIONS = { '\.min$' : 'min',
 _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
 SERIES_LOADER_MUTEX_KEY = 'graphite_influxdb_series_loader'
 MEMCACHE_SERIES_DEFAULT_TTL = 1800
+LOADER_LIMIT=100000

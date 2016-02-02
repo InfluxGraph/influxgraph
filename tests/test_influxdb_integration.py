@@ -5,7 +5,8 @@ import influxdb.exceptions
 import graphite_influxdb
 import graphite_influxdb.utils
 from graphite_influxdb.utils import Query
-from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY, MEMCACHE_SERIES_DEFAULT_TTL
+from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY, \
+     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
 import datetime
 import time
 import memcache
@@ -56,7 +57,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
           ".".join([self.metric_prefix, self.nodes[1]])
-        self.default_nodes_limit = 2000
+        self.default_nodes_limit = LOADER_LIMIT
         self.series = [self.series1, self.series2,
                        'integration_test.agg_path.min',
                        'integration_test.agg_path.max',

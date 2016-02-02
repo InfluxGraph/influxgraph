@@ -31,7 +31,8 @@ from logging.handlers import TimedRotatingFileHandler
 from graphite_api.node import BranchNode
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
-from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, SERIES_LOADER_MUTEX_KEY
+from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
+     SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
      gen_memcache_key, gen_memcache_pattern_key, Query
@@ -125,7 +126,7 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
 
-    def get_all_cached_series(self, pattern, limit=100000, offset=0):
+    def get_all_cached_series(self, pattern, limit=LOADER_LIMIT, offset=0):
         """Retrieve all pages of series list from cache only"""
         logger.debug("Finding cached series list for pattern %s, "
                      "limit %s, offset %s", pattern, limit, offset)
@@ -139,7 +140,7 @@ class InfluxdbFinder(object):
         return series + self.get_all_cached_series(pattern, limit=limit,
                                                    offset=limit+offset)
     
-    def _get_parent_branch_series(self, query, limit=100000, offset=0):
+    def _get_parent_branch_series(self, query, limit=LOADER_LIMIT, offset=0):
         """Iterate through parent branches, find cached series for parent
         branch and return series matching query"""
         root_branch_query = False
@@ -169,7 +170,7 @@ class InfluxdbFinder(object):
                 b.startswith(query.pattern)]
         return series
     
-    def get_series(self, query, cache=True, limit=100000, offset=0):
+    def get_series(self, query, cache=True, limit=LOADER_LIMIT, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
@@ -207,14 +208,14 @@ class InfluxdbFinder(object):
         timer = self.statsd_client.timer(timer_name)
         timer.start()
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        series = [key_name for (key_name, _) in data.keys()]
+        series = [d['name'] for d in data['measurements']]
         timer.stop()
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
         return series
 
-    def _get_series(self, limit=100000, offset=0):
+    def _get_series(self, limit=LOADER_LIMIT, offset=0):
         memcache_key = gen_memcache_pattern_key("_".join([
             '*', str(limit), str(offset)]))
         _query = "SHOW SERIES LIMIT %s OFFSET %s" % (limit, offset,)
@@ -226,7 +227,7 @@ class InfluxdbFinder(object):
                               min_compress_len=50)
         return series
 
-    def _make_series_query(self, query, limit=100000, offset=0):
+    def _make_series_query(self, query, limit=LOADER_LIMIT, offset=0):
         regex_string = self.make_regex_string(query)
         _query = "SHOW MEASUREMENTS"
         _params = {}
@@ -253,7 +254,7 @@ class InfluxdbFinder(object):
             self.memcache.set(memcache_key, [], time=self.memcache_ttl)
 
     def get_all_series(self, query, cache=True,
-                       limit=100000, offset=0, _data=None):
+                       limit=LOADER_LIMIT, offset=0, _data=None):
         """Retrieve all series for query"""
         data = self.get_series(
             query, cache=cache, limit=limit, offset=offset)
@@ -271,7 +272,7 @@ class InfluxdbFinder(object):
         self._store_last_offset(query, limit, offset)
         return data
 
-    def get_all_series_list(self, limit=100000, offset=0, _data=None):
+    def get_all_series_list(self, limit=LOADER_LIMIT, offset=0, _data=None):
         """Retrieve all series for series loader"""
         query = Query('*')
         data = self._get_series(limit=limit, offset=offset)
@@ -365,7 +366,7 @@ class InfluxdbFinder(object):
             return False
         return True
     
-    def find_nodes(self, query, cache=True, limit=100000):
+    def find_nodes(self, query, cache=True, limit=LOADER_LIMIT):
         """Find matching nodes according to query.
         
         :param query: Query to run to find either BranchNode(s) or LeafNode(s)
