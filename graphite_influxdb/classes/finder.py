@@ -55,7 +55,7 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'compiled_queries', 'loader')
+                 'deltas', 'loader')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -87,7 +87,6 @@ class InfluxdbFinder(object):
         self.aggregation_functions = config.get('aggregation_functions', None)
         series_loader_interval = config.get('series_loader_interval', 900)
         self.deltas = config.get('deltas', None)
-        self.compiled_queries = {}
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         self.loader = self._start_loader(series_loader_interval)
