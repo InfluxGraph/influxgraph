@@ -90,12 +90,22 @@ class InfluxdbFinder(object):
         self.compiled_queries = {}
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
-        # self.get_all_series_list()
         self.loader = self._start_loader(series_loader_interval)
 
     def _start_loader(self, series_loader_interval):
         if self.memcache:
             # No memcached configured? Cannot use series loader
+            # Run series loader in main thread if due to run to not allow
+            # requests to be served before series loader has completed at least once.
+            if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
+                logger.debug("Series loader mutex exists %s - "
+                             "skipping series load",
+                             SERIES_LOADER_MUTEX_KEY)
+            else:
+                self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
+                                  time=series_loader_interval)
+                for _ in self.get_all_series_list():
+                    pass
             loader = threading.Thread(target=self._series_loader,
                                       kwargs={'interval': series_loader_interval})
             loader.daemon = True
@@ -281,8 +291,9 @@ class InfluxdbFinder(object):
             if len(data) > limit:
                 return data
             offset = limit + offset
-            return data + get_series_func(query,
-                *args, limit=limit, offset=offset, _data=_data, **kwargs)
+            return data + get_series_func(
+                query=query, *args, limit=limit, offset=offset,
+                _data=_data, **kwargs)
         self._store_last_offset(query, limit, offset)
         return data
 
@@ -316,7 +327,8 @@ class InfluxdbFinder(object):
             start_time = datetime.datetime.now()
             logger.debug("Starting series list loader..")
             try:
-                list(self.get_all_series_list())
+                for _ in self.get_all_series_list():
+                    pass
             except Exception as ex:
                 logger.error("Error calling InfluxDB from series loader - %s",
                              ex,)
@@ -332,7 +344,10 @@ class InfluxdbFinder(object):
             return
         # Return root branch immediately for single wildcard query
         if pattern == '*':
-            return_path = path[:path.find('.')]
+            try:
+                return_path = split_path[:1][0]
+            except IndexError:
+                return
             if return_path in seen_branches:
                 return
             seen_branches.add(return_path)
