@@ -49,10 +49,23 @@ Templates should be empty in InfluxDB's Graphite plugin configuration. ::
     enabled = true
     # templates = []
 
-Retention periods and data intervals
-====================================
 
-With InfluxDB versions >= 0.9 it is no longer required that a retention period or schema is configured explicitly for each series. Queries for series that have data in multiple retention periods are automatically merged by InfluxDB and data from all retention periods is returned.
+Retention policy configuration
+==============================
+
+Pending implementation of this feature request that will allow InfluxDB to select and/or merge results from multiple retention policies as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies. ::
+
+  retention_policies:
+      <time interval of query>: <retention policy name>
+
+For example, to make a query with a time interval of 10 and 30 minutes use the retention policy named `10min` and `30min` respectively::
+
+  retention_policies:
+      600: 10min
+      1800: 30min
+
+While not required, retention policy time interval (sampling rate) is best kept close to or identical to 
+
 
 Aggregation function configuration
 ==================================
@@ -82,6 +95,7 @@ Known InfluxDB aggregation functions are defined at ``graphite_influxdb.constant
    In other words, client needs to make sure all series in a wildcard query, for example ``my_host.cpu.cpu*`` have the same aggregation function configured.
 
    ``Graphite-InfluxDB`` `will use the first aggregation function configured <https://github.com/pkittenis/graphite-influxdb/blob/master/graphite_influxdb/classes.py#L275>`_ and log a warning message to that effect if a wildcard query resolves to multiple aggregation functions.
+
 
 Schema-less design
 ------------------
@@ -177,6 +191,14 @@ The above is the most minimal configuration. There are several optional configur
             31536000 : 7200
             # 4 years -> 12hours
             126144000 : 43200
+	# (Optional) Retention policies to use for associated time intervals.
+	# Key is time interval in seconds, value the retention policy name a
+	# query with the associated time interval or less should use.
+	# Eg to use retention policy called `10min` for queries with a configured
+	# interval of 10min use `600: 10min`
+        retention_policies:
+	    600: 10min
+	    1800: 30min
 
 Memcache caching InfluxDB data
 ------------------------------
