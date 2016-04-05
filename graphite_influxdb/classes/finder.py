@@ -230,7 +230,11 @@ class InfluxdbFinder(object):
         _query = "SHOW SERIES LIMIT %s OFFSET %s" % (limit, offset,)
         logger.debug("Series loader calling influxdb with query - %s", _query)
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        series = [key_name for (key_name, _) in data.keys()]
+        # >= 0.11 show series API
+        if 'results' in data.keys()[0]:
+            series = [d['key'] for k in data for d in k]
+        else:
+            series = [key_name for (key_name, _) in data.keys()]
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
