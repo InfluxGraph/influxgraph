@@ -231,7 +231,7 @@ class InfluxdbFinder(object):
         logger.debug("Series loader calling influxdb with query - %s", _query)
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         # >= 0.11 show series API
-        if 'results' in data.keys()[0]:
+        if data.keys() and 'results' in data.keys()[0]:
             series = [d['key'] for k in data for d in k]
         else:
             series = [key_name for (key_name, _) in data.keys()]
