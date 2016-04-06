@@ -232,7 +232,8 @@ class InfluxdbFinder(object):
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         # >= 0.11 show series API
         if data.keys() and 'results' in data.keys()[0]:
-            series = [d['key'] for k in data for d in k]
+            series = [d.get('key') for k in data for d in k
+                      if d]
         else:
             series = [key_name for (key_name, _) in data.keys()]
         if self.memcache:
