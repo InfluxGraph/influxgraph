@@ -326,7 +326,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         for series in [self.series1, self.series2]:
             self.assertTrue(self.steps == len(data[series]),
                             msg="Expected %s datapoints, got %s instead" % (
-                            self.steps, len(data[series]),))
+                                self.steps, len(data[series]),))
             datapoints = [v for v in data[series] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for series %s - got %s" % (
