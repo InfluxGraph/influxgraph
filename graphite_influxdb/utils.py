@@ -108,7 +108,7 @@ def normalize_config(config):
         cfg.get('aggregation_functions', DEFAULT_AGGREGATIONS))
     ret['memcache_host'] = cfg.get('memcache', {}).get('host', None)
     ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
-    ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 15)
+    ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 1)
     ret['deltas'] = cfg.get('deltas', None)
     return ret
 
