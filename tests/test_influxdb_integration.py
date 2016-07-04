@@ -529,8 +529,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_ttl, MEMCACHE_SERIES_DEFAULT_TTL,
                          msg="Default TTL should be %s sec, got %s sec TTL instead" % (
                              MEMCACHE_SERIES_DEFAULT_TTL, finder.memcache_ttl,))
-        self.assertEqual(finder.memcache_max_value, 15,
-                         msg="Default max value should be 15 MB, got %s instead" % (
+        self.assertEqual(finder.memcache_max_value, 1,
+                         msg="Default max value should be 1 MB, got %s instead" % (
                              finder.memcache_max_value,))
 
     def test_named_branch_query(self):
