@@ -35,7 +35,7 @@ from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT
 from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
-     gen_memcache_key, gen_memcache_pattern_key, Query
+     gen_memcache_key, gen_memcache_pattern_key, Query, get_retention_policy
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 import threading
@@ -87,9 +87,10 @@ class InfluxdbFinder(object):
         self.aggregation_functions = config.get('aggregation_functions', None)
         series_loader_interval = config.get('series_loader_interval', 900)
         self.deltas = config.get('deltas', None)
+        self.retention_policies = config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
-        self.loader = self._start_loader(series_loader_interval)
+        # self.loader = self._start_loader(series_loader_interval)
 
     def _start_loader(self, series_loader_interval):
         if self.memcache:
@@ -446,8 +447,10 @@ class InfluxdbFinder(object):
         :param end_time: End time of query
         """
         paths = list(set([n.path for n in nodes]))
-        series = ', '.join(['"%s"' % path for path in paths])
         interval = calculate_interval(start_time, end_time, deltas=self.deltas)
+        retention = get_retention_policy(interval, self.retention_policies) \
+          if self.retention_policies else "default"
+        series = ', '.join(['"%s"."%s"' % (retention, path,) for path in paths])
         time_info = start_time, end_time, interval
         if not nodes:
             return time_info, {}
@@ -463,6 +466,7 @@ class InfluxdbFinder(object):
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return time_info, data
+        # import ipdb; ipdb.set_trace()
         query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
             aggregation_func, series, start_time, end_time, interval,)
         logger.debug('fetch_multi() query: %s', query)

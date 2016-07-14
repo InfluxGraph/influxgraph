@@ -110,7 +110,11 @@ def normalize_config(config):
     ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
     ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 1)
     ret['deltas'] = cfg.get('deltas', None)
+    ret['retention_policies'] = cfg.get('retention_policies', None)
     return ret
+
+def get_retention_policy(interval, retention_policies):
+    raise NotImplementedError
 
 def _compile_aggregation_patterns(aggregation_functions):
     """Compile aggregation function patterns to compiled regex objects"""

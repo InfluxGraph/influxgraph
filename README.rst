@@ -58,13 +58,13 @@ Pending implementation of this feature request that will allow InfluxDB to selec
   retention_policies:
       <time interval of query>: <retention policy name>
 
-For example, to make a query with a time interval of 10 and 30 minutes use the retention policy named `10min` and `30min` respectively::
+For example, to make a query with a time interval of 10 and 30 minutes use the retention policies named `10min` and `30min` respectively::
 
   retention_policies:
       600: 10min
       1800: 30min
 
-While not required, retention policy time interval (sampling rate) is best kept close to or identical to 
+While not required, retention policy time interval (sampling rate) is best kept close to or identical to ``deltas`` interval.
 
 
 Aggregation function configuration
@@ -118,9 +118,9 @@ Using with graphite-api
 
 Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is at least ``1.1.1`` that has working multi fetch support.
 
-Use of ``graphite-api`` version as installed by our requirements is **highly** recommended.
+Use of ``graphite-api`` version as installed by requirements is **highly** recommended.
 
-In your graphite-api config file at ``/etc/graphite-api.yaml``::
+In graphite-api config file at ``/etc/graphite-api.yaml``::
 
     finders:
       - graphite_influxdb.InfluxdbFinder
