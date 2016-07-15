@@ -21,6 +21,15 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
                          msg="Expected interval of 1day/86400s for start/end times %s-%s, got %s" % (
                              start_time, end_time, interval))
 
+    def test_get_retention_policy(self):
+        policies = {60: 'default', 600: '10min', 1800: '30min'}
+        for interval, _retention in policies.items():
+            retention = graphite_influxdb.utils.get_retention_policy(
+                interval, policies)
+            self.assertEqual(retention, _retention,
+                             msg="Expected retention period %s for interval %s, got %s" % (
+                                 _retention, interval, retention,))
+    
     def test_config_parsing(self):
         cfg = {}
         self.assertRaises(SystemExit, graphite_influxdb.utils.normalize_config, cfg)

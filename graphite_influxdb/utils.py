@@ -56,6 +56,12 @@ def calculate_interval(start_time, end_time, deltas=None):
     # 1 day default, or if time range > 4 years
     return 86400
 
+def get_retention_policy(interval, retention_policies):
+    if not retention_policies:
+        return
+    for retention_interval in sorted(retention_policies.keys()):
+        if interval <= retention_interval:
+            return retention_policies[retention_interval]
 
 class Query(object):
 
@@ -112,9 +118,6 @@ def normalize_config(config):
     ret['deltas'] = cfg.get('deltas', None)
     ret['retention_policies'] = cfg.get('retention_policies', None)
     return ret
-
-def get_retention_policy(interval, retention_policies):
-    raise NotImplementedError
 
 def _compile_aggregation_patterns(aggregation_functions):
     """Compile aggregation function patterns to compiled regex objects"""
