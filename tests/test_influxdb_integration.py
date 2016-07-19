@@ -645,8 +645,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                               },
                                   'retention_policies' : retention_policies,
                                   }}
-        self.client.create_retention_policy('"10m"', '1d', 1, database=self.db_name, default=False)
-        self.client.create_retention_policy('"30m"', '1d', 1, database=self.db_name, default=False)
+        self.client.create_retention_policy('10m', '1d', 1, database=self.db_name, default=False)
+        self.client.create_retention_policy('30m', '1d', 1, database=self.db_name, default=False)
         write_data = [{
             "measurement": series,
             "tags": {},
