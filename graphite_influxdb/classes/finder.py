@@ -55,7 +55,7 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'loader')
+                 'deltas', 'loader', 'retention_policies')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -90,7 +90,7 @@ class InfluxdbFinder(object):
         self.retention_policies = config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
-        # self.loader = self._start_loader(series_loader_interval)
+        self.loader = self._start_loader(series_loader_interval)
 
     def _start_loader(self, series_loader_interval):
         if self.memcache:
@@ -466,7 +466,6 @@ class InfluxdbFinder(object):
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return time_info, data
-        # import ipdb; ipdb.set_trace()
         query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
             aggregation_func, series, start_time, end_time, interval,)
         logger.debug('fetch_multi() query: %s', query)

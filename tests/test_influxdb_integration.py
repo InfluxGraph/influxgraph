@@ -593,7 +593,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                             msg="Leaf node %s from query %s not marked as leaf" % (
                                 node.name, query.pattern,))
         query = Query(prefix)
-        # import ipdb; ipdb.set_trace()
         nodes = list(finder.find_nodes(query))
         expected = [prefix]
         branches = sorted([n.name for n in nodes])
@@ -629,6 +628,74 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(found_leaves, expected,
                          msg="Expected leaf node list '%s' - got %s" % (
                              expected, found_leaves))
+
+    def test_retention_policies(self):
+        del self.finder
+        data_point_value = 5
+        retention_policies = {60: 'default', 600: '10m', 1800: '30m'}
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  'deltas' : {
+                                      1800: 600,
+                                      3600: 1800,
+                                              },
+                                  'retention_policies' : retention_policies,
+                                  }}
+        self.client.create_retention_policy('"10m"', '1d', 1, database=self.db_name, default=False)
+        self.client.create_retention_policy('"30m"', '1d', 1, database=self.db_name, default=False)
+        write_data = [{
+            "measurement": series,
+            "tags": {},
+            "time": _time,
+            "fields": {
+                "value": data_point_value,
+                }
+            }
+            for series in self.series
+            for _time in [
+                (self.start_time - datetime.timedelta(minutes=60)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.start_time - datetime.timedelta(minutes=50)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.start_time - datetime.timedelta(minutes=40)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.start_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.start_time - datetime.timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.start_time - datetime.timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.start_time).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(write_data, retention_policy='10m'))
+        self.assertTrue(self.client.write_points(write_data, retention_policy='30m'))
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        time.sleep(1)
+        nodes = list(finder.find_nodes(Query(self.series1)))
+        paths = [node.path for node in nodes]
+        self.assertEqual(paths, [self.series1],
+                         msg="Did not get requested node %s, got %s" % (
+                             self.series1, paths,))
+        time_info, data = finder.fetch_multi(nodes,
+                                             int((self.start_time - datetime.timedelta(minutes=29)).strftime("%s")),
+                                             int(self.start_time.strftime("%s")))
+        self.assertTrue(self.series1 in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            self.series1, data.keys(),))
+        data_points = [v for v in data[self.series1] if v]
+        self.assertTrue(len(data_points)==3,
+                        msg="Three datapoints in interval in retention policy, got %s from query" % (
+                            len(data_points)))
+        self.assertTrue(data_points[0]==data_point_value)
+        time_info, data = finder.fetch_multi(nodes,
+                                             int((self.start_time - datetime.timedelta(minutes=31)).strftime("%s")),
+                                             int(self.start_time.strftime("%s")))
+        self.assertTrue(self.series1 in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            self.series1, data.keys(),))
+        data_points = [v for v in data[self.series1] if v]
+        self.assertTrue(data_points[0]==data_point_value)
+        self.assertTrue(len(data_points)==2,
+                        msg="Two datapoints in interval in retention policy, got %s from query" % (
+                            len(data_points)))
         
 if __name__ == '__main__':
     unittest.main()

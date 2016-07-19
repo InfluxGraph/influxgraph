@@ -41,6 +41,11 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
         statsd.start()
         statsd.stop()
 
+    def test_retention_policies_cfg(self):
+        cfg = { 'influxdb' : {'retention_policies': {60: 'default', 600: '10m', 1800: '30m'}}}
+        config = graphite_influxdb.utils.normalize_config(cfg)
+        self.assertTrue('retention_policies' in config)
+
     def test_aggregation_functions(self):
         cfg = { 'influxdb' : {
             'aggregation_functions': {

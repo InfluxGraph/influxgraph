@@ -58,10 +58,11 @@ def calculate_interval(start_time, end_time, deltas=None):
 
 def get_retention_policy(interval, retention_policies):
     if not retention_policies:
-        return
+        return "default"
     for retention_interval in sorted(retention_policies.keys()):
         if interval <= retention_interval:
             return retention_policies[retention_interval]
+    return "default"
 
 class Query(object):
 
