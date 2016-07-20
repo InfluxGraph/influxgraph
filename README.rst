@@ -194,11 +194,24 @@ The above is the most minimal configuration. There are several optional configur
 	# (Optional) Retention policies to use for associated time intervals.
 	# Key is time interval in seconds, value the retention policy name a
 	# query with the associated time interval or less should use.
-	# Eg to use retention policy called `10min` for queries with a configured
-	# interval of 10min use `600: 10min`
+	# 
+	# For best performance, retention policies should closely match time interval
+	# (delta) configuration values. For example, where delta configuration sets
+	# queries 28days and below to use 15min intervals, retention policies would
+	# have configuration to use an appropriate retention policy for queries with
+	# 15min or above intervals.
+	# 
+	# That said, there is no requirement that the settings be the same.
+	# 
+	# Eg to use retention policy called `30m` policy for intervals
+	# of thirty minutes and above, `10m` for queries with a time
+	# interval of ten minutes and above and `default` for intervals 
+	# five minutes and below:
         retention_policies:
-	    600: 10min
-	    1800: 30min
+	    1800: 30m
+	    600: 10m
+	    300: default
+
 
 Memcache caching InfluxDB data
 ------------------------------

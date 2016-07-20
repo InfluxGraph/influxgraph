@@ -29,7 +29,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Topic :: System :: Monitoring',
     ),
-    install_requires=['graphite_api', 'influxdb>=2.6.0'],
+    install_requires=['graphite_api', 'influxdb>=3.0.0'],
     extras_require={
         'memcached': ['python-memcached'],
         'statsd' : ['statsd'],
