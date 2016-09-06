@@ -37,6 +37,7 @@ from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
      gen_memcache_key, gen_memcache_pattern_key, Query, get_retention_policy
 from .reader import InfluxdbReader
+from .metric_lookup import MetricLookup
 from .leaf import InfluxDBLeafNode
 import threading
 import time
@@ -55,7 +56,7 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'loader', 'retention_policies')
+                 'deltas', 'loader', 'retention_policies', 'metric_lookup')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -90,7 +91,10 @@ class InfluxdbFinder(object):
         self.retention_policies = config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
-        self.loader = self._start_loader(series_loader_interval)
+        # self.loader = self._start_loader(series_loader_interval)
+        self.metric_lookup = MetricLookup(self.client, self.memcache, self.memcache_ttl)
+        self.metric_lookup.build_index()
+        # self.metric_lookup.start_background_refresh()
 
     def _start_loader(self, series_loader_interval):
         if self.memcache:
@@ -380,45 +384,59 @@ class InfluxdbFinder(object):
         if len(split_path) > branch_no:
             return False
         return True
+
+
+    def find_nodes(self, query):
+        paths = self.metric_lookup.query(query)
+        for path in paths:
+            if path['is_leaf']:
+                yield InfluxDBLeafNode(path['metric'], InfluxdbReader(
+                    self.client, path['metric'], self.statsd_client,
+                    aggregation_functions=self.aggregation_functions,
+                    memcache_host=self.memcache_host,
+                    memcache_max_value=self.memcache_max_value,
+                    deltas=self.deltas))
+            else:
+                yield BranchNode(path['metric'])
     
-    def find_nodes(self, query, cache=True, limit=LOADER_LIMIT):
-        """Find matching nodes according to query.
+    # def find_nodes(self, query, cache=True, limit=LOADER_LIMIT):
+    #     """Find matching nodes according to query.
         
-        :param query: Query to run to find either BranchNode(s) or LeafNode(s)
-        :type query: :mod:`graphite_api.storage.FindQuery` compatible class
-        """
-        split_pattern = query.pattern.split('.')
-        logger.debug("find_nodes() query %s", query.pattern)
-        # TODO - need a way to determine if path is a branch or leaf node
-        # prior to querying influxdb for data.
-        # An InfluxDB query to check if a series exists is quite expensive
-        # at ~3s with ~300k series so that is not an option.
-        #
-        # Perhaps storing found branches as <branch name>: 1 in memcache
-        # could be used as a key/val lookup for is_this_path_here
-        # a known branch.
-        # if not is_pattern(query.pattern):
-        #     import ipdb; ipdb.set_trace()
-        #     if self.is_leaf_node(split_pattern, split_pattern):
-        #         yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
-        #             self.client, query.pattern, self.statsd_client,
-        #             aggregation_functions=self.aggregation_functions,
-        #             memcache_host=self.memcache_host,
-        #             memcache_max_value=self.memcache_max_value, deltas=self.deltas))
-        #         raise StopIteration
-        #     yield BranchNode(query.pattern)
-        #     raise StopIteration
-        timer_name = ".".join(['service_is_graphite-api',
-                               'action_is_yield_nodes',
-                               'target_type_is_gauge',
-                               'unit_is_ms.what_is_query_duration'])
-        timer = self.statsd_client.timer(timer_name)
-        timer.start()
-        series = list(set(self.get_all_series(query, cache=cache,
-                                              limit=limit)))
-        for node in self._get_nodes(series, query, split_pattern):
-            yield node
-        timer.stop()
+    #     :param query: Query to run to find either BranchNode(s) or LeafNode(s)
+    #     :type query: :mod:`graphite_api.storage.FindQuery` compatible class
+    #     """
+    #     split_pattern = query.pattern.split('.')
+    #     logger.debug("find_nodes() query %s", query.pattern)
+    #     # TODO - need a way to determine if path is a branch or leaf node
+    #     # prior to querying influxdb for data.
+    #     # An InfluxDB query to check if a series exists is quite expensive
+    #     # at ~3s with ~300k series so that is not an option.
+    #     #
+    #     # Perhaps storing found branches as <branch name>: 1 in memcache
+    #     # could be used as a key/val lookup for is_this_path_here
+    #     # a known branch.
+    #     # if not is_pattern(query.pattern):
+    #     #     import ipdb; ipdb.set_trace()
+    #     #     if self.is_leaf_node(split_pattern, split_pattern):
+    #     #         yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
+    #     #             self.client, query.pattern, self.statsd_client,
+    #     #             aggregation_functions=self.aggregation_functions,
+    #     #             memcache_host=self.memcache_host,
+    #     #             memcache_max_value=self.memcache_max_value, deltas=self.deltas))
+    #     #         raise StopIteration
+    #     #     yield BranchNode(query.pattern)
+    #     #     raise StopIteration
+    #     timer_name = ".".join(['service_is_graphite-api',
+    #                            'action_is_yield_nodes',
+    #                            'target_type_is_gauge',
+    #                            'unit_is_ms.what_is_query_duration'])
+    #     timer = self.statsd_client.timer(timer_name)
+    #     timer.start()
+    #     series = list(set(self.get_all_series(query, cache=cache,
+    #                                           limit=limit)))
+    #     for node in self._get_nodes(series, query, split_pattern):
+    #         yield node
+    #     timer.stop()
 
     def _get_nodes(self, series, query, split_pattern):
         seen_branches = set()
@@ -446,7 +464,8 @@ class InfluxdbFinder(object):
         :param start_time: Start time of query
         :param end_time: End time of query
         """
-        paths = list(set([n.path for n in nodes]))
+        # paths = list(set([n.path for n in nodes]))
+        paths = [n.path for n in nodes]
         interval = calculate_interval(start_time, end_time, deltas=self.deltas)
         retention = get_retention_policy(interval, self.retention_policies) \
           if self.retention_policies else "default"

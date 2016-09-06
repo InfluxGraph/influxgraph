@@ -23,7 +23,6 @@ class Node(object):
             return
         _node = self
         parent_paths = []
-        
         while _node.parent:
             if _node.parent.name:
                 parent_paths.append(_node.parent.name)
@@ -58,13 +57,41 @@ class NodeTree(object):
         path_parts = [s.strip() for s in path.split('.')]
         return self.index.insert(path, path_parts)
 
-    def search(self, node, split_query):
+    def find_branch(self, split_pattern, split_path, path, pattern,
+                    seen_branches):
+        if path in seen_branches:
+            return
+        # Return root branch immediately for single wildcard query
+        if pattern == '*':
+            try:
+                return_path = split_path[:1][0]
+            except IndexError:
+                return
+            if return_path in seen_branches:
+                return
+            seen_branches.add(return_path)
+            return return_path
+        branch_no = len(split_pattern)
+        try:
+            return_path = split_path[branch_no-1:][0]
+        except IndexError:
+            return
+        if return_path in seen_branches:
+            return
+        seen_branches.add(return_path)
+        return return_path
+
+    def search(self, node, query):
+        return self._search(node, query.split('.'))
+
+    def _search(self, node, split_query):
         _query = split_query[0]
-        matched_children = [n for n in node.children.values() if match_entries([n.path], _query)]
+        matched_children = [n for n in node.children.values()
+                            if match_entries([n.path], _query)]
         # import ipdb; ipdb.set_trace()
         for child in matched_children:
             if len(split_query) > 1:
-                for sub_child in self.search(child, split_query[1:]):
+                for sub_child in self._search(child, split_query[1:]):
                     matched_children.append(sub_child)
         return matched_children
 
