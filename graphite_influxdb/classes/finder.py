@@ -387,7 +387,7 @@ class InfluxdbFinder(object):
 
 
     def find_nodes(self, query):
-        paths = self.metric_lookup.query(query)
+        paths = self.metric_lookup.query(query.pattern)
         for path in paths:
             if path['is_leaf']:
                 yield InfluxDBLeafNode(path['metric'], InfluxdbReader(

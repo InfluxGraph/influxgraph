@@ -7,12 +7,10 @@ import re
 GRAPHITE_GLOB_REGEX = re.compile('\*|{')
 
 
-# TODO there are some dumb things done in here, could be faster
 class MetricNode(object):
     __slots__ = ['parent', 'children', '__weakref__']
 
     def __init__(self, parent):
-        # weakref here as python's circular reference finder doesn't seem to be able to understand this structure
         self.parent = weakref.ref(parent) if parent else parent
         self.children = {}
 
@@ -57,60 +55,38 @@ class MetricIndex(object):
 
     def clear(self):
         self.index.children = {}
-    
-    def query(self, query):
-        result = dict(self.search(self.index, query.pattern.split('.'), []))
-        filtered_series = match_entries(result.keys(), query.pattern) \
-          if is_pattern(query.pattern) \
-          else [b for b in result if
-                b.startswith(query.pattern)]
-        return [{'metric': path, 'is_leaf': result[path].is_leaf()}
-                for path in filtered_series]
-    
-    def search(self, node, query_path, path):
-        # import ipdb; ipdb.set_trace()
-        # instruction, arg = query_path[0]
 
-        # if instruction == 'EXACT':
-        #     matched_children = [(arg, node.children[arg])] if arg in node.children else []
-        # elif instruction == 'ALL':
-        #     matched_children = node.children.items()
-        # elif instruction == 'REGEX':
-        #     matched_children = [(key, value) for key, value in node.children.items() if arg.match(key)]
-        # else:
-        #     raise 'Unknown Search Instruction: ' + instruction
-        # import ipdb; ipdb.set_trace()
-        matched_children = node.children.items()
+    def query(self, query):
+        nodes = self.search(self.index, query.split('.'), [])
+        return [{'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
+                for path, node in nodes]
+
+    def search(self, node, split_query, path):
+        sub_query = split_query[0]
+        matched_children = [
+            (path, node.children[path])
+            for path in match_entries(node.children.keys(), sub_query)] \
+            if is_pattern(sub_query) \
+            else [(sub_query, node.children[sub_query])] \
+            if sub_query in node.children else []
         result = []
         for child_name, child_node in matched_children:
             child_path = list(path)
             child_path.append(child_name)
-            child_query = query_path[1:]
-
+            child_query = split_query[1:]
             if len(child_query) != 0:
                 for sub in self.search(child_node, child_query, child_path):
                     result.append(sub)
             else:
-                result.append(('.'.join(child_path), child_node))
+                result.append([child_path, child_node])
         return result
 
     def to_json(self):
-        return json.dumps(self.to_array())
+        return json.dump(self.to_array())
 
     def to_array(self):
         return self.index.to_array()
-
-    @staticmethod
-    def search_instruction(token):
-        if token == '*':
-            return 'ALL', None
-        elif GRAPHITE_GLOB_REGEX.search(token):
-            # Convert graphite glob expression token into a regex
-            regex = re.compile(token.replace('*', '.*').replace('{', '(').replace(',', '|').replace('}', ')') + '$')
-            return 'REGEX', regex
-        else:
-            return 'EXACT', token
-
+    
     @staticmethod
     def from_array(model):
         metric_index = MetricIndex()
@@ -119,5 +95,5 @@ class MetricIndex(object):
 
     @staticmethod
     def from_json(data):
-        model = json.loads(data)
+        model = json.load(data)
         return MetricIndex.from_array(model)
