@@ -101,7 +101,6 @@ class InfluxdbFinder(object):
             memcache_host=self.memcache_host,
             memcache_max_value=self.memcache_max_value,
             deltas=self.deltas)
-        # self.metric_lookup.start_background_refresh()
 
     def _start_loader(self, series_loader_interval):
         if self.memcache:
