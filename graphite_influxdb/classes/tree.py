@@ -9,7 +9,7 @@ from graphite_api.finders import match_entries
 logger = logging.getLogger('graphite_influxdb.index')
 
 class Node(object):
-    """Metric Node class"""
+    """Node class of a graphite metric"""
     
     def __init__(self, parent=None):
         self.parent = parent
@@ -31,7 +31,7 @@ class Node(object):
         target_child.insert(path)
 
     def to_array(self):
-        return [[name, node.to_array()] for name, node in self.children.items()]
+        return [(name, node.to_array()) for name, node in self.children.items()]
 
     @staticmethod
     def from_array(parent, array):
@@ -44,7 +44,7 @@ class Node(object):
         return metric
 
 class NodeTreeIndex(object):
-    """Node tree index class with graphite glob searches for each sub-part of a
+    """Node tree index class with graphite glob searches per sub-part of a
     query
     """
     __slots__ = ['index']
@@ -81,7 +81,8 @@ class NodeTreeIndex(object):
                 for sub in self.search(child_node, child_query, child_path):
                     result.append(sub)
             else:
-                result.append([child_path, child_node])
+                result.append((child_path, child_node))
+        del matched_children
         return result
 
     def to_json(self):
