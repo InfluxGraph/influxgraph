@@ -1,3 +1,19 @@
+# Copyright (C) [2015-] [Thomson Reuters LLC]
+# Copyright (C) [2015-] [Panos Kittenis]
+# Copyright (C) [2014-2015] [Vimeo, LLC]
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tree representation of Graphite metrics as InfluxDB series"""
 
 import json
@@ -16,7 +32,7 @@ class Node(object):
         self.children = {}
 
     def is_leaf(self):
-        return not bool(len(self.children))
+        return len(self.children) == 0
 
     def insert(self, path):
         if not len(path):
@@ -60,24 +76,21 @@ class NodeTreeIndex(object):
 
     def search(self, node, split_query, split_path):
         sub_query = split_query[0]
-        matched_children = [
+        matched_children = (
             (path, node.children[path])
-            for path in match_entries(node.children.keys(), sub_query)] \
+            for path in match_entries(node.children.keys(), sub_query)) \
             if is_pattern(sub_query) \
             else [(sub_query, node.children[sub_query])] \
             if sub_query in node.children else []
-        result = []
         for child_name, child_node in matched_children:
             child_path = split_path[:]
-            child_path.append(child_name)
+            child_path.extend([child_name])
             child_query = split_query[1:]
             if len(child_query):
                 for sub in self.search(child_node, child_query, child_path):
-                    result.append(sub)
+                    yield sub
             else:
-                result.append((child_path, child_node))
-        del matched_children
-        return result
+                yield (child_path, child_node)
 
     def to_json(self):
         return json.dumps(self.to_array())

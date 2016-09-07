@@ -57,7 +57,7 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'loader', 'retention_policies', 'index')
+                 'deltas', 'loader', 'retention_policies', 'index', 'reader')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -95,6 +95,12 @@ class InfluxdbFinder(object):
         # self.loader = self._start_loader(series_loader_interval)
         self.index = NodeTreeIndex()
         self.build_index()
+        self.reader = InfluxdbReader(
+            self.client, None, self.statsd_client,
+            aggregation_functions=self.aggregation_functions,
+            memcache_host=self.memcache_host,
+            memcache_max_value=self.memcache_max_value,
+            deltas=self.deltas)
         # self.metric_lookup.start_background_refresh()
 
     def _start_loader(self, series_loader_interval):
@@ -346,12 +352,12 @@ class InfluxdbFinder(object):
         paths = self.index.query(query.pattern)
         for path in paths:
             if path['is_leaf']:
-                yield InfluxDBLeafNode(path['metric'], InfluxdbReader(
-                    self.client, path['metric'], self.statsd_client,
-                    aggregation_functions=self.aggregation_functions,
-                    memcache_host=self.memcache_host,
-                    memcache_max_value=self.memcache_max_value,
-                    deltas=self.deltas))
+                # Set path on existing readre to avoid having to create
+                # new objects for each path which is expensive
+                # Reader is not used for queries when multi fetch is enabled
+                # regardless
+                self.reader.path = path['metric']
+                yield InfluxDBLeafNode(path['metric'], self.reader)
             else:
                 yield BranchNode(path['metric'])
     
