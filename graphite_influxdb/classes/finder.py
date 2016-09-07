@@ -37,7 +37,6 @@ from ..utils import NullStatsd, normalize_config, \
      calculate_interval, read_influxdb_values, get_aggregation_func, \
      gen_memcache_key, gen_memcache_pattern_key, Query, get_retention_policy
 from .reader import InfluxdbReader
-from .metric_lookup import MetricLookup
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
 import json
@@ -58,7 +57,7 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'loader', 'retention_policies', 'metric_lookup')
+                 'deltas', 'loader', 'retention_policies', 'index')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -94,8 +93,8 @@ class InfluxdbFinder(object):
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         # self.loader = self._start_loader(series_loader_interval)
-        self.metric_lookup = MetricLookup(self.client, self.memcache, self.memcache_ttl)
-        self.metric_lookup.build_index()
+        self.index = NodeTreeIndex()
+        self.build_index()
         # self.metric_lookup.start_background_refresh()
 
     def _start_loader(self, series_loader_interval):
@@ -186,45 +185,34 @@ class InfluxdbFinder(object):
                 b.startswith(query.pattern)]
         return series
     
-    def get_series(self, query, cache=True, limit=LOADER_LIMIT, offset=0):
+    def get_series(self, cache=True, limit=LOADER_LIMIT, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         memcache_key = gen_memcache_pattern_key("_".join([
-            query.pattern, str(limit), str(offset)]))
+            '*', str(limit), str(offset)]))
         cached_series = self.memcache.get(memcache_key) \
           if self.memcache and cache else None
         if cached_series is not None:
-            logger.debug("Found cached series for query %s, limit %s, " \
-                         "offset %s", query.pattern, limit, offset)
+            logger.debug("Found cached series for limit %s, "
+                         "offset %s", limit, offset)
             return cached_series
-        if self.memcache and cache and not query.pattern == '*' \
-          and not cached_series:
-            cached_series_from_parents = self._get_parent_branch_series(
-                query, limit=limit, offset=offset)
-            if cached_series_from_parents is not None:
-                logger.debug("Found cached series from parent branches for "
-                             "query %s, limit %s, offset %s",
-                             query.pattern, limit, offset)
-                self.memcache.set(memcache_key, cached_series_from_parents,
-                                  time=self.memcache_ttl,
-                                  min_compress_len=50)
-                return cached_series_from_parents
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        _query, _params = self._make_series_query(
-            query, limit=limit, offset=offset)
-        _query = _query % _params
-        logger.debug("get_series() Calling influxdb with query - %s", _query)
+        # _query, _params = self._make_series_query(
+        #     query, limit=limit, offset=offset)
+        # _query = _query % _params
+        # logger.debug("get_series() Calling influxdb with query - %s", _query)
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        series = [d['name'] for d in data['measurements']]
+        series = self._get_series(limit=limit, offset=offset)
+        # data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
+        # series = [d['name'] for d in data['measurements']]
         timer.stop()
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
@@ -274,12 +262,12 @@ class InfluxdbFinder(object):
                 query.pattern, str(limit), str(last_offset)]))
             self.memcache.set(memcache_key, [], time=self.memcache_ttl)
 
-    def get_all_series(self, query, cache=True,
+    def get_all_series(self, cache=True,
                        limit=LOADER_LIMIT, offset=0, _data=None):
         """Retrieve all series for query"""
         data = self.get_series(
-            query, cache=cache, limit=limit, offset=offset)
-        return self._pagination_runner(data, query, self.get_all_series, cache=cache,
+            cache=cache, limit=limit, offset=offset)
+        return self._pagination_runner(data, Query('*'), self.get_all_series, cache=cache,
                                        limit=limit, offset=offset)
     
     def get_all_series_list(self, limit=LOADER_LIMIT, offset=0, _data=None,
@@ -349,47 +337,13 @@ class InfluxdbFinder(object):
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
     
-    def find_branch(self, split_pattern, split_path, path, pattern,
-                    seen_branches):
-        if path in seen_branches:
-            return
-        # Return root branch immediately for single wildcard query
-        if pattern == '*':
-            try:
-                return_path = split_path[:1][0]
-            except IndexError:
-                return
-            if return_path in seen_branches:
-                return
-            seen_branches.add(return_path)
-            return return_path
-        branch_no = len(split_pattern)
-        try:
-            return_path = split_path[branch_no-1:][0]
-        except IndexError:
-            return
-        if return_path in seen_branches:
-            return
-        seen_branches.add(return_path)
-        return return_path
-    
     def is_suffix_pattern(self, pattern):
         """Check if query ends with wildcard"""
         return pattern.endswith('*') \
           or pattern.endswith('}')
     
-    def is_leaf_node(self, split_pattern, split_path):
-        """Check if path is a leaf node according to query"""
-        branch_no = len(split_pattern)
-        if len(split_path) == branch_no == 1:
-            return False
-        if len(split_path) > branch_no:
-            return False
-        return True
-
-
     def find_nodes(self, query):
-        paths = self.metric_lookup.query(query.pattern)
+        paths = self.index.query(query.pattern)
         for path in paths:
             if path['is_leaf']:
                 yield InfluxDBLeafNode(path['metric'], InfluxdbReader(
@@ -401,63 +355,6 @@ class InfluxdbFinder(object):
             else:
                 yield BranchNode(path['metric'])
     
-    # def find_nodes(self, query, cache=True, limit=LOADER_LIMIT):
-    #     """Find matching nodes according to query.
-        
-    #     :param query: Query to run to find either BranchNode(s) or LeafNode(s)
-    #     :type query: :mod:`graphite_api.storage.FindQuery` compatible class
-    #     """
-    #     split_pattern = query.pattern.split('.')
-    #     logger.debug("find_nodes() query %s", query.pattern)
-    #     # TODO - need a way to determine if path is a branch or leaf node
-    #     # prior to querying influxdb for data.
-    #     # An InfluxDB query to check if a series exists is quite expensive
-    #     # at ~3s with ~300k series so that is not an option.
-    #     #
-    #     # Perhaps storing found branches as <branch name>: 1 in memcache
-    #     # could be used as a key/val lookup for is_this_path_here
-    #     # a known branch.
-    #     # if not is_pattern(query.pattern):
-    #     #     import ipdb; ipdb.set_trace()
-    #     #     if self.is_leaf_node(split_pattern, split_pattern):
-    #     #         yield InfluxDBLeafNode(query.pattern, InfluxdbReader(
-    #     #             self.client, query.pattern, self.statsd_client,
-    #     #             aggregation_functions=self.aggregation_functions,
-    #     #             memcache_host=self.memcache_host,
-    #     #             memcache_max_value=self.memcache_max_value, deltas=self.deltas))
-    #     #         raise StopIteration
-    #     #     yield BranchNode(query.pattern)
-    #     #     raise StopIteration
-    #     timer_name = ".".join(['service_is_graphite-api',
-    #                            'action_is_yield_nodes',
-    #                            'target_type_is_gauge',
-    #                            'unit_is_ms.what_is_query_duration'])
-    #     timer = self.statsd_client.timer(timer_name)
-    #     timer.start()
-    #     series = list(set(self.get_all_series(query, cache=cache,
-    #                                           limit=limit)))
-    #     for node in self._get_nodes(series, query, split_pattern):
-    #         yield node
-    #     timer.stop()
-
-    def _get_nodes(self, series, query, split_pattern):
-        seen_branches = set()
-        for path in series:
-            split_path = path.split('.')
-            if self.is_leaf_node(split_pattern, split_path):
-                leaf_path_key = path + query.pattern
-                yield InfluxDBLeafNode(path, InfluxdbReader(
-                    self.client, path, self.statsd_client,
-                    aggregation_functions=self.aggregation_functions,
-                    memcache_host=self.memcache_host,
-                    memcache_max_value=self.memcache_max_value,
-                    deltas=self.deltas))
-            else:
-                branch = self.find_branch(split_pattern, split_path,
-                                          path, query.pattern, seen_branches)
-                if branch:
-                    yield BranchNode(branch)
-    
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
         
@@ -466,15 +363,14 @@ class InfluxdbFinder(object):
         :param start_time: Start time of query
         :param end_time: End time of query
         """
-        # paths = list(set([n.path for n in nodes]))
-        paths = [n.path for n in nodes]
         interval = calculate_interval(start_time, end_time, deltas=self.deltas)
-        retention = get_retention_policy(interval, self.retention_policies) \
-          if self.retention_policies else "default"
-        series = ', '.join(['"%s"."%s"' % (retention, path,) for path in paths])
         time_info = start_time, end_time, interval
         if not nodes:
             return time_info, {}
+        paths = [n.path for n in nodes]
+        retention = get_retention_policy(interval, self.retention_policies) \
+          if self.retention_policies else "default"
+        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths))
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
                                      for path in paths))
         if len(aggregation_funcs) > 1:
@@ -518,24 +414,17 @@ class InfluxdbFinder(object):
 
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
-        return [d for k in data for d in k if d]
+        return (d for k in data for d in k if d)
     
     def build_index(self):
         logger.info('index.build.start')
-
-        # storage = FileStorage(self.index_config)
-        # query_engine = QueryEngine(self.config)
-
-        # data = self.get_all_series_list()
+        # data = self.get_all_series()
         data = self._read_static_data('series.json')
+        # import ipdb; ipdb.set_trace()
         logger.info("Building index..")
         index = NodeTreeIndex()
         for metric in data:
             index.insert(metric)
         self.index = index
         logger.info("Finished building index")
-        # storage.save(index.to_json())
-
-        # storage.release_update_lock()
-        # else:
-        #     logger.info('index.build.lock_unavailable')
+        del data

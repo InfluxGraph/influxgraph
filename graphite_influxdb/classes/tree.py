@@ -55,8 +55,8 @@ class NodeTreeIndex(object):
 
     def query(self, query):
         nodes = self.search(self.index, query.split('.'), [])
-        return [{'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
-                for path, node in nodes]
+        return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
+                for path, node in nodes)
 
     def search(self, node, split_query, split_path):
         sub_query = split_query[0]
