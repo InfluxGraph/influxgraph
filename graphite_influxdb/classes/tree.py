@@ -9,6 +9,8 @@ from graphite_api.finders import match_entries
 logger = logging.getLogger('graphite_influxdb.index')
 
 class Node(object):
+    """Metric Node class"""
+    
     def __init__(self, parent=None):
         self.parent = parent
         self.children = {}
@@ -42,6 +44,9 @@ class Node(object):
         return metric
 
 class NodeTreeIndex(object):
+    """Node tree index class with graphite glob searches for each sub-part of a
+    query
+    """
     __slots__ = ['index']
 
     def __init__(self):
@@ -59,7 +64,7 @@ class NodeTreeIndex(object):
         return [{'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes]
 
-    def search(self, node, split_query, path):
+    def search(self, node, split_query, split_path):
         sub_query = split_query[0]
         matched_children = [
             (path, node.children[path])
@@ -69,10 +74,10 @@ class NodeTreeIndex(object):
             if sub_query in node.children else []
         result = []
         for child_name, child_node in matched_children:
-            child_path = list(path)
+            child_path = split_path[:]
             child_path.append(child_name)
             child_query = split_query[1:]
-            if len(child_query) != 0:
+            if len(child_query):
                 for sub in self.search(child_node, child_query, child_path):
                     result.append(sub)
             else:
