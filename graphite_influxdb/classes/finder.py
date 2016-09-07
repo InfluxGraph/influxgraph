@@ -39,6 +39,8 @@ from ..utils import NullStatsd, normalize_config, \
 from .reader import InfluxdbReader
 from .metric_lookup import MetricLookup
 from .leaf import InfluxDBLeafNode
+from .tree import NodeTreeIndex
+import json
 import threading
 import time
 try:
@@ -513,3 +515,27 @@ class InfluxdbFinder(object):
                               time=interval,
                               min_compress_len=50)
         return time_info, data
+
+    def _read_static_data(self, data_file):
+        data = json.load(open(data_file))['results'][0]['series'][0]['values']
+        return [d for k in data for d in k if d]
+    
+    def build_index(self):
+        logger.info('index.build.start')
+
+        # storage = FileStorage(self.index_config)
+        # query_engine = QueryEngine(self.config)
+
+        # data = self.get_all_series_list()
+        data = self._read_static_data('series.json')
+        logger.info("Building index..")
+        index = NodeTreeIndex()
+        for metric in data:
+            index.insert(metric)
+        self.index = index
+        logger.info("Finished building index")
+        # storage.save(index.to_json())
+
+        # storage.release_update_lock()
+        # else:
+        #     logger.info('index.build.lock_unavailable')
