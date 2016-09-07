@@ -21,6 +21,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         except influxdb.exceptions.InfluxDBClientError:
             pass
         self.client.create_database(self.db_name)
+        self.client.create_retention_policy(
+            'default', 'inf', 1, database=self.db_name, default=True)
         data = [{
             "measurement": series,
             "tags": {},
@@ -52,7 +54,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                        },
                         'statsd' : { 'host': 'localhost' },
                         }
-        self.finder = graphite_influxdb.InfluxdbFinder(self.config)
         self.metric_prefix = "integration_test"
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
@@ -65,6 +66,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                        'integration_test.agg_path.sum',
                        ]
         self.setup_db()
+        self.finder = graphite_influxdb.InfluxdbFinder(self.config)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
@@ -98,26 +100,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_find_branch(self):
         """Test getting branch of metric path"""
         query = Query('fakeyfakeyfakefake')
-        series = self.finder.get_all_series(query)
-        seen_branches = set()
-        split_pattern = query.pattern.split('.')
-        branches = [b for b in [self.finder.find_branch(
-            split_pattern, path.split('.'), path, query, seen_branches)
-            for path in series] if b]
+        branches = list(self.finder.find_nodes(query))
         self.assertEqual(branches, [],
                          msg="Got branches list %s - wanted empty list" % (
                              branches,))
         query = Query('*')
-        series = list(self.finder.get_series(query))
-        seen_branches = set()
-        split_pattern = query.pattern.split('.')
-        branches = [b for b in [self.finder.find_branch(
-            split_pattern, path.split('.'), path, query.pattern, seen_branches)
-            for path in series] if b]
-        expected = [self.metric_prefix]
-        self.assertEqual(branches, expected,
-                         msg="Got branches list %s - wanted %s" % (branches,
-                                                                   expected,))
         prefix = 'branch_test_prefix'
         written_branches = ['branch_node1', 'branch_node2']
         leaf_nodes = ['leaf_node1', 'leaf_node2']
@@ -139,17 +126,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
+        self.finder.build_index()
         query = Query(prefix + '.*')
-        series = list(self.finder.get_series(query))
-        seen_branches = set()
-        split_pattern = query.pattern.split('.')
-        branches = sorted([b for b in [self.finder.find_branch(
-            split_pattern, path.split('.'), path, query, seen_branches)
-            for path in series] if b])
-        expected = sorted([b for b in written_branches])
-        self.assertEqual(branches, expected,
-                         msg="Got branches list %s - wanted %s" % (branches,
-                                                                  expected,))
         # Test getting leaf nodes with wildcard
         query = Query(prefix + '.branch_node*.*')
         _nodes = list(self.finder.find_nodes(query))
@@ -162,7 +140,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_get_all_series(self):
         """ """
         query = Query('*')
-        series = self.finder.get_all_series(query, cache=True, limit=1)
+        series = self.finder.get_all_series(cache=True, limit=1)
         self.assertTrue(len(series) == len(self.series),
                         msg="Got series list %s for root branch query - expected %s" % (
                             series, self.series,))
@@ -214,6 +192,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
+        self.finder.build_index()
         query = Query(".".join([prefix, "branch_node*",
                                 "sub_branch*", "sub_branch*", "sub_branch*",
                                 "leaf*"]))
@@ -255,6 +234,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
+        self.finder.build_index()
         query = Query(prefix + '.*')
         nodes = list(self.finder.find_nodes(query))
         expected = sorted([b.split('.')[0] for b in written_branches])
@@ -460,18 +440,17 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache_max_value, 20,
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
-        node_names = [node.name for node in finder.find_nodes(query,
-                                                              limit=limit)]
-        self.assertTrue(self.metric_prefix in node_names,
+        node_names = list(finder.get_all_series(
+            limit=limit))
+        self.assertTrue(self.series[0] in node_names,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, node_names))
         for memcache_key in memcache_keys:
             self.assertTrue(finder.memcache.get(memcache_key),
                             msg="No memcache data for key %s" % (memcache_key,))
-        query, limit = Query(self.metric_prefix + ".agg_path.*"), 1
-        nodes = sorted([node.path
-                        for node in finder.find_nodes(query, limit=limit)])
-        expected = sorted(self.series[2:])
+        limit = 1
+        nodes = sorted(list(finder.get_all_series(limit=limit)))
+        expected = sorted(self.series)
         self.assertEqual(nodes, expected,
                          msg="Did not get correct series list - "
                          "wanted %s series, got %s" % (

@@ -210,10 +210,6 @@ class InfluxdbFinder(object):
                                'target_type_is_gauge',
                                'unit_is_ms',
                                'action_is_get_series'])
-        # _query, _params = self._make_series_query(
-        #     query, limit=limit, offset=offset)
-        # _query = _query % _params
-        # logger.debug("get_series() Calling influxdb with query - %s", _query)
         timer = self.statsd_client.timer(timer_name)
         timer.start()
         series = self._get_series(limit=limit, offset=offset)
@@ -241,19 +237,6 @@ class InfluxdbFinder(object):
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
         return series
-
-    def _make_series_query(self, query, limit=LOADER_LIMIT, offset=0):
-        regex_string = self.make_regex_string(query)
-        _query = "SHOW MEASUREMENTS"
-        _params = {}
-        if regex_string:
-            _query += " WITH measurement =~ /%(regex)s/"
-            _params['regex'] = regex_string
-        if limit or offset:
-            _params['limit'] = limit
-            _params['offset'] = offset
-            _query += " LIMIT %(limit)s OFFSET %(offset)s"
-        return _query, _params
 
     def _store_last_offset(self, query, limit, offset):
         if offset and self.memcache:
@@ -297,23 +280,10 @@ class InfluxdbFinder(object):
                 return data
             offset = limit + offset
             return data + get_series_func(
-                query=query, *args, limit=limit, offset=offset,
+                *args, limit=limit, offset=offset,
                 _data=_data, **kwargs)
         self._store_last_offset(query, limit, offset)
         return data
-
-    def make_regex_string(self, query):
-        """Make InfluxDB regex strings from Graphite wildcard queries"""
-        if not is_pattern(query.pattern):
-            return "^%s" % (query.pattern,)
-        if query.pattern == '*':
-            return
-        pat = "^%s" % (query.pattern.replace('.', r'\.').replace(
-            '*', '([a-zA-Z0-9-_:#]+(\.)?)+').replace(
-                '{', '(').replace(',', '|').replace('}', ')'))
-        if not self.is_suffix_pattern(query.pattern):
-            return "%s$" % (pat)
-        return pat
     
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
@@ -342,17 +312,12 @@ class InfluxdbFinder(object):
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
-    
-    def is_suffix_pattern(self, pattern):
-        """Check if query ends with wildcard"""
-        return pattern.endswith('*') \
-          or pattern.endswith('}')
-    
+        
     def find_nodes(self, query):
         paths = self.index.query(query.pattern)
         for path in paths:
             if path['is_leaf']:
-                # Set path on existing readre to avoid having to create
+                # Set path on existing reader to avoid having to create
                 # new objects for each path which is expensive
                 # Reader is not used for queries when multi fetch is enabled
                 # regardless
@@ -422,11 +387,10 @@ class InfluxdbFinder(object):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return (d for k in data for d in k if d)
     
-    def build_index(self):
-        logger.info('index.build.start')
-        # data = self.get_all_series()
-        data = self._read_static_data('series.json')
-        # import ipdb; ipdb.set_trace()
+    def build_index(self, data=None):
+        logger.info('Starting index build')
+        data = self.get_all_series() if not data else data
+        # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
         for metric in data:
