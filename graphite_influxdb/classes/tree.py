@@ -16,19 +16,15 @@ class Node(object):
         self.children = {}
 
     def is_leaf(self):
-        return len(self.children) == 0
+        return not bool(len(self.children))
 
     def insert(self, path):
-        if len(path) == 0: return
-
+        if not len(path):
+            return
         child_name = path.pop(0)
-        if child_name in self.children:
-            target_child = self.children[child_name]
-        else:
-            target_child = Node(self)
-            self.children[child_name] = target_child
-
-        target_child.insert(path)
+        if not child_name in self.children:
+            self.children[child_name] = Node(self)
+        self.children[child_name].insert(path)
 
     def to_array(self):
         return [(name, node.to_array()) for name, node in self.children.items()]
@@ -36,11 +32,9 @@ class Node(object):
     @staticmethod
     def from_array(parent, array):
         metric = Node(parent)
-
         for child_name, child_array in array:
             child = Node.from_array(metric, child_array)
             metric.children[child_name] = child
-
         return metric
 
 class NodeTreeIndex(object):
