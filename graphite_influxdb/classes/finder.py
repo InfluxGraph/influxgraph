@@ -401,7 +401,7 @@ class InfluxdbFinder(object):
         while True:
             try:
                 self.build_index()
-            except Exception, ex:
+            except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
             time.sleep(interval)
     
