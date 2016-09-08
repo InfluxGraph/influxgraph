@@ -128,6 +128,7 @@ class InfluxdbFinder(object):
         return loader
 
     def _start_reindexer(self, reindex_interval):
+        self.build_index()
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
         reindexer = threading.Thread(target=self._reindex,
                                      kwargs={'interval': reindex_interval})
@@ -398,7 +399,10 @@ class InfluxdbFinder(object):
 
     def _reindex(self, interval=900):
         while True:
-            self.build_index()
+            try:
+                self.build_index()
+            except Exception, ex:
+                logger.error("Error occured in reindexing thread - %s", ex)
             time.sleep(interval)
     
     def build_index(self, data=None):
