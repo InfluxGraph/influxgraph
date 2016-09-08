@@ -118,6 +118,8 @@ def normalize_config(config):
     ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 1)
     ret['deltas'] = cfg.get('deltas', None)
     ret['retention_policies'] = cfg.get('retention_policies', None)
+    ret['series_loader_interval'] = cfg.get('series_loader_interval', 900)
+    ret['reindex_interval'] = cfg.get('reindex_interval', 900)
     return ret
 
 def _compile_aggregation_patterns(aggregation_functions):

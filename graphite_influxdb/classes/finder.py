@@ -57,7 +57,8 @@ class InfluxdbFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
-                 'deltas', 'loader', 'retention_policies', 'index', 'reader')
+                 'deltas', 'retention_policies', 'index', 'reader',
+                 'index_lock')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -88,19 +89,21 @@ class InfluxdbFinder(object):
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
         series_loader_interval = config.get('series_loader_interval', 900)
+        reindex_interval = config.get('reindex_interval', 900)
         self.deltas = config.get('deltas', None)
         self.retention_policies = config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
-        # self.loader = self._start_loader(series_loader_interval)
+        self._start_loader(series_loader_interval)
         self.index = NodeTreeIndex()
-        self.build_index()
+        self.index_lock = threading.Lock()
         self.reader = InfluxdbReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
             memcache_host=self.memcache_host,
             memcache_max_value=self.memcache_max_value,
             deltas=self.deltas)
+        self._start_reindexer(reindex_interval)
 
     def _start_loader(self, series_loader_interval):
         if self.memcache:
@@ -123,6 +126,13 @@ class InfluxdbFinder(object):
         else:
             loader = None
         return loader
+
+    def _start_reindexer(self, reindex_interval):
+        logger.debug("Starting reindexer thread with interval %s", reindex_interval)
+        reindexer = threading.Thread(target=self._reindex,
+                                     kwargs={'interval': reindex_interval})
+        reindexer.daemon = True
+        reindexer.start()
     
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
@@ -385,6 +395,11 @@ class InfluxdbFinder(object):
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return (d for k in data for d in k if d)
+
+    def _reindex(self, interval=900):
+        while True:
+            self.build_index()
+            time.sleep(interval)
     
     def build_index(self, data=None):
         logger.info('Starting index build')
@@ -394,6 +409,8 @@ class InfluxdbFinder(object):
         index = NodeTreeIndex()
         for metric in data:
             index.insert(metric)
+        self.index_lock.acquire()
         self.index = index
         logger.info("Finished building index")
+        self.index_lock.release()
         del data
