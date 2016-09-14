@@ -21,8 +21,6 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         except influxdb.exceptions.InfluxDBClientError:
             pass
         self.client.create_database(self.db_name)
-        self.client.create_retention_policy(
-            'default', 'inf', 1, database=self.db_name, default=True)
         data = [{
             "measurement": series,
             "tags": {},

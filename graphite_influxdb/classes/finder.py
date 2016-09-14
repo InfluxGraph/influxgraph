@@ -106,26 +106,24 @@ class InfluxdbFinder(object):
         self._start_reindexer(reindex_interval)
 
     def _start_loader(self, series_loader_interval):
-        if self.memcache:
-            # No memcached configured? Cannot use series loader
-            # Run series loader in main thread if due to run to not allow
-            # requests to be served before series loader has completed at least once.
-            if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
-                logger.debug("Series loader mutex exists %s - "
-                             "skipping series load",
-                             SERIES_LOADER_MUTEX_KEY)
-            else:
-                self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
-                                  time=series_loader_interval)
-                for _ in self.get_all_series_list():
-                    pass
-            loader = threading.Thread(target=self._series_loader,
-                                      kwargs={'interval': series_loader_interval})
-            loader.daemon = True
-            loader.start()
+        # No memcached configured? Cannot use series loader
+        if not self.memcache:
+            return
+        # Run series loader in main thread if due to run to not allow
+        # requests to be served before series loader has completed at least once.
+        if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
+            logger.debug("Series loader mutex exists %s - "
+                         "skipping series load",
+                         SERIES_LOADER_MUTEX_KEY)
         else:
-            loader = None
-        return loader
+            self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
+                              time=series_loader_interval)
+            for _ in self.get_all_series_list():
+                pass
+        loader = threading.Thread(target=self._series_loader,
+                                  kwargs={'interval': series_loader_interval})
+        loader.daemon = True
+        loader.start()
 
     def _start_reindexer(self, reindex_interval):
         self.build_index()
@@ -350,8 +348,10 @@ class InfluxdbFinder(object):
             return time_info, {}
         paths = [n.path for n in nodes]
         retention = get_retention_policy(interval, self.retention_policies) \
-          if self.retention_policies else "default"
-        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths))
+          if self.retention_policies else None
+        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
+          if retention \
+          else ', '.join(('"%s"' % (path,) for path in paths))
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
                                      for path in paths))
         if len(aggregation_funcs) > 1:
