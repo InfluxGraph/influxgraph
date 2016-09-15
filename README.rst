@@ -16,9 +16,9 @@ It differs from its parent in the following ways:
 * Added Memcached integration for caching of InfluxDB data.
 * Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a `Graphite-API`_ only plugin.
 * Simplified configuration - only InfluxDB database name for Graphite metric series is required.
-* Removed Elasticsearch get series names caching integration. An HTTP cache in front of the ``graphite-api`` webapp provides better performance at significantly less overhead. See `Varnish caching InfluxDB API`_ section for an example.
+* Removed Elasticsearch get series names caching integration. In memory index is used instead.
 * Strict flake-8 compatibility and code test coverage. This project has **100%** code test coverage.
-* Python 2.6, 2.7 and 3.4 all fully supported with automated testing.
+* Python 2.6, 2.7, 3.4 and 3.5 all fully supported with automated testing.
 
 Installation
 ------------
@@ -41,7 +41,7 @@ InfluxDB Graphite metric templates
    
    Support for templates, meaning querying Graphite metrics that have been parsed into tags by InfluxDB's Graphite plugin is coming in a later version.
    
-   This plugin currently requires that all Graphite metrics paths are stored as a single series.
+   This plugin currently requires that all Graphite metrics paths are stored as a single measurement.
 
 Templates should be empty in InfluxDB's Graphite plugin configuration. ::
   
@@ -53,18 +53,18 @@ Templates should be empty in InfluxDB's Graphite plugin configuration. ::
 Retention policy configuration
 ==============================
 
-Pending implementation of this feature request that will allow InfluxDB to select and/or merge results from multiple retention policies as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies. ::
+Pending implementation of a feature request that will allow InfluxDB to select and/or merge results from multiple retention policies as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies. ::
 
   retention_policies:
       <time interval of query>: <retention policy name>
 
-For example, to make a query with a time interval of 10 and 30 minutes use the retention policies named `10min` and `30min` respectively::
+For example, to make a query with a time interval of ten and thirty minutes use the retention policies named `10min` and `30min` respectively::
 
   retention_policies:
       600: 10min
       1800: 30min
 
-While not required, retention policy time interval (sampling rate) is best kept close to or identical to ``deltas`` interval.
+While not required, retention policy time interval is best kept close to or identical to ``deltas`` interval.
 
 
 Aggregation function configuration
