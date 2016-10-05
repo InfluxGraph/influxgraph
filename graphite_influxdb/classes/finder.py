@@ -124,7 +124,7 @@ class InfluxdbFinder(object):
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True
         loader.start()
-
+    
     def _start_reindexer(self, reindex_interval):
         self.build_index()
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
@@ -320,7 +320,7 @@ class InfluxdbFinder(object):
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
             time.sleep(interval)
-        
+    
     def find_nodes(self, query):
         paths = self.index.query(query.pattern)
         for path in paths:

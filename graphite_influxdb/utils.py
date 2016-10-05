@@ -26,7 +26,15 @@ def calculate_interval(start_time, end_time, deltas=None):
     
     Returns interval in seconds
     :param start_time: Start time in seconds from epoch
-    :param end_time: End time in seconds from epoch"""
+    :param end_time: End time in seconds from epoch
+    :type start_time: int
+    :type end_time: int
+    :param deltas: Delta configuration to use. Defaults hardcoded if no
+    configuration is provided
+    :type deltas: dict(max time range of query in seconds: interval to use in seconds)
+    
+    :rtype: int - *Interval in seconds*
+    """
     time_delta = end_time - start_time
     deltas = deltas if deltas else {
         # # 1 hour -> 1s
@@ -53,16 +61,27 @@ def calculate_interval(start_time, end_time, deltas=None):
     for delta in sorted(deltas.keys()):
         if time_delta <= delta:
             return deltas[delta]
-    # 1 day default, or if time range > 4 years
+    # 1 day default, or if time range > max configured (4 years default max)
     return 86400
 
 def get_retention_policy(interval, retention_policies):
+    """Get appropriate retention policy for interval provided
+
+    :param interval: Interval of query in seconds
+    :type interval: int
+    :param retention_policies: Retention policy configuration
+    :type retention_policies: dict(max time range of interval in seconds: retention policy name)
+
+    :rtype: ``str`` or ``None``
+    """
     if not retention_policies:
-        return "default"
+        return
     for retention_interval in sorted(retention_policies.keys()):
         if interval <= retention_interval:
             return retention_policies[retention_interval]
-    return "default"
+    # In the case that desired interval is beyond configured interval range,
+    # return policy for max interval
+    return retention_policies[max(sorted(retention_policies.keys()))]
 
 class Query(object):
 
@@ -142,7 +161,13 @@ def _compile_aggregation_patterns(aggregation_functions):
 
 def get_aggregation_func(path, aggregation_functions):
     """Lookup aggregation function for path, if any.
-    Defaults to 'mean'."""
+    Defaults to 'mean'.
+
+    :param path: Path to lookup
+    :type path: str
+    :param aggregation_functions: Aggregation function configuration
+    :type aggregation_functions: dict(<pattern>: <compiled regex>)
+    """
     if not aggregation_functions:
         return 'mean'
     for pattern in aggregation_functions:

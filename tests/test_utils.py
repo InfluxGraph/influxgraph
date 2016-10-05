@@ -29,6 +29,10 @@ class GraphiteInfluxdbUtilsTestCase(unittest.TestCase):
             self.assertEqual(retention, _retention,
                              msg="Expected retention period %s for interval %s, got %s" % (
                                  _retention, interval, retention,))
+        policy = graphite_influxdb.utils.get_retention_policy(1900, policies)
+        self.assertEqual(policy,'30min',
+                         msg="Expected retention policy %s for interval %s - got %s" % (
+                             '30min', 1900, policy))
     
     def test_config_parsing(self):
         cfg = {}
