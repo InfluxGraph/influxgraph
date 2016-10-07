@@ -102,7 +102,7 @@ Full Configuration Example
 ::
 
     finders:
-      - graphite_influxdb.InfluxdbFinder
+      - influxgraph.InfluxDBFinder
     influxdb:
        db: graphite       
        host: localhost # (optional)
