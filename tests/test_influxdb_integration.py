@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import unittest
 from influxdb import InfluxDBClient
@@ -13,6 +14,7 @@ try:
     import memcache
 except ImportError:
     pass
+import sys
 
 os.environ['TZ'] = 'UTC'
 
@@ -701,9 +703,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         except OSError:
             pass
         finally:
-            open(bad_index_path, 'wb').close()
+            open(bad_index_path, 'wt').close()
         # Permission errors on all operations
-        os.chmod(bad_index_path, 0000)
+        mask = 0000 if sys.version_info <= (2,) else 0o000
+        os.chmod(bad_index_path, mask)
         config = { 'influxdb': { 'host' : 'localhost',
                                  'port' : 8086,
                                  'user' : 'root',
@@ -717,9 +720,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         }
         finder = graphite_influxdb.InfluxdbFinder(config)
         del finder
-        os.chmod(bad_index_path, 0600)
+        mask = int('0600') if sys.version_info <= (2,) else 0o600
+        os.chmod(bad_index_path, mask)
         # Corrupt data in index file
-        with open(bad_index_path, 'wb') as index_fh:
+        with open(bad_index_path, 'wt') as index_fh:
             index_fh.write('fasdfa}\n')
         finder = graphite_influxdb.InfluxdbFinder(config)
         

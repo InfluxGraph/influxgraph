@@ -386,9 +386,9 @@ class InfluxdbFinder(object):
         if not self.index_path:
             return
         try:
-            with open(self.index_path, 'wb') as index_fh:
+            with open(self.index_path, 'wt') as index_fh:
                 index_fh.write(self.index.to_json())
-        except IOError, ex:
+        except IOError as ex:
             logger.error("Error writing to index file %s - %s",
                          self.index_path, ex)
             return
@@ -398,16 +398,16 @@ class InfluxdbFinder(object):
         if not self.index_path:
             return
         try:
-            index_fh = open(self.index_path, 'rb')
-        except IOError, ex:
+            index_fh = open(self.index_path, 'rt')
+        except IOError as ex:
             logger.error("Error reading index file %s - %s", self.index_path, ex)
             return
-        except Exception, ex:
+        except Exception as ex:
             logger.error("Error loading index from %s - %s", self.index_path, ex)
             return
         try:
             index = NodeTreeIndex.from_json(index_fh)
-        except Exception, ex:
+        except Exception as ex:
             logger.error("Error reading index file - %s", ex)
             return
         finally:
