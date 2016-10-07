@@ -53,11 +53,16 @@ class InfluxdbReader(object):
         self.path = path
         self.statsd_client = statsd_client
         self.aggregation_functions = aggregation_functions
-        if memcache_host:
-            self.memcache = memcache.Client(
-                [memcache_host], pickleProtocol=-1,
-                server_max_value_length=memcache_max_value)
-        else:
+        try:
+            if memcache_host:
+                self.memcache = memcache.Client(
+                    [memcache_host], pickleProtocol=-1,
+                    server_max_value_length=memcache_max_value)
+            else:
+                self.memcache = None
+        except NameError:
+            logger.warning("Memcache configuration present but 'python-memcached' module "
+                           "not installed - ignoring memcache configuration..")
             self.memcache = None
         self.deltas = deltas
         self.intervals = Interval()

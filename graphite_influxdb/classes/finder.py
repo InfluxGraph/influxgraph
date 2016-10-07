@@ -80,11 +80,16 @@ class InfluxdbFinder(object):
         self.memcache_host = config.get('memcache_host', None)
         self.memcache_ttl = config['memcache_ttl']
         self.memcache_max_value = config.get('memcache_max_value', 1)
-        if self.memcache_host:
-            self.memcache = memcache.Client(
-                [self.memcache_host], pickleProtocol=-1,
-                server_max_value_length=1024**2*self.memcache_max_value)
-        else:
+        try:
+            if self.memcache_host:
+                self.memcache = memcache.Client(
+                    [self.memcache_host], pickleProtocol=-1,
+                    server_max_value_length=1024**2*self.memcache_max_value)
+            else:
+                self.memcache = None
+        except NameError:
+            logger.warning("Memcache configuration present but 'python-memcached' module "
+                           "not installed - ignoring memcache configuration..")
             self.memcache = None
         self._setup_logger(config['log_level'], config['log_file'])
         self.aggregation_functions = config.get('aggregation_functions', None)
@@ -128,8 +133,6 @@ class InfluxdbFinder(object):
     
     def _start_reindexer(self, reindex_interval):
         self.load_index()
-        # 1/0
-        # import ipdb; ipdb.set_trace()
         if not self.index:
             self.build_index()
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
@@ -245,8 +248,6 @@ class InfluxdbFinder(object):
             if len(data) < limit:
                 self._store_last_offset(query, limit, offset)
                 return _data + data
-            if len(data) > limit:
-                return data
             offset = limit + offset
             return data + get_series_func(
                 *args, limit=limit, offset=offset,
@@ -384,8 +385,13 @@ class InfluxdbFinder(object):
     def save_index(self):
         if not self.index_path:
             return
-        with open(self.index_path, 'wb') as index_fh:
-            index_fh.write(self.index.to_json())
+        try:
+            with open(self.index_path, 'wb') as index_fh:
+                index_fh.write(self.index.to_json())
+        except IOError, ex:
+            logger.error("Error writing to index file %s - %s",
+                         self.index_path, ex)
+            return
         logger.info("Wrote index file to %s", self.index_path)
     
     def load_index(self):
@@ -393,7 +399,8 @@ class InfluxdbFinder(object):
             return
         try:
             index_fh = open(self.index_path, 'rb')
-        except IOError:
+        except IOError, ex:
+            logger.error("Error reading index file %s - %s", self.index_path, ex)
             return
         except Exception, ex:
             logger.error("Error loading index from %s - %s", self.index_path, ex)

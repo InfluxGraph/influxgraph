@@ -19,6 +19,8 @@ script:
   - nosetests --with-coverage --cover-package=graphite_influxdb
   - nosetests --with-coverage --cover-package=graphite_influxdb tests/test_log1.py
   - nosetests --with-coverage --cover-package=graphite_influxdb tests/test_log2.py
+  - pip uninstall python-memcached -y
+  - nosetests --with-coverage --cover-package=graphite_influxdb tests/test_influxdb_integration.py
 notifications:
   email:
     on_failure: change

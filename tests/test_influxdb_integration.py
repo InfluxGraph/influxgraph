@@ -9,7 +9,10 @@ from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
 import datetime
 import time
-import memcache
+try:
+    import memcache
+except ImportError:
+    pass
 
 os.environ['TZ'] = 'UTC'
 
@@ -384,8 +387,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'ttl' : 60,
                                                  'max_value' : 20},
                                   },}
-        _memcache = memcache.Client([config['influxdb']['memcache']['host']])
-        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        try:
+            _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+            _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        except NameError:
+            pass
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
@@ -396,8 +402,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                              20, finder.memcache_max_value,))
         # Give series loader more than long enough to finish
         time.sleep(1)
-        self.assertTrue(finder.memcache.get(loader_memcache_key),
-                        msg="No memcache data for series loader query %s" % (query.pattern,))
+        if finder.memcache:
+            self.assertTrue(finder.memcache.get(loader_memcache_key),
+                            msg="No memcache data for series loader query %s" % (query.pattern,))
 
     def test_get_series_pagination(self):
         query, limit = Query('*'), 5
@@ -425,7 +432,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'ttl' : 60,
                                                  'max_value' : 20},
                                   },}
-        _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+        try:
+            _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+        except NameError:
+            # No memcache module - no memcache integration tests
+            return
         query, limit = Query('*'), 1
         memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
             query.pattern, str(limit), str(offset)]))
@@ -446,9 +457,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.series[0] in node_names,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, node_names))
-        for memcache_key in memcache_keys:
-            self.assertTrue(finder.memcache.get(memcache_key),
-                            msg="No memcache data for key %s" % (memcache_key,))
+        if finder.memcache:
+            for memcache_key in memcache_keys:
+                self.assertTrue(finder.memcache.get(memcache_key),
+                                msg="No memcache data for key %s" % (memcache_key,))
         limit = 1
         nodes = sorted(list(finder.get_all_series(limit=limit)))
         expected = sorted(self.series)
@@ -478,9 +490,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         memcache_key = graphite_influxdb.utils.gen_memcache_key(
             int(self.start_time.strftime("%s")), int(self.end_time.strftime("%s")),
             aggregation_func, paths)
-        self.assertTrue(finder.memcache.get(memcache_key),
-                        msg="Got no memcache data for query %s with key %s" % (
-                            query, memcache_key,))
+        if finder.memcache:
+            self.assertTrue(finder.memcache.get(memcache_key),
+                            msg="Got no memcache data for query %s with key %s" % (
+                                query, memcache_key,))
         time_info, reader_data = nodes[0].reader.fetch(int(self.start_time.strftime("%s")),
                                                        int(self.end_time.strftime("%s")))
         self.assertEqual(len(data[self.series1]), len(reader_data[self.series1]),
@@ -557,11 +570,14 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                                  'ttl' : 60,
                                                  'max_value' : 20},
                                   },}
-        _memcache = memcache.Client([config['influxdb']['memcache']['host']])
-        memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
-            '*', str(self.default_nodes_limit), str(0)]))
-        _memcache.delete(memcache_key)
-        _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        try:
+            _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+            memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+                '*', str(self.default_nodes_limit), str(0)]))
+            _memcache.delete(memcache_key)
+            _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        except NameError:
+            pass
         finder = graphite_influxdb.InfluxdbFinder(config)
         time.sleep(1)
         query = Query(prefix + '.*.*.*.*.' + leaf_nodes[0])
@@ -677,8 +693,35 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         msg="Two datapoints in interval in retention policy, got %s from query" % (
                             len(data_points)))
 
-    # def test_index_save_load(self):
-        
+    def test_index_save_load(self):
+        self.finder.index.clear()
+        bad_index_path = 'bad_index'
+        try:
+            os.unlink(bad_index_path)
+        except OSError:
+            pass
+        finally:
+            open(bad_index_path, 'wb').close()
+        # Permission errors on all operations
+        os.chmod(bad_index_path, 0000)
+        config = { 'influxdb': { 'host' : 'localhost',
+                                 'port' : 8086,
+                                 'user' : 'root',
+                                 'pass' : 'root',
+                                 'db' : self.db_name,
+                                 'log_level' : 'debug',
+                                 'series_loader_interval': 1,
+                                 },
+                        'statsd': {'host': 'localhost' },
+                        'search_index': bad_index_path,
+                        }
+        finder = graphite_influxdb.InfluxdbFinder(config)
+        del finder
+        os.chmod(bad_index_path, 0600)
+        # Corrupt data in index file
+        with open(bad_index_path, 'wb') as index_fh:
+            index_fh.write('fasdfa}\n')
+        finder = graphite_influxdb.InfluxdbFinder(config)
         
 if __name__ == '__main__':
     unittest.main()
