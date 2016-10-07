@@ -13,11 +13,11 @@ This project started as a re-write of `graphite_influxdb <https://github.com/vim
 
 Main features
 
- * Dynamically calculated group by intervals based on query date range to speed up graph generation for large date ranges
- * Configurable per-query aggregation functions by pattern
- * In-memory index for metric path queries
- * Multi-fetch enabled - fetch data for multiple series with one query to InfluxDB
- * Memcached integration
+* Dynamically calculated group by intervals based on query date range to speed up graph generation for large date ranges
+* Configurable per-query aggregation functions by pattern
+* In-memory index for metric path queries
+* Multi-fetch enabled - fetch data for multiple series with one query to InfluxDB
+* Memcached integration
 
 Installation
 ------------
