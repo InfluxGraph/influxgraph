@@ -58,7 +58,7 @@ class InfluxdbFinder(object):
     __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
                  'deltas', 'retention_policies', 'index', 'reader',
-                 'index_lock')
+                 'index_lock', 'index_path')
     
     def __init__(self, config):
         config = normalize_config(config)
@@ -97,6 +97,7 @@ class InfluxdbFinder(object):
         self._start_loader(series_loader_interval)
         self.index = NodeTreeIndex()
         self.index_lock = threading.Lock()
+        self.index_path = config.get('search_index')
         self.reader = InfluxdbReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
@@ -126,7 +127,9 @@ class InfluxdbFinder(object):
         loader.start()
     
     def _start_reindexer(self, reindex_interval):
-        self.build_index()
+        self.load_index()
+        if not self.index:
+            self.build_index()
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
         reindexer = threading.Thread(target=self._reindex,
                                      kwargs={'interval': reindex_interval})
@@ -392,18 +395,18 @@ class InfluxdbFinder(object):
                               time=interval,
                               min_compress_len=50)
         return time_info, data
-
+    
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return (d for k in data for d in k if d)
-
+    
     def _reindex(self, interval=900):
         while True:
+            time.sleep(interval)
             try:
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-            time.sleep(interval)
     
     def build_index(self, data=None):
         logger.info('Starting index build')
@@ -417,4 +420,23 @@ class InfluxdbFinder(object):
         self.index = index
         logger.info("Finished building index")
         self.index_lock.release()
+        del data
+        self.save_index()
+    
+    def save_index(self):
+        with open(self.index_path, 'wb') as index_fh:
+            index_fh.write(self.index.to_json())
+        logger.info("Wrote index file to %s", self.index_path)
+    
+    def load_index(self):
+        index_fh = open(self.index_path, 'rb')
+        try:
+            data = json.load(index_fh)
+        except Exception, ex:
+            logger.error("Error reading index file - %s", ex)
+            return
+        finally:
+            index_fh.close()
+        self.index = NodeTreeIndex.from_array(data)
+        logger.info("Loaded index from disk")
         del data

@@ -113,12 +113,12 @@ class NullStatsd(object):
 
 def normalize_config(config):
     cfg = config.get('influxdb', None)
-    ret = {}
     if not cfg:
         sys.stderr.write("Missing required 'influxdb' configuration in graphite-api "
                          "config - please update your configuration file to include "
                          "at least 'influxdb: db: <db_name>'\n")
         sys.exit(1)
+    ret = {}
     ret['host'] = cfg.get('host', 'localhost')
     ret['port'] = cfg.get('port', 8086)
     ret['user'] = cfg.get('user', 'graphite')
@@ -139,6 +139,7 @@ def normalize_config(config):
     ret['retention_policies'] = cfg.get('retention_policies', None)
     ret['series_loader_interval'] = cfg.get('series_loader_interval', 900)
     ret['reindex_interval'] = cfg.get('reindex_interval', 900)
+    ret['search_index'] = config.get('search_index')
     return ret
 
 def _compile_aggregation_patterns(aggregation_functions):
