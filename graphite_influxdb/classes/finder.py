@@ -95,7 +95,7 @@ class InfluxdbFinder(object):
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         self._start_loader(series_loader_interval)
-        self.index = NodeTreeIndex()
+        self.index = None
         self.index_lock = threading.Lock()
         self.index_path = config.get('search_index')
         self.reader = InfluxdbReader(
@@ -128,6 +128,8 @@ class InfluxdbFinder(object):
     
     def _start_reindexer(self, reindex_interval):
         self.load_index()
+        # 1/0
+        # import ipdb; ipdb.set_trace()
         if not self.index:
             self.build_index()
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
@@ -158,50 +160,6 @@ class InfluxdbFinder(object):
             logger.addHandler(handler)
             handler.setFormatter(formatter)
 
-    def get_all_cached_series(self, pattern, limit=LOADER_LIMIT, offset=0):
-        """Retrieve all pages of series list from cache only"""
-        logger.debug("Finding cached series list for pattern %s, "
-                     "limit %s, offset %s", pattern, limit, offset)
-        _memcache_key = gen_memcache_pattern_key("_".join([
-            pattern, str(limit), str(offset)]))
-        series = self.memcache.get(_memcache_key)
-        if not series:
-            return []
-        if len(series) < limit:
-            return series
-        return series + self.get_all_cached_series(pattern, limit=limit,
-                                                   offset=limit+offset)
-    
-    def _get_parent_branch_series(self, query, limit=LOADER_LIMIT, offset=0):
-        """Iterate through parent branches, find cached series for parent
-        branch and return series matching query"""
-        root_branch_query = False
-        _pattern = ".".join(query.pattern.split('.')[:-1])
-        if not _pattern:
-            _pattern = '*'
-            root_branch_query = True
-        parent_branch_series = self.get_all_cached_series(
-            _pattern, limit=limit, offset=offset)
-        while not parent_branch_series and not root_branch_query:
-            logger.debug("No cached series list for parent branch query %s, "
-                         "continuing with more parents", _pattern)
-            _pattern = ".".join(_pattern.split('.')[:-1])
-            if not _pattern:
-                _pattern = '*'
-                root_branch_query = True
-            parent_branch_series = self.get_all_cached_series(
-                _pattern, limit=limit, offset=offset)
-        if not parent_branch_series:
-            return
-        logger.debug("Found cached parent branch series for parent query %s "
-                     "limit %s offset %s",
-                     _pattern, limit, offset)
-        series = match_entries(parent_branch_series, query.pattern) \
-          if is_pattern(query.pattern) \
-          else [b for b in parent_branch_series if
-                b.startswith(query.pattern)]
-        return series
-    
     def get_series(self, cache=True, limit=LOADER_LIMIT, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
         
@@ -424,19 +382,28 @@ class InfluxdbFinder(object):
         self.save_index()
     
     def save_index(self):
+        if not self.index_path:
+            return
         with open(self.index_path, 'wb') as index_fh:
             index_fh.write(self.index.to_json())
         logger.info("Wrote index file to %s", self.index_path)
     
     def load_index(self):
-        index_fh = open(self.index_path, 'rb')
+        if not self.index_path:
+            return
         try:
-            data = json.load(index_fh)
+            index_fh = open(self.index_path, 'rb')
+        except IOError:
+            return
+        except Exception, ex:
+            logger.error("Error loading index from %s - %s", self.index_path, ex)
+            return
+        try:
+            index = NodeTreeIndex.from_json(index_fh)
         except Exception, ex:
             logger.error("Error reading index file - %s", ex)
             return
         finally:
             index_fh.close()
-        self.index = NodeTreeIndex.from_array(data)
+        self.index = index
         logger.info("Loaded index from disk")
-        del data

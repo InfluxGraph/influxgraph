@@ -43,14 +43,16 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
                                 int(self.start_time.strftime("%s"))) * 1.0 / self.step)) + 1
         self.client = InfluxDBClient(database=self.db_name)
-        self.config = { 'influxdb' : { 'host' : 'localhost',
+        self.config = { 'influxdb': { 'host' : 'localhost',
                                        'port' : 8086,
                                        'user' : 'root',
                                        'pass' : 'root',
                                        'db' : self.db_name,
                                        'log_level' : 'debug',
+                                       'series_loader_interval': 1,
                                        },
-                        'statsd' : { 'host': 'localhost' },
+                        'statsd': { 'host': 'localhost' },
+                        'search_index': 'index',
                         }
         self.metric_prefix = "integration_test"
         self.nodes = ["leaf_node1", "leaf_node2"]
@@ -71,16 +73,17 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_configured_deltas(self):
         del self.finder
-        config = { 'influxdb' : { 'host' : 'localhost',
-                                  'port' : 8086,
-                                  'user' : 'root',
-                                  'pass' : 'root',
-                                  'db' : self.db_name,
-                                  'log_level' : 'debug',
-                                  # Set data interval to 1 second for queries
-                                  # of one hour or less
-                                  'deltas' : { 3600:1 },
-                                  },}
+        config = { 'influxdb': { 'host' : 'localhost',
+                                 'port' : 8086,
+                                 'user' : 'root',
+                                 'pass' : 'root',
+                                 'db' : self.db_name,
+                                 'log_level' : 'debug',
+            # Set data interval to 1 second for queries
+            # of one hour or less
+            'deltas' : {3600: 1},},
+            # 'search_index': 'index',
+            }
         finder = graphite_influxdb.InfluxdbFinder(config)
         self.assertTrue(finder.deltas)
         nodes = list(finder.find_nodes(Query(self.series1)))
@@ -673,6 +676,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertTrue(len(data_points)==2,
                         msg="Two datapoints in interval in retention policy, got %s from query" % (
                             len(data_points)))
+
+    # def test_index_save_load(self):
+        
         
 if __name__ == '__main__':
     unittest.main()

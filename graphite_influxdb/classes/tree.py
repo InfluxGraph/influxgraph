@@ -107,4 +107,6 @@ class NodeTreeIndex(object):
     @staticmethod
     def from_json(data):
         model = json.load(data)
-        return NodeTreeIndex.from_array(model)
+        index = NodeTreeIndex.from_array(model)
+        del model
+        return index
