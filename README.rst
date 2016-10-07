@@ -1,36 +1,51 @@
-Graphite-InfluxDB
+InfluxGraph
 =================
 
-An `InfluxDB`_ 0.9.2 or higher plugin for `Graphite-API`_.
+An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
 
-.. image:: https://travis-ci.org/pkittenis/graphite-influxdb.svg?branch=master
-  :target: https://travis-ci.org/pkittenis/graphite-influxdb
-.. image:: https://coveralls.io/repos/pkittenis/graphite-influxdb/badge.png?branch=master
-  :target: https://coveralls.io/r/pkittenis/graphite-influxdb?branch=master
+.. image:: https://travis-ci.org/pkittenis/influxgraph.svg?branch=master
+  :target: https://travis-ci.org/pkittenis/influxgraph
+.. image:: https://coveralls.io/repos/pkittenis/influxgraph/badge.png?branch=master
+  :target: https://coveralls.io/r/pkittenis/influxgraph?branch=master
 
 
-This project is a fork of the excellent `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_ finder. Many thanks to Vimeo and the author for open sourcing that work.
+This project started as a re-write of `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_ - many thanks to Vimeo and the author for open sourcing that work.
 
-It differs from its parent in the following ways:
+Main features
 
-* Added Memcached integration for caching of InfluxDB data.
-* Removed Graphite-Web support. ``graphite-influxdb`` has poor performance when used with Graphite-Web which cannot do multi fetch. Graphite-Web is not supported by this project - this is a `Graphite-API`_ only plugin.
-* Simplified configuration - only InfluxDB database name for Graphite metric series is required.
-* Removed Elasticsearch get series names caching integration. In memory index is used instead.
-* Strict flake-8 compatibility and code test coverage. This project has **100%** code test coverage.
-* Python 2.6, 2.7, 3.4 and 3.5 all fully supported with automated testing.
+ * Dynamically calculated group by intervals based on query date range to speed up graph generation for large date ranges
+ * Configurable per-query aggregation functions by pattern
+ * In-memory index for metric path queries
+ * Multi-fetch enabled - fetch data for multiple series with one query to InfluxDB
+ * Memcached integration
 
 Installation
 ------------
 
 ::
 
-  pip install https://github.com/pkittenis/graphite-influxdb/archive/0.5.1-rc1.tar.gz
+  pip install influxgraph
 
-Install memcached library separately if wanting to make use of memcached integration ::
+Use of a local `memcached` service is highly recommended - see configuration section on how to enable.
 
-  pip install python-memcached
+Mimimal configuration for Graphite-API is below. See `Full Configuration Example`_ for all possible configuration options.
 
+``/etc/graphite-api.yaml``
+
+::
+
+    finders:
+      - influxgraph.InfluxDBFinder
+    influxdb:
+       db: graphite
+
+Dependencies
+-------------
+
+ * ``influxdb`` Python module
+ * `Graphite-API`_
+ * ``python-memcached`` Python module
+ * `InfluxDB`_
 
 InfluxDB Graphite metric templates
 ==================================
@@ -39,9 +54,11 @@ InfluxDB Graphite metric templates
 
    Please note that InfluxDB configurations containing Graphite metric templates are currently *not* supported.
    
-   Support for templates, meaning querying Graphite metrics that have been parsed into tags by InfluxDB's Graphite plugin is coming in a later version.
+   Support for templates, meaning querying Graphite metrics that have been parsed into tags by InfluxDB's Graphite plugin is not yet possible.
    
    This plugin currently requires that all Graphite metrics paths are stored as a single measurement.
+   
+   Contributions to fully support templated Graphite data are most welcome.
 
 Templates should be empty in InfluxDB's Graphite plugin configuration. ::
   
@@ -66,73 +83,28 @@ For example, to make a query with a time interval of ten and thirty minutes use 
 
 While not required, retention policy time interval is best kept close to or identical to ``deltas`` interval.
 
-
-Aggregation function configuration
-==================================
-
-The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
-
-Default aggregation function used is ``mean``, meaning ``average``.
-
-Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
-
-  aggregation_functions:
-      \.min$ : min
-      \.max$ : max
-      \.last$ : last
-      \.sum$ : sum
-
-Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown below.
-
-An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
-
-Known InfluxDB aggregation functions are defined at ``graphite_influxdb.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
-
-.. note::
-
-   Please note that when querying multiple series InfluxDB allows only *one* aggregation function to be used for all series in the query.
-   
-   In other words, client needs to make sure all series in a wildcard query, for example ``my_host.cpu.cpu*`` have the same aggregation function configured.
-
-   ``Graphite-InfluxDB`` `will use the first aggregation function configured <https://github.com/pkittenis/graphite-influxdb/blob/master/graphite_influxdb/classes.py#L275>`_ and log a warning message to that effect if a wildcard query resolves to multiple aggregation functions.
-
-
-Schema-less design
-------------------
-
-In this project, no per series schema configuration is required, as with `InfluxDB`_.
-
-Calculated intervals
---------------------
-
-An interval, or step, used to group data with is automatically calculated depending on the time range of the query.
-
-This mirrors what `Grafana`_ does when talking directly to InfluxDB.
-
-Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Using with graphite-api`_ section for all supported configuration options.
-
-Users that wish to retrieve all data regardless of time range are advised to query `InfluxDB`_ directly.
-
-Using with graphite-api
+Configuration
 =======================
 
-Please note that the version of ``graphite-api`` installed by this module's ``requirements.txt`` is at least ``1.1.1`` that has working multi fetch support.
-
-Use of ``graphite-api`` version as installed by requirements is **highly** recommended.
+Minimal Configuration
+----------------------
 
 In graphite-api config file at ``/etc/graphite-api.yaml``::
 
     finders:
-      - graphite_influxdb.InfluxdbFinder
+      - influxgraph.InfluxDBFinder
     influxdb:
-       db:   graphite
+       db: graphite
 
-The above is the most minimal configuration. There are several optional configuration values, a full list of which is below. ::
+Full Configuration Example
+---------------------------
+
+::
 
     finders:
       - graphite_influxdb.InfluxdbFinder
     influxdb:
-       db:   graphite       
+       db: graphite       
        host: localhost # (optional)
        port: 8086 # (optional)
        user: root # (optional)
@@ -209,6 +181,34 @@ The above is the most minimal configuration. There are several optional configur
 	    600: 10m
 	    300: default
 
+Aggregation function configuration
+==================================
+
+The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
+
+Default aggregation function used is ``mean``, meaning ``average``.
+
+Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
+
+  aggregation_functions:
+      \.min$ : min
+      \.max$ : max
+      \.last$ : last
+      \.sum$ : sum
+
+Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown in configuration section.
+
+An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
+
+Known InfluxDB aggregation functions are defined at ``graphite_influxdb.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
+
+.. note::
+
+   Please note that when querying multiple series InfluxDB allows only *one* aggregation function to be used for all series in the query.
+   
+   In other words, client needs to make sure all series in a wildcard query, for example ``my_host.cpu.cpu*`` have the same aggregation function configured.
+
+   ``InfluxGraph`` will use the first aggregation function configured and log a warning message to that effect if a wildcard query resolves to multiple aggregation functions.
 
 Memcache caching InfluxDB data
 ------------------------------
@@ -221,10 +221,25 @@ For example, for a query spanning 24hrs, a data interval of 1 min is used by def
 
 For a query spanning 1 month, a 15min interval is used. TTL is also set to 15min for that data.
 
+
+Calculated intervals
+--------------------
+
+A data `group by` interval is automatically calculated depending on the time range of the query.
+
+This mirrors what `Grafana`_ does when talking directly to InfluxDB.
+
+Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Full Configuration Example`_ section for all supported configuration options.
+
+Users that wish to retrieve all data regardless of time range are advised to query `InfluxDB`_ directly.
+
+
 Varnish caching InfluxDB API
 ----------------------------
 
 The following is a sample configuration of `Varnish`_ as an HTTP cache in front of InfluxDB's HTTP API. It uses Varnish's default TTL of 60 sec for all InfluxDB queries.
+
+The intention is for a local (to InfluxDB) Varnish to cache frequently accessed data and protect the database from multiple identical requests, for example multiple users viewing the same dashboard.
 
 Graphite-API webapp should use Varnish port to connect to InfluxDB on each node.
 

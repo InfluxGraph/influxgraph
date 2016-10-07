@@ -1,2 +1,3 @@
 influxdb>=3.0.0
 graphite-api>=1.1.2
+python-memcached

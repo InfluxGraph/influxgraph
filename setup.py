@@ -1,19 +1,14 @@
 import version
 from setuptools import setup, find_packages
-import sys
-
-convert_2_to_3 = {}
-if sys.version_info >= (3,):
-    convert_2_to_3['use_2to3'] = True
 
 setup(
-    name='graphite-influxdb',
+    name='influxgraph',
     version=version.get_git_version(),
-    url='https://github.com/vimeo/graphite-influxdb',
+    url='https://github.com/pkittenis/influxgraph',
     license='apache2',
-    author='original graphite-influxdb by Dieter Plaetinck, fork by PK',
-    author_email='dieter@vimeo.com and others',
-    description=('Influxdb backend plugin for Graphite-API'),
+    author='Loosely based on original graphite-influxdb by Dieter Plaetinck, re-written from scratch by PK',
+    author_email='22e889d8@opayq.com',
+    description=('Influxdb storage plugin for Graphite-API'),
     long_description=open('README.rst').read(),
     packages=find_packages('.'),
     zip_safe=False,
@@ -34,5 +29,4 @@ setup(
         'memcached': ['python-memcached'],
         'statsd' : ['statsd'],
     },
-    **convert_2_to_3
 )
