@@ -15,10 +15,13 @@
 # limitations under the License.
 
 # https://influxdb.com/docs/v0.9/query_language/functions.html
-INFLUXDB_AGGREGATIONS = ['count', 'distinct', 'integral', 'mean', 'median',
-                         'sum', 'first', 'last', 'max', 'min', 'percentile',
-                         'top', 'bottom', 'derivative', 'nonNegativeDerivative',
-                         'stddev']
+# NB - Transformation functions like derivative are invalid without an aggregation
+# when used in a 'group by' query - we leave those to graphite-api to perform
+INFLUXDB_AGGREGATIONS = [
+    # aggregations
+    'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread', 'sum',
+    # selectors
+    'bottom', 'first', 'last', 'max', 'min', 'percentile', 'top']
 
 DEFAULT_AGGREGATIONS = { '\.min$' : 'min',
                          '\.max$' : 'max',
@@ -30,4 +33,5 @@ DEFAULT_AGGREGATIONS = { '\.min$' : 'min',
 _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
 SERIES_LOADER_MUTEX_KEY = 'graphite_influxdb_series_loader'
 MEMCACHE_SERIES_DEFAULT_TTL = 1800
-LOADER_LIMIT=100000
+LOADER_LIMIT = 100000
+GRAPHITE_PATH_REGEX_PATTERN = "[a-zA-Z0-9-_:]"
