@@ -41,11 +41,13 @@ from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
 import json
 import threading
+from multiprocessing import Lock as processLock
 import time
 try:
     import statsd
 except ImportError:
     pass
+_SERIES_LOADER_LOCK = processLock()
 
 logger = logging.getLogger('graphite_influxdb')
 
@@ -117,15 +119,17 @@ class InfluxdbFinder(object):
             return
         # Run series loader in main thread if due to run to not allow
         # requests to be served before series loader has completed at least once.
-        if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
-            logger.debug("Series loader mutex exists %s - "
-                         "skipping series load",
-                         SERIES_LOADER_MUTEX_KEY)
-        else:
-            self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
-                              time=series_loader_interval)
-            for _ in self.get_all_series_list():
-                pass
+        if _SERIES_LOADER_LOCK.acquire(block=False):
+            if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
+                logger.debug("Series loader mutex exists %s - "
+                             "skipping series load",
+                             SERIES_LOADER_MUTEX_KEY)
+            else:
+                self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
+                                  time=series_loader_interval)
+                for _ in self.get_all_series_list():
+                    pass
+            _SERIES_LOADER_LOCK.release()
         loader = threading.Thread(target=self._series_loader,
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True
@@ -261,16 +265,20 @@ class InfluxdbFinder(object):
         """
         pattern = '*'
         query = Query(pattern)
+        logger.info("Starting background series loader with interval %s", interval)
         while True:
-            if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
-                logger.debug("Series loader mutex exists %s - "
-                             "skipping series load",
-                             SERIES_LOADER_MUTEX_KEY)
-                time.sleep(interval)
-                continue
+            time.sleep(interval)
+            if _SERIES_LOADER_LOCK.acquire(block=False):
+                _SERIES_LOADER_LOCK.release()
+                if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
+                    logger.debug("Series loader mutex exists %s - "
+                                 "skipping series load", SERIES_LOADER_MUTEX_KEY)
+                    time.sleep(interval)
+                    continue
             self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1, time=interval)
             start_time = datetime.datetime.now()
             logger.debug("Starting series list loader..")
+            _SERIES_LOADER_LOCK.acquire()
             try:
                 for _ in self.get_all_series_list():
                     pass
@@ -279,9 +287,10 @@ class InfluxdbFinder(object):
                              ex,)
                 time.sleep(interval)
                 continue
+            finally:
+                _SERIES_LOADER_LOCK.release()
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
-            time.sleep(interval)
     
     def find_nodes(self, query):
         paths = self.index.query(query.pattern)

@@ -47,18 +47,18 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
           datetime.datetime.utcnow()
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
                                 int(self.start_time.strftime("%s"))) * 1.0 / self.step)) + 1
-        self.client = InfluxDBClient(database=self.db_name)
         self.config = { 'influxdb': { 'host' : 'localhost',
                                        'port' : 8086,
                                        'user' : 'root',
                                        'pass' : 'root',
                                        'db' : self.db_name,
                                        'log_level' : 'debug',
-                                       'series_loader_interval': 1,
+                                       # 'series_loader_interval': 1,
                                        },
                         'statsd': { 'host': 'localhost' },
                         'search_index': 'index',
                         }
+        self.client = InfluxDBClient(database=self.db_name)
         self.metric_prefix = "integration_test"
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
@@ -379,15 +379,18 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         loader_memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
             query.pattern, str(self.default_nodes_limit), str(0)]))
         del self.finder
+        _loader_interval = 1
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
                                   'log_level' : 'debug',
+                                  'series_loader_interval': _loader_interval,
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
-                                                 'max_value' : 20},
+                                                 'max_value': 20,
+                                                 },
                                   },}
         try:
             _memcache = memcache.Client([config['influxdb']['memcache']['host']])
@@ -395,6 +398,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         except NameError:
             pass
         finder = graphite_influxdb.InfluxdbFinder(config)
+        time.sleep(_loader_interval/10.0)
+        if finder.memcache:
+            self.assertTrue(finder.memcache.get(SERIES_LOADER_MUTEX_KEY))
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
                          msg="Configured TTL of %s sec, got %s sec TTL instead" % (
@@ -407,6 +413,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         if finder.memcache:
             self.assertTrue(finder.memcache.get(loader_memcache_key),
                             msg="No memcache data for series loader query %s" % (query.pattern,))
+        del finder
 
     def test_get_series_pagination(self):
         query, limit = Query('*'), 5
@@ -697,6 +704,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_index_save_load(self):
         self.finder.index.clear()
+        del self.finder
         bad_index_path = 'bad_index'
         try:
             os.unlink(bad_index_path)
@@ -709,11 +717,13 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         os.chmod(bad_index_path, mask)
         config = { 'influxdb': { 'host' : 'localhost',
                                  'port' : 8086,
+                                 'memcache' : {'host': 'localhost',
+                                               
+                                               },
                                  'user' : 'root',
                                  'pass' : 'root',
                                  'db' : self.db_name,
                                  'log_level' : 'debug',
-                                 'series_loader_interval': 1,
                                  },
                         'statsd': {'host': 'localhost' },
                         'search_index': bad_index_path,
