@@ -125,6 +125,9 @@ class InfluxdbFinder(object):
                              "skipping series load",
                              SERIES_LOADER_MUTEX_KEY)
             else:
+                logger.info("Starting initial series list load - this may "
+                            "take several minutes with databases with large "
+                            "number of series..")
                 self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
                                   time=series_loader_interval)
                 for _ in self.get_all_series_list():
