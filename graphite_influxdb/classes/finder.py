@@ -126,13 +126,18 @@ class InfluxdbFinder(object):
                              SERIES_LOADER_MUTEX_KEY)
             else:
                 logger.info("Starting initial series list load - this may "
-                            "take several minutes with databases with large "
+                            "take several minutes on databases with a large "
                             "number of series..")
                 self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
                                   time=series_loader_interval)
-                for _ in self.get_all_series_list():
-                    pass
-            _SERIES_LOADER_LOCK.release()
+                try:
+                    for _ in self.get_all_series_list():
+                        pass
+                except Exception as ex:
+                    logger.error("Error calling InfluxDB from initial series "
+                                 "load - %s", ex)
+                finally:
+                    _SERIES_LOADER_LOCK.release()
         loader = threading.Thread(target=self._series_loader,
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True
