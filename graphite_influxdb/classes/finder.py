@@ -378,7 +378,13 @@ class InfluxdbFinder(object):
     
     def build_index(self, data=None):
         logger.info('Starting index build')
-        data = self.get_all_series() if not data else data
+        try:
+            data = self.get_all_series() if not data else data
+        except Exception as ex:
+            logger.error("Error getting series list from InfluxDB - %s -"
+                         "Retrying after 30sec..", ex)
+            time.sleep(30)
+            return self.build_index()
         # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
