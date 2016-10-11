@@ -32,7 +32,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             }
         self.measurements = ['cpu', 'memory', 'load', 'iops']
         self.graphite_series = ["%s.%s" % (self.metric_prefix, ".".join(
-            self.tags.keys() + [m])) for m in self.measurements]
+            self.tags.values() + [m])) for m in self.measurements]
         # 
         # import ipdb; ipdb.set_trace()
         self.step, self.num_datapoints, self.db_name = 60, 2, 'integration_test'
@@ -89,6 +89,23 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))
+        query = Query("%s.*" % (self.metric_prefix,))
+        nodes = [n.path for n in self.finder.find_nodes(query)]
+        expected = [".".join(list(set([d for e in [
+            m.split('.')[0:2] for m in self.graphite_series] for d in e])))]
+        self.assertEqual(nodes, expected,
+                         msg="Got root branch query result %s - wanted %s" % (
+                             nodes, expected,))
+        # TODO - figure out how to handle default tags
+        query = Query("%s.%s.*" % (self.metric_prefix, self.tags['b_host']))
+        nodes = [n.path for n in self.finder.find_nodes(query)]
+        expected = self.measurements
+        self.assertEqual(nodes, expected,
+                         msg="Got root branch query result %s - wanted %s" % (
+                             nodes, expected,))
+
+    def test_templated_data_query(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()
