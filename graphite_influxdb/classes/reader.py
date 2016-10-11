@@ -35,7 +35,7 @@ logger = logging.getLogger('graphite_influxdb')
 class Interval(object):
     intervals = set()
 
-class InfluxdbReader(object):
+class InfluxDBReader(object):
     """Graphite-Api reader class for InfluxDB.
     
     Retrieves a single metric series from InfluxDB

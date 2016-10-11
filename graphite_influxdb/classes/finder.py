@@ -39,7 +39,7 @@ from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      Query, get_retention_policy, _compile_aggregation_patterns, \
      _split_series_with_tags
 from ..templates import _parse_influxdb_graphite_templates
-from .reader import InfluxdbReader
+from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
 import json
@@ -54,7 +54,7 @@ _SERIES_LOADER_LOCK = processLock()
 
 logger = logging.getLogger('graphite_influxdb')
 
-class InfluxdbFinder(object):
+class InfluxDBFinder(object):
     """Graphite-Api finder for InfluxDB.
     
     Finds and fetches metric series from InfluxDB.
@@ -113,7 +113,10 @@ class InfluxdbFinder(object):
         self.index = None
         self.index_lock = threading.Lock()
         self.index_path = config.get('search_index')
-        self.reader = InfluxdbReader(
+        # If memcache is not enabled build index on startup
+        if not self.memcache:
+            self.build_index()
+        self.reader = InfluxDBReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
             memcache_host=self.memcache_host,
@@ -421,8 +424,9 @@ class InfluxdbFinder(object):
         logger.info("Building index..")
         index = NodeTreeIndex()
         for metric in data:
-            # If we have series with tags in them split them out and
-            # pre-generate a correctly ordered split path for that serie
+            # import ipdb; ipdb.set_trace()
+            # If we have metrics with tags in them split them out and
+            # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if ',' in metric:
                 index.insert_split_path(_split_series_with_tags(metric))
