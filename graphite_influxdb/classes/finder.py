@@ -320,22 +320,35 @@ class InfluxdbFinder(object):
             else:
                 yield BranchNode(path['metric'])
 
-    def _gen_influxdb_query(self, start_time, end_time, paths, interval):
-        retention = get_retention_policy(interval, self.retention_policies) \
-          if self.retention_policies else None
-        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
-          if retention \
-          else ', '.join(('"%s"' % (path,) for path in paths))
+    def _gen_aggregation_func(self, paths):
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
                                      for path in paths))
         if len(aggregation_funcs) > 1:
             logger.warning("Got multiple aggregation functions %s for paths %s - Using '%s'",
                            aggregation_funcs, paths, aggregation_funcs[0])
         aggregation_func = aggregation_funcs[0]
+        return aggregation_func
+
+    def _gen_measurement_from_templates(self, paths):
+        pass
+
+    def _gen_query_values(self, paths, retention):
+        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
+          if retention \
+          else ', '.join(('"%s"' % (path,) for path in paths))
+        measurement = 'value' if not self.graphite_templates \
+          else self._gen_measurement_from_templates(paths)
+        return measurement, series
+
+    def _gen_influxdb_query(self, start_time, end_time, paths, interval):
+        retention = get_retention_policy(interval, self.retention_policies) \
+          if self.retention_policies else None
+        aggregation_func = self._gen_aggregation_func(paths)
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
-        query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-            aggregation_func, series, start_time, end_time, interval,)
+        measurement, series = self._gen_query_values(paths, retention)
+        query = 'select %s(%s) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
+          aggregation_func, measurement, series, start_time, end_time, interval,)
         return query, memcache_key
     
     def fetch_multi(self, nodes, start_time, end_time):
