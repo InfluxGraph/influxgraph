@@ -36,7 +36,8 @@ from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
      DEFAULT_AGGREGATIONS
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     Query, get_retention_policy, _compile_aggregation_patterns
+     Query, get_retention_policy, _compile_aggregation_patterns, \
+     _split_series_with_tags
 from ..templates import _parse_influxdb_graphite_templates
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
@@ -204,8 +205,6 @@ class InfluxdbFinder(object):
         timer = self.statsd_client.timer(timer_name)
         timer.start()
         series = self._get_series(limit=limit, offset=offset)
-        # data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        # series = [d['name'] for d in data['measurements']]
         timer.stop()
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
@@ -422,7 +421,13 @@ class InfluxdbFinder(object):
         logger.info("Building index..")
         index = NodeTreeIndex()
         for metric in data:
-            index.insert(metric)
+            # If we have series with tags in them split them out and
+            # pre-generate a correctly ordered split path for that serie
+            # to be inserted into index
+            if ',' in metric:
+                index.insert_split_path(_split_series_with_tags(metric))
+            else:
+                index.insert(metric)
         self.index_lock.acquire()
         self.index = index
         logger.info("Finished building index")

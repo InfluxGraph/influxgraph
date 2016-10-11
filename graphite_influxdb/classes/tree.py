@@ -63,8 +63,11 @@ class NodeTreeIndex(object):
         self.index = Node()
 
     def insert(self, metric_name):
-        path = metric_name.split('.')
-        self.index.insert(path)
+        paths = metric_name.split('.')
+        self.index.insert(paths)
+
+    def insert_split_path(self, paths):
+        self.index.insert(paths)
 
     def clear(self):
         self.index.children = {}

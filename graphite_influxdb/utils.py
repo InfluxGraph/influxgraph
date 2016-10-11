@@ -164,3 +164,10 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
+
+def _split_series_with_tags(serie):
+    paths = serie.split(',')
+    path = [d for p in paths[1:] for d in p.split('=')[-1:]]
+    path.append(paths[0])
+    del paths
+    return path

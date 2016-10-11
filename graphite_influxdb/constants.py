@@ -34,4 +34,11 @@ _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
 SERIES_LOADER_MUTEX_KEY = 'graphite_influxdb_series_loader'
 MEMCACHE_SERIES_DEFAULT_TTL = 1800
 LOADER_LIMIT = 100000
+
+# Best guess. Graphite project has never published a metric path format
+# and will accept any character with no validation
+# However, certain characters like ),(, \,/ etc will cause issues
+# with storing and lookup as well as opening up storage layers to
+# injection vulnerabilities
+# https://github.com/graphite-project/carbon/issues/417
 GRAPHITE_PATH_REGEX_PATTERN = "[a-zA-Z0-9-_:]"
