@@ -105,7 +105,25 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                              nodes, expected,))
 
     def test_templated_data_query(self):
-        pass
+        serie = 'template_integration_test.localhost.int.the_west.cpu'
+        # serie = self.graphite_series[0]
+        nodes = list(self.finder.find_nodes(Query(serie)))
+        # 1/0
+        time_info, data = self.finder.fetch_multi(nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        self.assertTrue(serie in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            serie, data.keys(),))
+        self.assertEqual(time_info,
+                         (int(self.start_time.strftime("%s")),
+                          int(self.end_time.strftime("%s")),
+                         self.step),
+                         msg="Time info and step do not match our requested values")
+        datapoints = [v for v in data[serie] if v]
+        self.assertTrue(len(datapoints) == self.num_datapoints,
+                        msg="Expected %s datapoints - got %s" % (
+                            self.num_datapoints, len(datapoints),))
 
 if __name__ == '__main__':
     unittest.main()

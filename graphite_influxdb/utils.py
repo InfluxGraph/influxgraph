@@ -165,7 +165,7 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
 
-def _split_series_with_tags(serie):
+def _split_series_with_tags(serie, graphite_templates):
     paths = serie.split(',')
     path = [d for p in paths[1:] for d in p.split('=')[-1:]]
     path.append(paths[0])

@@ -331,15 +331,35 @@ class InfluxDBFinder(object):
         aggregation_func = aggregation_funcs[0]
         return aggregation_func
 
-    def _gen_measurement_from_templates(self, paths):
-        pass
-
+    def _gen_query_values_from_templates(self, paths, retention):
+        _measurements = []
+        _series = []
+        for path in paths:
+            for (_filter, template, default_tags, separator) in self.graphite_templates:
+                if _filter and not _filter.match(path):
+                    continue
+                matcher = template.match(path)
+                if not matcher:
+                    continue
+                for key in matcher.groupdict():
+                    if not key == 'measurement':
+                        _series.append((key, matcher.groupdict()[key]))
+                for key,val in default_tags.iteritems():
+                    _series.append((key, val))
+                _measurements.append(matcher.groupdict()['measurement'])
+        measurements = ', '.join(
+            ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
+            if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
+        series = "AND ".join([""""%s" = '%s' """ % (key,val,) for (key,val) in _series])
+        return measurements, series
+    
     def _gen_query_values(self, paths, retention):
+        if self.graphite_templates:
+            return self._gen_query_values_from_templates(paths, retention)
+        measurement = 'value'
         series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
           if retention \
           else ', '.join(('"%s"' % (path,) for path in paths))
-        measurement = 'value' if not self.graphite_templates \
-          else self._gen_measurement_from_templates(paths)
         return measurement, series
 
     def _gen_influxdb_query(self, start_time, end_time, paths, interval):
@@ -349,8 +369,12 @@ class InfluxDBFinder(object):
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
         measurement, series = self._gen_query_values(paths, retention)
-        query = 'select %s(%s) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-          aggregation_func, measurement, series, start_time, end_time, interval,)
+        query = 'select %s("value") as value from %s where (time > %ds and time <= %ds) ' % (
+            aggregation_func, measurement, start_time, end_time,)
+        if series:
+            query += "AND %s" % (series,)
+        group_by = 'GROUP BY time(%ss)' % (interval,)
+        query += group_by
         return query, memcache_key
     
     def fetch_multi(self, nodes, start_time, end_time):
@@ -429,7 +453,8 @@ class InfluxDBFinder(object):
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if ',' in metric:
-                index.insert_split_path(_split_series_with_tags(metric))
+                index.insert_split_path(_split_series_with_tags(
+                    metric, self.graphite_templates))
             else:
                 index.insert(metric)
         self.index_lock.acquire()
