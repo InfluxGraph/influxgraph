@@ -32,10 +32,11 @@ from graphite_api.node import BranchNode
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
-     SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL
+     SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
+     DEFAULT_AGGREGATIONS
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     Query, get_retention_policy
+     Query, get_retention_policy, _compile_aggregation_patterns
 from ..templates import _parse_influxdb_graphite_templates
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
@@ -61,7 +62,7 @@ class InfluxdbFinder(object):
     __slots__ = ('client', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
                  'deltas', 'retention_policies', 'index', 'reader',
-                 'index_lock', 'index_path')
+                 'index_lock', 'index_path', 'graphite_templates')
     
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
@@ -96,13 +97,17 @@ class InfluxdbFinder(object):
             self.memcache = None
         self._setup_logger(influxdb_config.get('log_level', 'info'),
                            influxdb_config.get('log_file', None))
-        self.aggregation_functions = influxdb_config.get('aggregation_functions', None)
+        self.aggregation_functions = _compile_aggregation_patterns(
+            influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
         series_loader_interval = influxdb_config.get('series_loader_interval', 900)
         reindex_interval = influxdb_config.get('reindex_interval', 900)
         self.deltas = influxdb_config.get('deltas', None)
         self.retention_policies = influxdb_config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
+        templates = influxdb_config.get('templates')
+        self.graphite_templates = _parse_influxdb_graphite_templates(templates) \
+            if templates else None
         self._start_loader(series_loader_interval)
         self.index = None
         self.index_lock = threading.Lock()
@@ -314,6 +319,24 @@ class InfluxdbFinder(object):
                 yield InfluxDBLeafNode(path['metric'], self.reader)
             else:
                 yield BranchNode(path['metric'])
+
+    def _gen_influxdb_query(self, start_time, end_time, paths, interval):
+        retention = get_retention_policy(interval, self.retention_policies) \
+          if self.retention_policies else None
+        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
+          if retention \
+          else ', '.join(('"%s"' % (path,) for path in paths))
+        aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
+                                     for path in paths))
+        if len(aggregation_funcs) > 1:
+            logger.warning("Got multiple aggregation functions %s for paths %s - Using '%s'",
+                           aggregation_funcs, paths, aggregation_funcs[0])
+        aggregation_func = aggregation_funcs[0]
+        memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
+                                        paths)
+        query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
+            aggregation_func, series, start_time, end_time, interval,)
+        return query, memcache_key
     
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
@@ -328,25 +351,12 @@ class InfluxdbFinder(object):
         if not nodes:
             return time_info, {}
         paths = [n.path for n in nodes]
-        retention = get_retention_policy(interval, self.retention_policies) \
-          if self.retention_policies else None
-        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
-          if retention \
-          else ', '.join(('"%s"' % (path,) for path in paths))
-        aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)
-                                     for path in paths))
-        if len(aggregation_funcs) > 1:
-            logger.warning("Got multiple aggregation functions %s for paths %s - Using '%s'",
-                           aggregation_funcs, paths, aggregation_funcs[0])
-        aggregation_func = aggregation_funcs[0]
-        memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
-                                        paths)
+        query, memcache_key = self._gen_influxdb_query(
+                start_time, end_time, paths, interval)
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return time_info, data
-        query = 'select %s(value) as value from %s where (time > %ds and time <= %ds) GROUP BY time(%ss)' % (
-            aggregation_func, series, start_time, end_time, interval,)
         logger.debug('fetch_multi() query: %s', query)
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
