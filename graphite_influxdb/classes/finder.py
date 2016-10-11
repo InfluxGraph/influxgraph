@@ -32,10 +32,11 @@ from graphite_api.node import BranchNode
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
-     SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT
-from ..utils import NullStatsd, normalize_config, \
-     calculate_interval, read_influxdb_values, get_aggregation_func, \
-     gen_memcache_key, gen_memcache_pattern_key, Query, get_retention_policy
+     SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL
+from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
+     get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
+     Query, get_retention_policy
+from ..templates import _parse_influxdb_graphite_templates
 from .reader import InfluxdbReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
@@ -57,31 +58,31 @@ class InfluxdbFinder(object):
     Finds and fetches metric series from InfluxDB.
     """
     __fetch_multi__ = 'influxdb'
-    __slots__ = ('client', 'config', 'statsd_client', 'aggregation_functions',
+    __slots__ = ('client', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path')
     
     def __init__(self, config):
-        config = normalize_config(config)
-        self.config = config
-        self.client = InfluxDBClient(config.get('host', 'localhost'),
-                                     config.get('port', '8086'),
-                                     config.get('user', 'root'),
-                                     config.get('passw', 'root'),
-                                     config['db'],
-                                     config.get('ssl', 'false'),)
+        influxdb_config = config.get('influxdb', {})
+        self.client = InfluxDBClient(influxdb_config.get('host', 'localhost'),
+                                     influxdb_config.get('port', '8086'),
+                                     influxdb_config.get('user', 'root'),
+                                     influxdb_config.get('passw', 'root'),
+                                     influxdb_config.get('db', 'graphite'),
+                                     influxdb_config.get('ssl', 'false'),)
         try:
-            self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
-                                                    config['statsd'].get('port', 8125)) \
-                if 'statsd' in config and config['statsd'].get('host') else NullStatsd()
+            self.statsd_client = statsd.StatsClient(influxdb_config['statsd'].get('host'),
+                                                    influxdb_config['statsd'].get('port', 8125)) \
+                if 'statsd' in influxdb_config and influxdb_config['statsd'].get('host') else NullStatsd()
         except NameError:
             logger.warning("Statsd client configuration present but 'statsd' module "
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
-        self.memcache_host = config.get('memcache_host', None)
-        self.memcache_ttl = config['memcache_ttl']
-        self.memcache_max_value = config.get('memcache_max_value', 1)
+        memcache_conf = influxdb_config.get('memcache', {})
+        self.memcache_host = memcache_conf.get('host')
+        self.memcache_ttl = memcache_conf.get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
+        self.memcache_max_value = memcache_conf.get('max_value', 1)
         try:
             if self.memcache_host:
                 self.memcache = memcache.Client(
@@ -93,12 +94,13 @@ class InfluxdbFinder(object):
             logger.warning("Memcache configuration present but 'python-memcached' module "
                            "not installed - ignoring memcache configuration..")
             self.memcache = None
-        self._setup_logger(config['log_level'], config['log_file'])
-        self.aggregation_functions = config.get('aggregation_functions', None)
-        series_loader_interval = config.get('series_loader_interval', 900)
-        reindex_interval = config.get('reindex_interval', 900)
-        self.deltas = config.get('deltas', None)
-        self.retention_policies = config.get('retention_policies', None)
+        self._setup_logger(influxdb_config.get('log_level', 'info'),
+                           influxdb_config.get('log_file', None))
+        self.aggregation_functions = influxdb_config.get('aggregation_functions', None)
+        series_loader_interval = influxdb_config.get('series_loader_interval', 900)
+        reindex_interval = influxdb_config.get('reindex_interval', 900)
+        self.deltas = influxdb_config.get('deltas', None)
+        self.retention_policies = influxdb_config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         self._start_loader(series_loader_interval)

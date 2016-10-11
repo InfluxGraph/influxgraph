@@ -736,6 +736,11 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         with open(bad_index_path, 'wt') as index_fh:
             index_fh.write('fasdfa}\n')
         finder = graphite_influxdb.InfluxdbFinder(config)
-        
+        self.assertTrue(finder.index)
+        try:
+            os.unlink(bad_index_path)
+        except OSError:
+            pass
+
 if __name__ == '__main__':
     unittest.main()

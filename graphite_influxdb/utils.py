@@ -111,38 +111,6 @@ class NullStatsd(object):
     def stop(self):
         pass
 
-
-def normalize_config(config):
-    cfg = config.get('influxdb', None)
-    if not cfg:
-        sys.stderr.write("Missing required 'influxdb' configuration in graphite-api "
-                         "config - please update your configuration file to include "
-                         "at least 'influxdb: db: <db_name>'\n")
-        sys.exit(1)
-    ret = {}
-    ret['host'] = cfg.get('host', 'localhost')
-    ret['port'] = cfg.get('port', 8086)
-    ret['user'] = cfg.get('user', 'graphite')
-    ret['passw'] = cfg.get('pass', 'graphite')
-    ret['db'] = cfg.get('db', 'graphite')
-    ssl = cfg.get('ssl', False)
-    ret['ssl'] = (ssl == 'true')
-    ret['log_file'] = cfg.get('log_file', None)
-    ret['log_level'] = cfg.get('log_level', 'info')
-    if config.get('statsd', None):
-        ret['statsd'] = config.get('statsd')
-    ret['aggregation_functions'] = _compile_aggregation_patterns(
-        cfg.get('aggregation_functions', DEFAULT_AGGREGATIONS))
-    ret['memcache_host'] = cfg.get('memcache', {}).get('host', None)
-    ret['memcache_ttl'] = cfg.get('memcache', {}).get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
-    ret['memcache_max_value'] = cfg.get('memcache', {}).get('max_value', 1)
-    ret['deltas'] = cfg.get('deltas', None)
-    ret['retention_policies'] = cfg.get('retention_policies', None)
-    ret['series_loader_interval'] = cfg.get('series_loader_interval', 900)
-    ret['reindex_interval'] = cfg.get('reindex_interval', 900)
-    ret['search_index'] = config.get('search_index')
-    return ret
-
 def _compile_aggregation_patterns(aggregation_functions):
     """Compile aggregation function patterns to compiled regex objects"""
     if not aggregation_functions:
