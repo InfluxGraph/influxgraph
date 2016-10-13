@@ -45,5 +45,25 @@ def generate_template_regex(template):
         if 'measurement' in tag or 'field' in tag:
             patterns.append(r"(?P<measurement>.+)")
             continue
+        # Drop out sub-path
+        if not tag:
+            patterns.append(r"%s+" % (GRAPHITE_PATH_REGEX_PATTERN,))
+            continue
         patterns.append(r"(?P<%s>%s+)" % (tag, GRAPHITE_PATH_REGEX_PATTERN))
     return re.compile(r"\.".join(patterns))
+
+def _split_series_with_tags(serie, graphite_templates):
+    split_path = []
+    paths = serie.split(',')
+    tags_values = [p.split('=') for p in paths[1:]]
+    measurement_ind = None
+    for (tag_key, tag_val) in tags_values:
+        for (_, template, _, _) in graphite_templates:
+            if tag_key in template.groupindex:
+                split_path.insert(template.groupindex[tag_key]-1, tag_val)
+                measurement_ind = template.groupindex['measurement']-1 \
+                    if 'measurement' in template.groupindex else -1
+    split_path.insert(measurement_ind, paths[0])
+    # import ipdb; ipdb.set_trace()
+    del paths
+    return split_path

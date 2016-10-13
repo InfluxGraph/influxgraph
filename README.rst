@@ -157,21 +157,30 @@ Full Configuration Example
 	# configuration documentation
 	# 
 	# Note that no special compensation is given to the `field` key if it is used in 
-	# template configuration
+	# template configuration and templates with `field` in them should be considered
+	# as not fully supported as of yet.
 	templates:
 	  # 
 	  # Template format: [filter] <template> [tag1=value1,tag2=value2]
+	  # 
+	  ##  Filter, template and extra static tags
 	  # 
 	  # For a metric path `production.my_host.cpu.cpu0.load` the following template will
 	  # filter on metrics starting with `environment`,
           # use tags `environment`, `host` and `resource` with measurement name `cpu0.load` and
 	  # extra static tags `region` and `agent`
           - environment.* environment.host.resource.measurement* region=us-east1,agent=sensu
+	  # 
+	  ## Template only
 	  # The following template does not use filter or extra tags.
           # For a metric path `my_host.cpu.cpu0.load` it will use tags `host` and `resource` 
 	  # with measurement name `cpu0.load`
 	  - host.resource.measurement*
-	  
+	  # 
+	  ## Drop prefix, template with tags after measurement
+	  # For a metric path `stats.load.my_host.cpu` the following template will use tags
+	  # `host` and `resource` and remove `stats` prefix from metric paths
+	  - ..measurement.host.resource
 	  # A catch-all default template of `measurement*` _should not_ be used - 
 	  # that is the default and would have the same effect as if no template was provided
 	  # 

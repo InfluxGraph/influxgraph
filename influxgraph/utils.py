@@ -165,15 +165,3 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
-
-def _split_series_with_tags(serie, graphite_templates):
-    split_path = []
-    paths = serie.split(',')
-    tags_values = [p.split('=') for p in paths[1:]]
-    for (tag_key, tag_val) in tags_values:
-        for (_, template, _, _) in graphite_templates:
-            if tag_key in template.groupindex:
-                split_path.insert(template.groupindex[tag_key]-1, tag_val)
-    split_path.append(paths[0])
-    del paths
-    return split_path

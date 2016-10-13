@@ -33,7 +33,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             'env': 'int',
             'region': 'the_west',
             }
-        template = "%s %s.measurement* env=int,region=the_west" % (
+        self.template = "%s %s.measurement* env=int,region=the_west" % (
             self.metric_prefix, ".".join([p for p in self.paths]))
         self.measurements = ['cpu', 'memory', 'load', 'iops']
         self.graphite_series = ["%s" % (".".join(
@@ -51,7 +51,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             'db' : self.db_name,
             'log_level' : 'debug',
             'templates' : [
-                template
+                self.template,
                 ],
             },
             # 'search_index': 'index',
@@ -87,7 +87,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_templated_index_find(self):
         query = Query('*')
-        nodes = [n.path for n in self.finder.find_nodes(query)]
+        nodes = [n.name for n in self.finder.find_nodes(query)]
         expected = [self.metric_prefix]
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
@@ -114,17 +114,102 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertTrue(serie in data,
                         msg="Did not get data for requested series %s - got data for %s" % (
                             serie, data.keys(),))
-        # 1/0
         self.assertEqual(time_info,
                          (int(self.start_time.strftime("%s")),
                           int(self.end_time.strftime("%s")),
                          self.step),
                          msg="Time info and step do not match our requested values")
         datapoints = [v for v in data[serie] if v]
-        # 1/0
         self.assertTrue(len(datapoints) == self.num_datapoints,
                         msg="Expected %s datapoints - got %s" % (
                             self.num_datapoints, len(datapoints),))
+
+    def test_multiple_templates(self):
+        del self.finder
+        # Filter out first part of metric, keep the remainder as
+        # measurement name
+        template = "..measurement*"
+        self.config['influxdb']['templates'] = [self.template,
+                                                template]
+        measurements = ['my_host.cpu.load', 'my_host.cpu.idle',
+                        'my_host.cpu.usage', 'my_host.cpu.user']
+        data = [{
+            "measurement": measurement,
+            "tags": {},
+            "time": _time,
+            "fields": {
+                "value": 1,
+                }
+            }
+            for measurement in measurements
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+        self.finder = influxgraph.InfluxdbFinder(self.config)
+        query = Query('*')
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted([measurements[0].split('.')[0]] + [self.metric_prefix])
+        self.assertEqual(nodes, expected,
+                         msg="Got root branch query result %s - wanted %s" % (
+                             nodes, expected,))
+        split_measurement = measurements[0].split('.')
+        query = Query('%s.*' % (split_measurement[0]))
+        nodes = [n.name for n in self.finder.find_nodes(query)]
+        expected = [split_measurement[1]]
+        self.assertEqual(nodes, expected,
+                         msg="Got sub branch query result %s - wanted %s" % (
+                             nodes, expected,))
+        query = Query('%s.%s.*' % (split_measurement[0], split_measurement[1],))
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted([m.split('.')[2] for m in measurements])
+        self.assertEqual(nodes, expected,
+                         msg="Got sub branch query result %s - wanted %s" % (
+                             nodes, expected,))
+
+    def test_template_measurement_first(self):
+        del self.finder
+        template = "..measurement.host.resource"
+        self.config['influxdb']['templates'] = [template]
+        measurements = ['load', 'idle',
+                        'usage', 'user']
+        tags = {'host': 'my_host',
+                'resource': 'cpu',
+                }
+        data = [{
+            "measurement": measurement,
+            "tags": tags,
+            "time": _time,
+            "fields": {
+                "value": 1,
+                }
+            }
+            for measurement in measurements
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+        self.finder = influxgraph.InfluxdbFinder(self.config)
+        query = Query('*')
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted(dict.fromkeys(measurements + self.measurements).keys())
+        self.assertEqual(nodes, expected,
+                         msg="Got root branch query result %s - wanted %s" % (
+                             nodes, expected,))
+        query = Query('%s.*' % (measurements[0]))
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted([tags['host'], self.tags[self.paths[1]]])
+        self.assertEqual(nodes, expected,
+                         msg="Got query %s result %s - wanted %s" % (
+                             query.pattern, nodes, expected,))
+        query = Query('%s.%s.*' % (measurements[0], tags['host'],))
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted([tags['resource']])
+        self.assertEqual(nodes, expected,
+                         msg="Got query %s result %s - wanted %s" % (
+                             query.pattern, nodes, expected,))
 
 if __name__ == '__main__':
     unittest.main()

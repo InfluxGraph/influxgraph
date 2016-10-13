@@ -36,9 +36,8 @@ from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
      DEFAULT_AGGREGATIONS
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     Query, get_retention_policy, _compile_aggregation_patterns, \
-     _split_series_with_tags
-from ..templates import _parse_influxdb_graphite_templates
+     Query, get_retention_policy, _compile_aggregation_patterns
+from ..templates import _parse_influxdb_graphite_templates, _split_series_with_tags
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
