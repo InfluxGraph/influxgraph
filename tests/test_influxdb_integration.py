@@ -3,10 +3,10 @@ import os
 import unittest
 from influxdb import InfluxDBClient
 import influxdb.exceptions
-import graphite_influxdb
-import graphite_influxdb.utils
-from graphite_influxdb.utils import Query
-from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY, \
+import influxgraph
+import influxgraph.utils
+from influxgraph.utils import Query
+from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
 import datetime
 import time
@@ -18,7 +18,7 @@ import sys
 
 os.environ['TZ'] = 'UTC'
 
-class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
+class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def setup_db(self):
         try:
@@ -71,7 +71,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                        'integration_test.agg_path.sum',
                        ]
         self.setup_db()
-        self.finder = graphite_influxdb.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxdbFinder(self.config)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
@@ -89,7 +89,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
             'deltas' : {3600: 1},},
             # 'search_index': 'index',
             }
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         self.assertTrue(finder.deltas)
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
@@ -321,8 +321,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_get_non_existant_series(self):
         """Test single fetch data for a series by name"""
         path = 'fake_path'
-        reader = graphite_influxdb.InfluxdbReader(InfluxDBClient(
-            database=self.db_name), path, graphite_influxdb.utils.NullStatsd())
+        reader = influxgraph.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), path, influxgraph.utils.NullStatsd())
         time_info, data = reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
         self.assertFalse(data,
@@ -332,10 +332,10 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
     def test_multi_fetch_non_existant_series(self):
         """Test single fetch data for a series by name"""
         path1, path2 = 'fake_path1', 'fake_path2'
-        reader1 = graphite_influxdb.InfluxdbReader(InfluxDBClient(
-            database=self.db_name), path1, graphite_influxdb.utils.NullStatsd())
-        reader2 = graphite_influxdb.InfluxdbReader(InfluxDBClient(
-            database=self.db_name), path2, graphite_influxdb.utils.NullStatsd())
+        reader1 = influxgraph.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), path1, influxgraph.utils.NullStatsd())
+        reader2 = influxgraph.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), path2, influxgraph.utils.NullStatsd())
         nodes = [reader1, reader2]
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
@@ -349,9 +349,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         """Test fetching data for multiple series with aggregation functions configured"""
         nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".agg_path.*")))
         paths = [node.path for node in nodes]
-        aggregation_funcs = sorted(list(set(graphite_influxdb.utils.get_aggregation_func(
+        aggregation_funcs = sorted(list(set(influxgraph.utils.get_aggregation_func(
             path, self.finder.aggregation_functions) for path in paths)))
-        expected = sorted(graphite_influxdb.utils.DEFAULT_AGGREGATIONS.values())
+        expected = sorted(influxgraph.utils.DEFAULT_AGGREGATIONS.values())
         self.assertEqual(expected, aggregation_funcs,
                          msg="Expected aggregation functions %s for paths %s - got %s" % (
                              expected, paths, aggregation_funcs))
@@ -376,7 +376,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
 
     def test_series_loader(self):
         query = Query('*')
-        loader_memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+        loader_memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
             query.pattern, str(self.default_nodes_limit), str(0)]))
         del self.finder
         _loader_interval = 5
@@ -397,7 +397,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
             _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         except NameError:
             pass
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         time.sleep(_loader_interval/2.0)
         # if finder.memcache:
         #     self.assertTrue(finder.memcache.get(SERIES_LOADER_MUTEX_KEY))
@@ -447,13 +447,13 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
             # No memcache module - no memcache integration tests
             return
         query, limit = Query('*'), 1
-        memcache_keys = [graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+        memcache_keys = [influxgraph.utils.gen_memcache_pattern_key("_".join([
             query.pattern, str(limit), str(offset)]))
                          for offset in range(len(self.series))]
         for _key in memcache_keys:
             _memcache.delete(_key)
         _memcache.delete(SERIES_LOADER_MUTEX_KEY)
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, 60,
                          msg="Configured TTL of %s sec, got %s sec TTL instead" % (
@@ -494,9 +494,9 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
         self.assertEqual(len(data[self.series1]), len(data_cached[self.series1]),
                          msg="Cached data does not match uncached data for series %s" % (
                              self.series1))
-        aggregation_func = list(set(graphite_influxdb.utils.get_aggregation_func(
+        aggregation_func = list(set(influxgraph.utils.get_aggregation_func(
             path, finder.aggregation_functions) for path in paths))[0]
-        memcache_key = graphite_influxdb.utils.gen_memcache_key(
+        memcache_key = influxgraph.utils.gen_memcache_key(
             int(self.start_time.strftime("%s")), int(self.end_time.strftime("%s")),
             aggregation_func, paths)
         if finder.memcache:
@@ -510,8 +510,8 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                          " for series %s" % (self.series1,))
     
     def test_reader_memcache_integration(self):
-        reader = graphite_influxdb.InfluxdbReader(InfluxDBClient(
-            database=self.db_name), self.series1, graphite_influxdb.utils.NullStatsd(),
+        reader = influxgraph.InfluxdbReader(InfluxDBClient(
+            database=self.db_name), self.series1, influxgraph.utils.NullStatsd(),
             memcache_host='localhost')
         self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),
                                      int(self.end_time.strftime("%s"))))
@@ -526,7 +526,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                   'log_level' : 'debug',
                                   'memcache' : { 'host': 'localhost'},
                                   },}
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         self.assertTrue(finder.memcache_host)
         self.assertEqual(finder.memcache_ttl, MEMCACHE_SERIES_DEFAULT_TTL,
                          msg="Default TTL should be %s sec, got %s sec TTL instead" % (
@@ -581,13 +581,13 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                                   },}
         try:
             _memcache = memcache.Client([config['influxdb']['memcache']['host']])
-            memcache_key = graphite_influxdb.utils.gen_memcache_pattern_key("_".join([
+            memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
                 '*', str(self.default_nodes_limit), str(0)]))
             _memcache.delete(memcache_key)
             _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         except NameError:
             pass
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         time.sleep(1)
         query = Query(prefix + '.*.*.*.*.' + leaf_nodes[0])
         nodes = list(finder.find_nodes(query))
@@ -672,7 +672,7 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                 ]]
         self.assertTrue(self.client.write_points(write_data, retention_policy='10m'))
         self.assertTrue(self.client.write_points(write_data, retention_policy='30m'))
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         time.sleep(1)
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
@@ -728,14 +728,14 @@ class GraphiteInfluxdbIntegrationTestCase(unittest.TestCase):
                         'statsd': {'host': 'localhost' },
                         'search_index': bad_index_path,
                         }
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         del finder
         mask = int('0600') if sys.version_info <= (2,) else 0o600
         os.chmod(bad_index_path, mask)
         # Corrupt data in index file
         with open(bad_index_path, 'wt') as index_fh:
             index_fh.write('fasdfa}\n')
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         self.assertTrue(finder.index)
         try:
             os.unlink(bad_index_path)

@@ -3,10 +3,10 @@ import os
 import unittest
 from influxdb import InfluxDBClient
 import influxdb.exceptions
-import graphite_influxdb
-import graphite_influxdb.utils
-from graphite_influxdb.utils import Query
-from graphite_influxdb.constants import SERIES_LOADER_MUTEX_KEY, \
+import influxgraph
+import influxgraph.utils
+from influxgraph.utils import Query
+from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
 import datetime
 import time
@@ -59,7 +59,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client = InfluxDBClient(database=self.db_name)
         self.default_nodes_limit = LOADER_LIMIT
         self.setup_db()
-        self.finder = graphite_influxdb.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxdbFinder(self.config)
 
     def setup_db(self):
         try:

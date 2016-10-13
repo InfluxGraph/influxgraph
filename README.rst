@@ -11,17 +11,9 @@ An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
 
 This project started as a re-write of `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
 
-Main features
-
-* InfluxDB Graphite template support - allows for parsing of Graphite metrics into tags by InfluxDB and use of that tagged data under Graphite-API
-* Dynamically calculated group by intervals based on query date/time range - keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges
-* Configurable per-query aggregation functions by regular expression pattern
-* In-memory index for metric path queries
-* Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
-* Memcached integration
 
 Installation
-------------
+=============
 
 ::
 
@@ -37,27 +29,62 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
 
     finders:
       - influxgraph.InfluxDBFinder
-    influxdb:
-       db: graphite
+
+
+Main features
+--------------
+
+* InfluxDB Graphite template support - allows for exposure of InfluxDB tagged data as Graphite metrics
+* Dynamically calculated group by intervals based on query date/time range - keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges
+* Configurable per-query aggregation functions by regular expression pattern
+* Configurable per-query retention policies by query date/time range. Use pre-calculated downsampled data in a retention policy for historical data dynamically
+* In-memory index for metric path queries
+* Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
+* Memcached integration
+
+Goals
+------
+
+* Backwards compatibility with existing Graphite API clients like Grafana and Graphite installations migrated to InfluxDB backends using Graphite input service *with or without* Graphite template configuration
+* Forwards compatibility with native InfluxDB API input data exposed as Graphite metrics
+* Clean, readable code with complete documentation for public endpoints
+* Complete code coverage with both unit and integration testing. Code has `>90%` test coverage and is integration tested against a real InfluxDB service
+
+The two top points provide both
+
+- A backwards compatible migration path for existing Graphite installations to use InfluxDB as a drop-in storage back-end replacement with no API client side changes required, meaning existing Grafana or other dashboards continue to work as-is
+- A forwards compatible migration path for native InfluxDB collection agents to expose their data as Graphite API compatible metrics which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, multi-series plotting and function support et al
+
+As of this time of writing, no alternatives exist with similar functionality and compatibility.
 
 Dependencies
 -------------
+
+With the exception of `InfluxDB`_ itself, the other dependencies are installed automatically by ``pip``.
 
 * ``influxdb`` Python module
 * `Graphite-API`_
 * ``python-memcached`` Python module
 * `InfluxDB`_ service
 
+Known Limitations
+-------------------
+
+- In memory index can use *a lot* of memory in InfluxDB installations with a large number of unique metrics (> 1M). `Pypy <http://pypy.org>`_ is recommended in that case which allows for a much lower memory footprint compared to the CPython intepreter.
+
+
 InfluxDB Graphite metric templates
 ==================================
 
-This project can make use of any InfluxDB data and expose them as Graphite API compatible metrics, as well as make use of Graphite metrics series added to InfluxDB sans tags.
+This project can make use of any InfluxDB data and expose them as Graphite API compatible metrics, as well as make use of Graphite metrics added to InfluxDB as-is sans tags.
 
-To make use of tagged InfluxDB data, the plugin needs to know how to parse a Graphite metric path into tags used by InfluxDB.
+To make use of tagged InfluxDB data, the plugin needs to know how to parse a Graphite metric path into the tags used by InfluxDB.
 
-The easiest way to do this is to use the graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details.
+The easiest way to do this is to use the Graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details. This presumes existing metrics collection agents are using the Graphite protocol to write to InfluxDB via its Graphite input service.
 
-By default, the plugin makes no assumptions that data is tagged, per InfluxDB default graphite plugin configuration as below::
+If on the other hand, native `InfluxDB`_ metrics collection agents like `Telegraf <https://www.influxdata.com/time-series-platform/telegraf/>`_ are used, that data can too be exposed as Graphite metrics by writing appropriate template(s) in Graphite-API configuration alone.
+
+By default, the storage plugin makes no assumptions that data is tagged, per InfluxDB default Graphite plugin configuration as below::
   
   [[graphite]]
     enabled = true
@@ -105,19 +132,25 @@ Full Configuration Example
     finders:
       - influxgraph.InfluxDBFinder
     influxdb:
+        ## InfluxDB configuration
+	# 
         db: graphite
         host: localhost # (optional)
         port: 8086 # (optional)
         user: root # (optional)
         pass: root # (optional)
+	
+	## Logging configuration
+	# 
         # Log to file (optional). Default is no finder specific logging.
         log_file: /var/log/graphite_influxdb_finder/graphite_influxdb_finder.log
         # Log file logging level (optional)
-        # Values are standard logging levels - info, debug, warning, critical et al
-        # Default is 'info'
+        # Values are standard logging levels - `info`, `debug`, `warning`, `critical` et al
+        # Default is `info`
         log_level: info
 	
 	## Graphite Template Configuration
+	# 
 	# (Optional) Graphite template configuration
 	# One template per line, identical to InfluxDB Graphite input service template configuration
 	# See https://github.com/influxdata/influxdb/tree/master/services/graphite for template
@@ -138,9 +171,11 @@ Full Configuration Example
           # For a metric path `my_host.cpu.cpu0.load` it will use tags `host` and `resource` 
 	  # with measurement name `cpu0.load`
 	  - host.resource.measurement*
+	  
 	  # A catch-all default template of `measurement*` _should not_ be used - 
 	  # that is the default and would have the same effect as if no template was provided
-	  # Examples from InfluxDB configuration:
+	  # 
+	  ## Examples from InfluxDB Graphite service configuration
 	  # 
           ## filter + template
 	  # - *.app env.service.resource.measurement
@@ -148,6 +183,7 @@ Full Configuration Example
 	  # - stats.* .host.measurement* region=us-west,agent=sensu
 	
         ## (Optional) Memcache integration
+	# 
         memcache:
           host: localhost
 	  # TTL for /metrics/find endpoint only.    
@@ -158,6 +194,7 @@ Full Configuration Example
 	  max_value: 1 # (optional) Memcache (compressed) max value length in MB.    
 	
 	## (Optional) Aggregation function configuration
+	# 
         aggregation_functions:    
  	  # The below four aggregation functions are the    
 	  # defaults used if 'aggregation_functions'    
@@ -196,6 +233,7 @@ Full Configuration Example
             126144000 : 43200
 	  
 	  ## Query Retention Policy configuration
+	  # 
  	  # (Optional) Retention policies to use for associated time intervals.
  	  # Key is query time interval in seconds, value the retention policy name a
 	  # query with the associated time interval, or above, should use.
@@ -303,7 +341,7 @@ Graphite API example configuration ::
 
 Where ``<varnish_port>`` is Varnish's listening port.
 
-A different HTTP caching service can similarly work just as well.
+A different HTTP caching service will similarly work just as well.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api

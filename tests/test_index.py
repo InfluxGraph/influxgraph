@@ -1,6 +1,6 @@
 import unittest
-from graphite_influxdb.classes.tree import NodeTreeIndex
-from graphite_influxdb.utils import Query
+from influxgraph.classes.tree import NodeTreeIndex
+from influxgraph.utils import Query
 import datetime
 
 class IndexTreeTestCase(unittest.TestCase):

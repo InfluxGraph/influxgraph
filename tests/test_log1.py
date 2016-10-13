@@ -1,9 +1,9 @@
 import uuid
 import unittest
-import graphite_influxdb
+import influxgraph
 from influxdb import InfluxDBClient
 
-class GraphiteInfluxDBLogFileFailureTestCase(unittest.TestCase):
+class InfluxGraphLogFileFailureTestCase(unittest.TestCase):
 
     def setUp(self):
         self.db_name = 'fakey'
@@ -23,7 +23,7 @@ class GraphiteInfluxDBLogFileFailureTestCase(unittest.TestCase):
                                   'log_level' : 'debug',
                                   },
                                   }
-        finder = graphite_influxdb.InfluxdbFinder(config)
+        finder = influxgraph.InfluxdbFinder(config)
         self.assertTrue(finder)
 
 if __name__ == '__main__':
