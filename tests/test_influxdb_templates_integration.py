@@ -108,8 +108,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                              nodes, expected,))
 
     def test_templated_data_query(self):
-        serie = 'template_integration_test.localhost.int.the_west.cpu'
-        # serie = self.graphite_series[0]
+        serie = self.graphite_series[0]
         nodes = list(self.finder.find_nodes(Query(serie)))
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
@@ -117,6 +116,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertTrue(serie in data,
                         msg="Did not get data for requested series %s - got data for %s" % (
                             serie, data.keys(),))
+        # 1/0
         self.assertEqual(time_info,
                          (int(self.start_time.strftime("%s")),
                           int(self.end_time.strftime("%s")),

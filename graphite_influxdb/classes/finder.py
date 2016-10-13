@@ -409,7 +409,8 @@ class InfluxDBFinder(object):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
-        data = read_influxdb_values(data)
+        # TODO - Set key to real graphite metric path, not measurement name from influxdb
+        data = read_influxdb_values(data, paths)
         timer.stop()
         # Graphite API requires that data contain keys for
         # all requested paths even if they have no datapoints
