@@ -24,15 +24,20 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
     
     def setUp(self):
         self.metric_prefix = "template_integration_test"
+        self.paths = ['test_type', 'host']
         self.tags = {
-            'a_test_type': self.metric_prefix,
-            'b_host': 'localhost',
+            # Tags parsed from metric path
+            self.paths[0]: self.metric_prefix,
+            self.paths[1]: 'localhost',
+            # Default tags not in metric path
             'env': 'int',
             'region': 'the_west',
             }
+        template = "%s %s.measurement* env=int,region=the_west" % (
+            self.metric_prefix, ".".join([p for p in self.paths]))
         self.measurements = ['cpu', 'memory', 'load', 'iops']
-        self.graphite_series = ["%s.%s" % (self.metric_prefix, ".".join(
-            self.tags.values() + [m])) for m in self.measurements]
+        self.graphite_series = ["%s" % (".".join(
+            [self.tags[p] for p in self.paths] + [m])) for m in self.measurements]
         # 
         # import ipdb; ipdb.set_trace()
         self.step, self.num_datapoints, self.db_name = 60, 2, 'integration_test'
@@ -48,7 +53,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             'db' : self.db_name,
             'log_level' : 'debug',
             'templates' : [
-                "%s type.host.measurement* env=int,region=the_west" % (self.metric_prefix,)
+                template
                 ],
             },
             # 'search_index': 'index',
@@ -90,25 +95,22 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))
         query = Query("%s.*" % (self.metric_prefix,))
-        nodes = [n.path for n in self.finder.find_nodes(query)]
-        expected = [".".join(list(set([d for e in [
-            m.split('.')[0:2] for m in self.graphite_series] for d in e])))]
+        nodes = [n.name for n in self.finder.find_nodes(query)]
+        expected = [self.tags[self.paths[1]]]
         self.assertEqual(nodes, expected,
-                         msg="Got root branch query result %s - wanted %s" % (
+                         msg="Got sub branch query result %s - wanted %s" % (
                              nodes, expected,))
-        # TODO - figure out how to handle default tags
-        query = Query("%s.%s.*" % (self.metric_prefix, self.tags['b_host']))
-        nodes = [n.path for n in self.finder.find_nodes(query)]
-        expected = self.measurements
+        query = Query("%s.%s.*" % (self.metric_prefix, self.tags[self.paths[1]]))
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted(self.measurements)
         self.assertEqual(nodes, expected,
-                         msg="Got root branch query result %s - wanted %s" % (
+                         msg="Got sub branch query result %s - wanted %s" % (
                              nodes, expected,))
 
     def test_templated_data_query(self):
         serie = 'template_integration_test.localhost.int.the_west.cpu'
         # serie = self.graphite_series[0]
         nodes = list(self.finder.find_nodes(Query(serie)))
-        # 1/0
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))
@@ -121,6 +123,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          self.step),
                          msg="Time info and step do not match our requested values")
         datapoints = [v for v in data[serie] if v]
+        # 1/0
         self.assertTrue(len(datapoints) == self.num_datapoints,
                         msg="Expected %s datapoints - got %s" % (
                             self.num_datapoints, len(datapoints),))
