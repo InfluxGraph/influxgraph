@@ -9,14 +9,15 @@ An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
   :target: https://coveralls.io/r/pkittenis/influxgraph?branch=master
 
 
-This project started as a re-write of `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_ - many thanks to Vimeo and the author for open sourcing that work.
+This project started as a re-write of `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
 
 Main features
 
-* Dynamically calculated group by intervals based on query date range to speed up graph generation for large date ranges
-* Configurable per-query aggregation functions by pattern
+* InfluxDB Graphite template support - allows for parsing of Graphite metrics into tags by InfluxDB and use of that tagged data under Graphite-API
+* Dynamically calculated group by intervals based on query date/time range - keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges
+* Configurable per-query aggregation functions by regular expression pattern
 * In-memory index for metric path queries
-* Multi-fetch enabled - fetch data for multiple series with one query to InfluxDB
+* Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
 * Memcached integration
 
 Installation
@@ -42,25 +43,21 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
 Dependencies
 -------------
 
- * ``influxdb`` Python module
- * `Graphite-API`_
- * ``python-memcached`` Python module
- * `InfluxDB`_
+* ``influxdb`` Python module
+* `Graphite-API`_
+* ``python-memcached`` Python module
+* `InfluxDB`_ service
 
 InfluxDB Graphite metric templates
 ==================================
 
-.. note::
+This project can make use of any InfluxDB data and expose them as Graphite API compatible metrics, as well as make use of Graphite metrics series added to InfluxDB sans tags.
 
-   Please note that InfluxDB configurations containing Graphite metric templates are currently *not* supported.
-   
-   Support for templates, meaning querying Graphite metrics that have been parsed into tags by InfluxDB's Graphite plugin is not yet possible.
-   
-   This plugin currently requires that all Graphite metrics paths are stored as a single measurement.
-   
-   Contributions to fully support templated Graphite data are most welcome.
+To make use of tagged InfluxDB data, the plugin needs to know how to parse a Graphite metric path into tags used by InfluxDB.
 
-Templates should be empty in InfluxDB's Graphite plugin configuration. ::
+The easiest way to do this is to use the graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details.
+
+By default, the plugin makes no assumptions that data is tagged, per InfluxDB default graphite plugin configuration as below::
   
   [[graphite]]
     enabled = true
@@ -86,15 +83,19 @@ While not required, retention policy time interval is best kept close to or iden
 Configuration
 =======================
 
-Minimal Configuration
+Default Configuration
 ----------------------
 
 In graphite-api config file at ``/etc/graphite-api.yaml``::
 
     finders:
       - influxgraph.InfluxDBFinder
+
+The folowing default Graphite-API configuration is used if not provided::
+
     influxdb:
        db: graphite
+
 
 Full Configuration Example
 ---------------------------
@@ -104,42 +105,75 @@ Full Configuration Example
     finders:
       - influxgraph.InfluxDBFinder
     influxdb:
-       db: graphite       
-       host: localhost # (optional)
-       port: 8086 # (optional)
-       user: root # (optional)
-       pass: root # (optional)
-       # Log to file (optional). Default is no finder specific logging.
-       log_file: /var/log/graphite_influxdb_finder/graphite_influxdb_finder.log
-       # Log file logging level (optional)
-       # Values are standard logging levels - info, debug, warning, critical et al
-       # Default is 'info'
-       log_level: info
-       # (Optional) Memcache integration
-       memcache:
-           host: localhost
-	   # TTL for /metrics/find endpoint only.
-	   # TTL for /render endpoint is dynamic and based on data interval.
-	   # Eg for a 24hr query which would dynamically get a 1min interval, the TTL
-	   # is 1min.
-	   ttl: 900 # (optional)
-	   max_value: 1 # (optional) Memcache (compressed) max value length in MB.
-       aggregation_functions:
-	   # The below four aggregation functions are the
-	   # defaults used if 'aggregation_functions'
-	   # configuration is not provided.
-	   # They will need to be re-added if configuration is provided
-	   \.min$ : min
-	   \.max$ : max
-	   \.last$ : last
-	   \.sum$ : sum
-	# (Optional) Time intervals to use for query time ranges
-	# Key is time range of query, value is time delta of query.
-	# Eg to use a one second query interval for a query spanning
-	# one hour or less use `3600 : 1`
-	# Shown below is the default configuration, change/add/remove
-	# as necessary.
-        deltas:
+        db: graphite
+        host: localhost # (optional)
+        port: 8086 # (optional)
+        user: root # (optional)
+        pass: root # (optional)
+        # Log to file (optional). Default is no finder specific logging.
+        log_file: /var/log/graphite_influxdb_finder/graphite_influxdb_finder.log
+        # Log file logging level (optional)
+        # Values are standard logging levels - info, debug, warning, critical et al
+        # Default is 'info'
+        log_level: info
+	
+	## Graphite Template Configuration
+	# (Optional) Graphite template configuration
+	# One template per line, identical to InfluxDB Graphite input service template configuration
+	# See https://github.com/influxdata/influxdb/tree/master/services/graphite for template
+	# configuration documentation
+	# 
+	# Note that no special compensation is given to the `field` key if it is used in 
+	# template configuration
+	templates:
+	  # 
+	  # Template format: [filter] <template> [tag1=value1,tag2=value2]
+	  # 
+	  # For a metric path `production.my_host.cpu.cpu0.load` the following template will
+	  # filter on metrics starting with `environment`,
+          # use tags `environment`, `host` and `resource` with measurement name `cpu0.load` and
+	  # extra static tags `region` and `agent`
+          - environment.* environment.host.resource.measurement* region=us-east1,agent=sensu
+	  # The following template does not use filter or extra tags.
+          # For a metric path `my_host.cpu.cpu0.load` it will use tags `host` and `resource` 
+	  # with measurement name `cpu0.load`
+	  - host.resource.measurement*
+	  # A catch-all default template of `measurement*` _should not_ be used - 
+	  # that is the default and would have the same effect as if no template was provided
+	  # Examples from InfluxDB configuration:
+	  # 
+          ## filter + template
+	  # - *.app env.service.resource.measurement
+	  ## filter + template + extra tag
+	  # - stats.* .host.measurement* region=us-west,agent=sensu
+	
+        ## (Optional) Memcache integration
+        memcache:
+          host: localhost
+	  # TTL for /metrics/find endpoint only.    
+	  # TTL for /render endpoint is dynamic and based on data interval.    
+	  # Eg for a 24hr query which would dynamically get a 1min interval, the TTL    
+	  # is 1min.    
+	  ttl: 900 # (optional)    
+	  max_value: 1 # (optional) Memcache (compressed) max value length in MB.    
+	
+	## (Optional) Aggregation function configuration
+        aggregation_functions:    
+ 	  # The below four aggregation functions are the    
+	  # defaults used if 'aggregation_functions'    
+	  # configuration is not provided.    
+	  # They will need to be re-added if configuration is provided
+	  \.min$ : min
+	  \.max$ : max
+	  \.last$ : last
+	  \.sum$ : sum
+          # (Optional) Time intervals to use for query time ranges
+ 	  # Key is time range of query, value is time delta of query.
+	  # Eg to use a one second query interval for a query spanning
+	  # one hour or less use `3600 : 1`
+	  # Shown below is the default configuration, change/add/remove
+	  # as necessary.
+          deltas:
             # 1 hour -> 1s
             # 3600 : 1
             # 1 day -> 30s
@@ -160,26 +194,29 @@ Full Configuration Example
             31536000 : 7200
             # 4 years -> 12hours
             126144000 : 43200
-	# (Optional) Retention policies to use for associated time intervals.
-	# Key is time interval in seconds, value the retention policy name a
-	# query with the associated time interval or less should use.
-	# 
-	# For best performance, retention policies should closely match time interval
-	# (delta) configuration values. For example, where delta configuration sets
-	# queries 28days and below to use 15min intervals, retention policies would
-	# have configuration to use an appropriate retention policy for queries with
-	# 15min or above intervals.
-	# 
-	# That said, there is no requirement that the settings be the same.
-	# 
-	# Eg to use retention policy called `30m` policy for intervals
-	# of thirty minutes and above, `10m` for queries with a time
-	# interval of ten minutes and above and `default` for intervals 
-	# five minutes and below:
-        retention_policies:
+	  
+	  ## Query Retention Policy configuration
+ 	  # (Optional) Retention policies to use for associated time intervals.
+ 	  # Key is query time interval in seconds, value the retention policy name a
+	  # query with the associated time interval, or above, should use.
+	  # 
+	  # For best performance, retention policies should closely match time interval
+	  # (delta) configuration values. For example, where delta configuration sets
+	  # queries 28days and below to use 15min intervals, retention policies would
+	  # have configuration to use an appropriate retention policy for queries with
+	  # 15min or above intervals.
+	  # 
+	  # That said, there is no requirement that the settings be the same.
+	  # 
+	  # Eg to use a retention policy called `30m` policy for intervals
+	  # of thirty minutes and above, `10m` for queries with a time
+	  # interval between thirty to ten minutes and `default` for intervals
+	  # between ten to five minutes:
+          retention_policies:
 	    1800: 30m
 	    600: 10m
 	    300: default
+
 
 Aggregation function configuration
 ==================================
@@ -225,13 +262,13 @@ For a query spanning 1 month, a 15min interval is used. TTL is also set to 15min
 Calculated intervals
 --------------------
 
-A data `group by` interval is automatically calculated depending on the time range of the query.
+A data `group by` interval is automatically calculated depending on the date/time range of the query.
 
 This mirrors what `Grafana`_ does when talking directly to InfluxDB.
 
 Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Full Configuration Example`_ section for all supported configuration options.
 
-Users that wish to retrieve all data regardless of time range are advised to query `InfluxDB`_ directly.
+Users that wish to retrieve all data regardless of date/time range are advised to query `InfluxDB`_ directly.
 
 
 Varnish caching InfluxDB API
@@ -239,9 +276,11 @@ Varnish caching InfluxDB API
 
 The following is a sample configuration of `Varnish`_ as an HTTP cache in front of InfluxDB's HTTP API. It uses Varnish's default TTL of 60 sec for all InfluxDB queries.
 
-The intention is for a local (to InfluxDB) Varnish to cache frequently accessed data and protect the database from multiple identical requests, for example multiple users viewing the same dashboard.
+The intention is for a local (to InfluxDB) Varnish service to cache frequently accessed data and protect the database from multiple identical requests, for example multiple users viewing the same dashboard.
 
 Graphite-API webapp should use Varnish port to connect to InfluxDB on each node.
+
+Unfortunately, given that clients like Grafana POST requests against the Graphite API, which cannot be cached, using Varnish in front of a Graphite-API webapp would have no effect. Multiple requests for the same dashboard/graph will therefore still hit Graphite-API webapp but with Varnish in front of InfluxDB, the more sensitive DB is spared from duplicated queries.
 
 Substitute the default ``8086`` backend port with the InfluxDB API port for your installation if needed  ::
 
@@ -263,6 +302,8 @@ Graphite API example configuration ::
     port: <varnish port>
 
 Where ``<varnish_port>`` is Varnish's listening port.
+
+A different HTTP caching service can similarly work just as well.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
