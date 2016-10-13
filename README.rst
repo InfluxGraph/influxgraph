@@ -110,7 +110,7 @@ While not required, retention policy time interval is best kept close to or iden
 Configuration
 =======================
 
-Default Configuration
+Minimal Configuration
 ----------------------
 
 In graphite-api config file at ``/etc/graphite-api.yaml``::
