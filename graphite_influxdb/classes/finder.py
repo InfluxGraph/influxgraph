@@ -333,7 +333,7 @@ class InfluxDBFinder(object):
 
     def _gen_query_values_from_templates(self, paths, retention):
         _measurements = []
-        _series = []
+        _tags = []
         for path in paths:
             for (_filter, template, default_tags, separator) in self.graphite_templates:
                 if _filter and not _filter.match(path):
@@ -343,24 +343,25 @@ class InfluxDBFinder(object):
                     continue
                 for key in matcher.groupdict():
                     if not key == 'measurement':
-                        _series.append((key, matcher.groupdict()[key]))
+                        _tags.append((key, matcher.groupdict()[key]))
                 for key,val in default_tags.iteritems():
-                    _series.append((key, val))
+                    _tags.append((key, val))
                 _measurements.append(matcher.groupdict()['measurement'])
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        series = "AND ".join([""""%s" = '%s' """ % (key,val,) for (key,val) in _series])
-        return measurements, series
-    
+        tags = "AND ".join([""""%s" = '%s' """ % (key,val,) for (key,val) in _tags]) \
+          if _tags else None
+        return measurements, tags
+
     def _gen_query_values(self, paths, retention):
         if self.graphite_templates:
             return self._gen_query_values_from_templates(paths, retention)
-        measurement = 'value'
-        series = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
+        tags = None
+        measurement = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
           if retention \
           else ', '.join(('"%s"' % (path,) for path in paths))
-        return measurement, series
+        return measurement, tags
 
     def _gen_influxdb_query(self, start_time, end_time, paths, interval):
         retention = get_retention_policy(interval, self.retention_policies) \
@@ -368,11 +369,11 @@ class InfluxDBFinder(object):
         aggregation_func = self._gen_aggregation_func(paths)
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
-        measurement, series = self._gen_query_values(paths, retention)
+        measurement, tags = self._gen_query_values(paths, retention)
         query = 'select %s("value") as value from %s where (time > %ds and time <= %ds) ' % (
             aggregation_func, measurement, start_time, end_time,)
-        if series:
-            query += "AND %s" % (series,)
+        if tags:
+            query += "AND %s" % (tags,)
         group_by = 'GROUP BY time(%ss)' % (interval,)
         query += group_by
         return query, memcache_key
@@ -409,7 +410,6 @@ class InfluxDBFinder(object):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
-        # TODO - Set key to real graphite metric path, not measurement name from influxdb
         data = read_influxdb_values(data, paths)
         timer.stop()
         # Graphite API requires that data contain keys for
