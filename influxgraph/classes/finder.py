@@ -343,7 +343,7 @@ class InfluxDBFinder(object):
                 for key in matcher.groupdict():
                     if not key == 'measurement':
                         _tags.append((key, matcher.groupdict()[key]))
-                for key,val in default_tags.iteritems():
+                for key,val in iter(default_tags.items()):
                     _tags.append((key, val))
                 _measurements.append(matcher.groupdict()['measurement'])
         measurements = ', '.join(

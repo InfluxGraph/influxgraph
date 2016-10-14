@@ -84,6 +84,10 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
+        try:
+            os.unlink('index')
+        except OSError:
+            pass
 
     def test_templated_index_find(self):
         query = Query('*')
