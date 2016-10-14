@@ -17,7 +17,6 @@ setup(
     platforms='any',
     classifiers=(
         'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
