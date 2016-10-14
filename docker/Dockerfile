@@ -8,16 +8,15 @@ CMD ["/sbin/my_init"]
 
 VOLUME /srv/graphite
 
-# RUN echo 'nameserver 10.51.4.65' > /etc/resolv.conf
-# adsfadsf
 RUN echo 'deb http://ppa.launchpad.net/pypy/ppa/ubuntu trusty main' >> /etc/apt/sources.list
 RUN echo 'deb-src http://ppa.launchpad.net/pypy/ppa/ubuntu trusty main' >> /etc/apt/sources.list
 RUN apt-get update && apt-get upgrade -y
-RUN alias hostip="ip route show 0.0.0.0/0 | grep -Eo 'via \S+' | awk '{ print \$2 }'"
-ENV HOSTIP $(hostip)
-echo -e "$HOSTIP\thostip" >> /etc/hosts
+# RUN alias hostip="ip route show 0.0.0.0/0 | grep -Eo 'via \S+' | awk '{ print \$2 }'"
+# ENV HOSTIP $(hostip)
+# RUN echo -e "$HOSTIP\thostip" >> /etc/hosts
 
-RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev
+RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev nginx memcached
+RUN rm -f /etc/nginx/sites-enabled/default
 # unauthenticated..
 RUN apt-get install -y --force-yes pypy
 
@@ -26,16 +25,32 @@ ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 RUN locale-gen en_US.UTF-8 && dpkg-reconfigure locales
 
-EXPOSE 8000
+EXPOSE 80
 
-# add our config
+# add our default config and allow subsequent builds to add a different one
+ADD graphite-api.yaml /etc/graphite-api.yaml
+RUN chmod 0644 /etc/graphite-api.yaml
 ONBUILD ADD graphite-api.yaml /etc/graphite-api.yaml
 ONBUILD RUN chmod 0644 /etc/graphite-api.yaml
 
-# easiest way to use pypy is in a virtualenv
+# Nginx service
+ADD graphite_nginx.conf /etc/nginx/sites-available/graphite.conf
+RUN ln -s /etc/nginx/sites-available/graphite.conf /etc/nginx/sites-enabled/
+RUN mkdir /etc/service/nginx
+ADD nginx.sh /etc/service/nginx/run
+
+# Add docker host IP in hosts file on startup
+ADD dockerhost.sh /etc/my_init.d/dockerhost.sh
+RUN chmod +x /etc/my_init.d/dockerhost.sh
+
+# Memcached service
+RUN mkdir /etc/service/memcached
+ADD memcached.sh /etc/service/memcached/run
+
+# Install pypy in virtualenv
 RUN virtualenv -p /usr/bin/pypy /srv/graphite-pypy
 
-# equivalent to what source bin/activate, minus adjusting the shell prompt (PS1)
+# Activate virtualenv and add in path
 ENV VIRTUAL_ENV=/srv/graphite-pypy
 ENV PATH=/srv/graphite-pypy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ONBUILD ENV VIRTUAL_ENV=/srv/graphite-pypy

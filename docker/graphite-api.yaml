@@ -1,4 +1,5 @@
 finders:
   - influxgraph.InfluxDBFinder
 influxdb:
-  host: hostip
+  host: dockerhost
+
