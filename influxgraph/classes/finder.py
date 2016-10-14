@@ -20,10 +20,7 @@ Read metric series from an InfluxDB database via a Graphite-API storage plugin
 compatible API.
 """
 
-try:
-    import memcache
-except ImportError:
-    pass
+import memcache
 import datetime
 from influxdb import InfluxDBClient
 import logging
@@ -84,16 +81,11 @@ class InfluxDBFinder(object):
         self.memcache_host = memcache_conf.get('host')
         self.memcache_ttl = memcache_conf.get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
         self.memcache_max_value = memcache_conf.get('max_value', 1)
-        try:
-            if self.memcache_host:
-                self.memcache = memcache.Client(
-                    [self.memcache_host], pickleProtocol=-1,
-                    server_max_value_length=1024**2*self.memcache_max_value)
-            else:
-                self.memcache = None
-        except NameError:
-            logger.warning("Memcache configuration present but 'python-memcached' module "
-                           "not installed - ignoring memcache configuration..")
+        if self.memcache_host:
+            self.memcache = memcache.Client(
+                [self.memcache_host], pickleProtocol=-1,
+                server_max_value_length=1024**2*self.memcache_max_value)
+        else:
             self.memcache = None
         self._setup_logger(influxdb_config.get('log_level', 'info'),
                            influxdb_config.get('log_file', None))

@@ -383,7 +383,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         loader_memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
             query.pattern, str(self.default_nodes_limit), str(0)]))
         del self.finder
-        _loader_interval = 5
+        _loader_interval = 2
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -413,7 +413,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                          msg="Configured max value of %s MB, got %s instead" % (
                              20, finder.memcache_max_value,))
         # Give series loader more than long enough to finish
-        time.sleep(1)
+        time.sleep(_loader_interval + 2)
         if finder.memcache:
             self.assertTrue(finder.memcache.get(loader_memcache_key),
                             msg="No memcache data for series loader query %s" % (query.pattern,))

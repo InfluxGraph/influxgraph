@@ -7,7 +7,7 @@ def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
     parsed_templates = []
     for pattern in templates:
         template = pattern
-        filter = ""
+        _filter = ""
         parts = template.split()
         if len(parts) < 1:
             continue
@@ -15,7 +15,7 @@ def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
             if '=' in parts[1]:
                 template = parts[0]
             else:
-                filter = parts[0]
+                _filter = parts[0]
                 template = parts[1]
         # Parse out the default tags specific to this template
         default_tags = {}
@@ -24,16 +24,16 @@ def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
             for tag in tags:
                 tag_items = [d.strip() for d in tag.split('=')]
                 default_tags[tag_items[0]] = tag_items[1]
-        parsed_templates.append((generate_filter_regex(filter),
+        parsed_templates.append((generate_filter_regex(_filter),
                                  generate_template_regex(template),
                                  default_tags, separator))
     return parsed_templates
 
-def generate_filter_regex(filter):
+def generate_filter_regex(_filter):
     """Generate compiled regex pattern from filter string"""
-    if not filter:
+    if not _filter:
         return
-    return re.compile("^%s" % (filter.replace('.', '\.').replace('*', '%s+' % (
+    return re.compile("^%s" % (_filter.replace('.', '\.').replace('*', '%s+' % (
         GRAPHITE_PATH_REGEX_PATTERN,))))
 
 def generate_template_regex(template):

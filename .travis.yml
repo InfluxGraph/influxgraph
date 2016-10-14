@@ -16,9 +16,7 @@ install:
   - pip install coverage coveralls
 script:
   - nosetests --with-coverage --cover-package=influxgraph
-  - nosetests --with-coverage --cover-package=influxgraph tests/test_log1.py
-  - nosetests --with-coverage --cover-package=influxgraph tests/test_log2.py
-  - pip uninstall python-memcached -y
+  - pip install statsd
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
 notifications:
   email:

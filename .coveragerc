@@ -1,0 +1,3 @@
+[report]
+omit =
+    influxgraph/_version.py
