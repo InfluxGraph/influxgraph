@@ -14,7 +14,7 @@ An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
   :alt: Coverage
 
 
-This project started as a re-write of `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
+This project started as a re-write of `graphite-influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
 
 
 Installation
@@ -35,6 +35,18 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
     finders:
       - influxgraph.InfluxDBFinder
 
+Docker Image
+-------------
+
+::
+
+  docker pull ikuosu/influxgraph
+  docker create  --name=influxgraph -p 8000:80 ikuosu/influxgraph
+  docker start influxgraph
+
+There will now be a Graphite-API running on ``localhost:8000`` from the container with a default InfluxDB configuration and memcache enabled. Finder expects InfluxDB to be running on ``localhost:8086`` by default.
+
+To use a modified Graphite-API config either build a new image from ``ikuosu/influxgraph`` with a ``graphite-api.yaml`` in the directory where ``docker build`` is called or edit the file on the container and kill gunicorn processes to make them restart.
 
 Main features
 --------------
