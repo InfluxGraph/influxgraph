@@ -41,6 +41,7 @@ Main features
 * In-memory index for metric path queries
 * Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
 * Memcached integration
+* Python 3 compatibility
 
 Goals
 ------
