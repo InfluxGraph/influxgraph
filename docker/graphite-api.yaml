@@ -1,0 +1,4 @@
+finders:
+  - influxgraph.InfluxDBFinder
+influxdb:
+  host: hostip
