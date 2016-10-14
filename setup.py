@@ -16,7 +16,7 @@ setup(
     include_package_data=True,
     platforms='any',
     classifiers=(
-        'Intended Audience :: Developers',
+        # 'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
