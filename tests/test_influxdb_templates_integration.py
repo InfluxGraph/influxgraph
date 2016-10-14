@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
+
+import memcache
 import os
 import unittest
-from influxdb import InfluxDBClient
+import datetime
+import time
 import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
-import datetime
-import time
-try:
-    import memcache
-except ImportError:
-    pass
-import sys
+from influxdb import InfluxDBClient
 
 os.environ['TZ'] = 'UTC'
 
@@ -43,19 +40,18 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
           datetime.datetime.utcnow()
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
                                 int(self.start_time.strftime("%s"))) * 1.0 / self.step)) + 1
-        self.config = { 'influxdb': {
-            'host' : 'localhost',
-            'port' : 8086,
-            'user' : 'root',
-            'pass' : 'root',
-            'db' : self.db_name,
-            'log_level' : 'debug',
-            'templates' : [
+        self.config = {'influxdb': {
+            'host': 'localhost',
+            'port': 8086,
+            'user': 'root',
+            'pass': 'root',
+            'db': self.db_name,
+            'log_level': 'debug',
+            'templates': [
                 self.template,
                 ],
             },
-            # 'search_index': 'index',
-        }
+            }
         self.client = InfluxDBClient(database=self.db_name)
         self.default_nodes_limit = LOADER_LIMIT
         self.setup_db()
@@ -214,6 +210,17 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(nodes, expected,
                          msg="Got query %s result %s - wanted %s" % (
                              query.pattern, nodes, expected,))
+
+    def test_tagged_data_no_template_config(self):
+        del self.finder
+        self.config['influxdb']['templates'] = None
+        self.finder = influxgraph.InfluxdbFinder(self.config)
+        query = Query('*')
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted(self.measurements)
+        self.assertEqual(nodes, expected,
+                         msg="Expected only measurements in index with "
+                         "no templates configured, got %s" % (nodes,))
 
 if __name__ == '__main__':
     unittest.main()

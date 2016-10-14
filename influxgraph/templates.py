@@ -1,5 +1,8 @@
 import re
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
+import logging
+
+logger = logging.getLogger('graphite_influxdb')
 
 def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
     # Logic converted to Python from InfluxDB's Golang Graphite template parsing
@@ -55,6 +58,10 @@ def generate_template_regex(template):
 def _split_series_with_tags(serie, graphite_templates):
     split_path = []
     paths = serie.split(',')
+    if not graphite_templates:
+        logger.error("Found tagged series in DB with no templates configured, "
+                     "ignoring tags - configuration needs updating..")
+        return paths[0:1]
     tags_values = [p.split('=') for p in paths[1:]]
     measurement_ind = None
     for (tag_key, tag_val) in tags_values:
@@ -64,6 +71,5 @@ def _split_series_with_tags(serie, graphite_templates):
                 measurement_ind = template.groupindex['measurement']-1 \
                     if 'measurement' in template.groupindex else -1
     split_path.insert(measurement_ind, paths[0])
-    # import ipdb; ipdb.set_trace()
     del paths
     return split_path
