@@ -3,10 +3,15 @@ InfluxGraph
 
 An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
 
+.. image:: https://img.shields.io/pypi/v/influxgraph.svg
+  :target: https://pypi.python.org/pypi/influxgraph
+  :alt: Latest Version
 .. image:: https://travis-ci.org/pkittenis/influxgraph.svg?branch=master
   :target: https://travis-ci.org/pkittenis/influxgraph
+  :alt: CI status
 .. image:: https://coveralls.io/repos/pkittenis/influxgraph/badge.png?branch=master
   :target: https://coveralls.io/r/pkittenis/influxgraph?branch=master
+  :alt: Coverage
 
 
 This project started as a re-write of `graphite_influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
