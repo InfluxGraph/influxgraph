@@ -148,7 +148,7 @@ def get_aggregation_func(path, aggregation_functions):
 def read_influxdb_values(influxdb_data, paths):
     """Return generator for values from InfluxDB data"""
     _data = {}
-    for i in xrange(len(influxdb_data.keys())):
+    for i in range(len(influxdb_data.keys())):
         key = influxdb_data.keys()[i]
         _data[paths[i]] = (d['value'] for d in influxdb_data.get_points(key[0]))
     return _data
