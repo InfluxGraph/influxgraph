@@ -15,17 +15,17 @@ setup(
     zip_safe=False,
     include_package_data=True,
     platforms='any',
-    classifiers=(
-        # 'Intended Audience :: Developers',
+    classifiers=[
+        'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
         'Topic :: System :: Monitoring',
-    ),
+        ],
     install_requires=['graphite_api', 'influxdb>=3.0.0', 'python-memcached',],
     extras_require={
         'statsd' : ['statsd'],
-    },
-)
+        },
+    )
