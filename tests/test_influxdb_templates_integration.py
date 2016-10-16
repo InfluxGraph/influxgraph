@@ -236,21 +236,13 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         self.assertTrue(self.client.write_points(data))
-        # data = self.client.query('show field keys')
-        self.finder = influxgraph.InfluxdbFinder(self.config)
-        # import ipdb; ipdb.set_trace()
-        # query = Query('*')
-        # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        # expected = sorted(dict.fromkeys(measurements + self.measurements).keys())
-        # self.assertEqual(nodes, expected,
-        #                  msg="Got root branch query result %s - wanted %s" % (
-        #                      nodes, expected,))
-        # query = Query('%s.*' % (measurements[0]))
-        # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        # expected = sorted([tags['host'], self.tags[self.paths[1]]])
-        # self.assertEqual(nodes, expected,
-        #                  msg="Got query %s result %s - wanted %s" % (
-        #                      query.pattern, nodes, expected,))
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        query = Query('%s.*' % (tags['host']))
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = measurements
+        self.assertEqual(nodes, expected,
+                         msg="Got query %s result %s - wanted %s" % (
+                             query.pattern, nodes, expected,))
         query = Query('%s.%s.*' % (tags['host'], measurements[0], ))
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
         expected = sorted(fields.keys())
@@ -264,10 +256,15 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.finder = influxgraph.InfluxdbFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        # expected = [self.metric_prefix]
         expected = sorted(self.measurements)
         self.assertEqual(nodes, expected,
                          msg="Expected only measurements in index with "
                          "no templates configured, got %s" % (nodes,))
+        # query = Query('%s.*' % (self.metric_prefix,))
+        # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        # expected = [self.tags[self.paths[0]]]
+        # self.assertEqual(nodes, expected)
 
 if __name__ == '__main__':
     unittest.main()

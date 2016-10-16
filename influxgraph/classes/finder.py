@@ -34,7 +34,8 @@ from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns
-from ..templates import _parse_influxdb_graphite_templates, _split_series_with_tags
+from ..templates import _parse_influxdb_graphite_templates, _split_series_with_tags, \
+    _get_series_with_fields
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
@@ -335,7 +336,7 @@ class InfluxDBFinder(object):
                 for key in matcher.groupdict():
                     if not key == 'measurement':
                         _tags.append((key, matcher.groupdict()[key]))
-                for key,val in iter(default_tags.items()):
+                for key, val in iter(default_tags.items()):
                     _tags.append((key, val))
                 _measurements.append(matcher.groupdict()['measurement'])
         measurements = ', '.join(
@@ -445,8 +446,9 @@ class InfluxDBFinder(object):
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if ',' in serie:
-                index.insert_split_path(_split_series_with_tags(
-                    serie, self.graphite_templates))
+                for split_path in _get_series_with_fields(
+                        serie, self.graphite_templates, self.client):
+                    index.insert_split_path(split_path)
             else:
                 index.insert(serie)
         self.index_lock.acquire()
