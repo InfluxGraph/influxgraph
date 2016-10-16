@@ -211,6 +211,53 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          msg="Got query %s result %s - wanted %s" % (
                              query.pattern, nodes, expected,))
 
+    def test_data_with_fields(self):
+        del self.finder
+        template = "host.measurement.field*"
+        self.config['influxdb']['templates'] = [template]
+        measurements = ['cpu']
+        fields = {'load': 1, 'idle': 1,
+                  'usage': 1, 'user': 1,
+        }
+        tags = {'host': 'my_host',
+                'env': 'my_env',
+                }
+        data = [{
+            "measurement": measurement,
+            "tags": tags,
+            "time": _time,
+            "fields": fields,
+            }
+            for measurement in measurements
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.assertTrue(self.client.write_points(data))
+        # data = self.client.query('show field keys')
+        self.finder = influxgraph.InfluxdbFinder(self.config)
+        # import ipdb; ipdb.set_trace()
+        # query = Query('*')
+        # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        # expected = sorted(dict.fromkeys(measurements + self.measurements).keys())
+        # self.assertEqual(nodes, expected,
+        #                  msg="Got root branch query result %s - wanted %s" % (
+        #                      nodes, expected,))
+        # query = Query('%s.*' % (measurements[0]))
+        # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        # expected = sorted([tags['host'], self.tags[self.paths[1]]])
+        # self.assertEqual(nodes, expected,
+        #                  msg="Got query %s result %s - wanted %s" % (
+        #                      query.pattern, nodes, expected,))
+        query = Query('%s.%s.*' % (tags['host'], measurements[0], ))
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = sorted(fields.keys())
+        self.assertEqual(nodes, expected,
+                         msg="Got query %s result %s - wanted %s" % (
+                             query.pattern, nodes, expected,))
+
     def test_tagged_data_no_template_config(self):
         del self.finder
         self.config['influxdb']['templates'] = None
