@@ -233,6 +233,9 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
+        metrics = ['.'.join([tags['host'], m, f])
+                   for f in fields.keys()
+                   for m in measurements]
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         self.assertTrue(self.client.write_points(data))
@@ -244,11 +247,28 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          msg="Got query %s result %s - wanted %s" % (
                              query.pattern, nodes, expected,))
         query = Query('%s.%s.*' % (tags['host'], measurements[0], ))
-        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        nodes = list(self.finder.find_nodes(query))
+        node_names = sorted([n.name for n in nodes])
         expected = sorted(fields.keys())
-        self.assertEqual(nodes, expected,
+        self.assertEqual(node_names, expected,
                          msg="Got query %s result %s - wanted %s" % (
-                             query.pattern, nodes, expected,))
+                             query.pattern, node_names, expected,))
+        time_info, data = self.finder.fetch_multi(nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        for metric in metrics:
+            self.assertTrue(metric in data,
+                            msg="Did not get data for requested series %s - got data for %s" % (
+                                metric, data.keys(),))
+            self.assertEqual(time_info,
+                             (int(self.start_time.strftime("%s")),
+                              int(self.end_time.strftime("%s")),
+                              self.step),
+                             msg="Time info and step do not match our requested values")
+            datapoints = [v for v in data[metric] if v]
+            self.assertTrue(len(datapoints) == self.num_datapoints,
+                            msg="Expected %s datapoints - got %s" % (
+                                self.num_datapoints, len(datapoints),))
 
     def test_tagged_data_no_template_config(self):
         del self.finder

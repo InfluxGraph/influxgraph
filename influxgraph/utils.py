@@ -145,12 +145,19 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
-def read_influxdb_values(influxdb_data, paths):
+def read_influxdb_values(influxdb_data, paths, fields):
     """Return generator for values from InfluxDB data"""
     _data = {}
     for i in range(len(influxdb_data.keys())):
-        key = influxdb_data.keys()[i]
-        _data[paths[i]] = (d['value'] for d in influxdb_data.get_points(key[0]))
+        for field in fields:
+            infl_key = influxdb_data.keys()[i]
+            try:
+                metric = [p for p in paths
+                          if p.endswith(field)][0]
+            except IndexError:
+                metric = paths[i]
+            _data[metric] = (d[field]
+                             for d in influxdb_data.get_points(infl_key[0]))
     return _data
 
 def gen_memcache_pattern_key(pattern):
