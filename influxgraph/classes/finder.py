@@ -20,6 +20,14 @@ Read metric series from an InfluxDB database via a Graphite-API storage plugin
 compatible API.
 """
 
+import json
+import threading
+from multiprocessing import Lock as processLock
+import time
+try:
+    import statsd
+except ImportError:
+    pass
 import memcache
 import datetime
 from influxdb import InfluxDBClient
@@ -34,22 +42,16 @@ from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns
-from ..templates import _parse_influxdb_graphite_templates, _split_series_with_tags, \
-    _get_series_with_fields
+from ..templates import _parse_influxdb_graphite_templates
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
-import json
-import threading
-from multiprocessing import Lock as processLock
-import time
-try:
-    import statsd
-except ImportError:
-    pass
+
+
 _SERIES_LOADER_LOCK = processLock()
 
 logger = logging.getLogger('graphite_influxdb')
+
 
 class InfluxDBFinder(object):
     """Graphite-Api finder for InfluxDB.
@@ -350,7 +352,7 @@ class InfluxDBFinder(object):
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        tags = "AND ".join([""""%s" = '%s' """ % (key,val,) for (key,val) in _tags]) \
+        tags = "AND ".join([""""%s" = '%s' """ % (key, val,) for (key, val) in _tags]) \
           if _tags else None
         fields = _fields if _fields else ['value']
         return measurements, tags, fields
@@ -370,6 +372,8 @@ class InfluxDBFinder(object):
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
         measurement, tags, fields = self._gen_query_values(paths, retention)
+        if not fields:
+            fields = ['value']
         query_fields = ', '.join(['%s("%s") as "%s"'  % (
             aggregation_func, field, field)
                                   for field in fields])
@@ -457,8 +461,7 @@ class InfluxDBFinder(object):
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if ',' in serie:
-                for split_path in _get_series_with_fields(
-                        serie, self.graphite_templates, self.client):
+                for split_path in self._get_series_with_fields(serie):
                     index.insert_split_path(split_path)
             else:
                 index.insert(serie)
@@ -501,3 +504,50 @@ class InfluxDBFinder(object):
             index_fh.close()
         self.index = index
         logger.info("Loaded index from disk")
+
+        
+    def _get_field_keys(self, measurement):
+        field_keys = self.client.query('SHOW FIELD KEYS FROM "%s"' % (measurement,))
+        return field_keys[measurement]
+
+    def _get_series_with_fields(self, serie):
+        paths = serie.split(',')
+        if not self.graphite_templates:
+            # logger.debug("Found tagged series in DB with no templates configured, "
+            #              "guessing structure from tags - configuration needs updating..")
+            # for (tag_key, tag_val) in tags_values:
+            #     # import ipdb; ipdb.set_trace()
+            #     if 'host' or 'hostname' in tag_key:
+            #         split_path.insert(0, tag_val)
+            #         continue
+            #     split_path.append(tag_val)
+            #     # TODO - check field keys
+            return [paths[0:1]]
+        # split_path.append(paths[0])
+        # return split_path
+        series = []
+        for (_, template, _, _) in self.graphite_templates:
+            if 'field' in template.groupindex:
+                field_ind = template.groupindex['field']-1
+                fields = self._get_field_keys(paths[0])
+                for field in fields:
+                    field_key = field.get('fieldKey')
+                    split_path = self._split_series_with_tags(paths)
+                    split_path.append(field_key)
+                    series.append(split_path)
+            else:
+                series.append(self._split_series_with_tags(paths))
+        return series
+
+    def _split_series_with_tags(self, paths):
+        split_path = []
+        tags_values = [p.split('=') for p in paths[1:]]
+        measurement_ind = None
+        for (tag_key, tag_val) in tags_values:
+            for (_, template, _, _) in self.graphite_templates:
+                if tag_key in template.groupindex:
+                    split_path.insert(template.groupindex[tag_key]-1, tag_val)
+                    if 'measurement' in template.groupindex:
+                        measurement_ind = template.groupindex['measurement']-1
+        split_path.insert(measurement_ind, paths[0])
+        return split_path
