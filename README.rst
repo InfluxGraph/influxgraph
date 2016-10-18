@@ -174,9 +174,16 @@ Full Configuration Example
 	# See https://github.com/influxdata/influxdb/tree/master/services/graphite for template
 	# configuration documentation
 	# 
-	# Note that no special compensation is given to the `field` key if it is used in 
-	# template configuration and templates with `field` in them should be considered
-	# as not fully supported as of yet.
+	# Note that care should be taken so that template configuration results in 
+	# sane measurement and field names that do not override each other and so
+	# that wildcard queries do not have conflicting tags and can be 
+	# satisfied in **one query** by InfluxDB
+	#
+	# For best InfluxDB performance and so that data can be queried correctly 
+	# by InfluxGraph, fewer measurements with multiple fields are preferred.
+	# 
+	# NB - separator for templates is not configurable as of yet
+	# 
 	templates:
 	  # 
 	  # Template format: [filter] <template> [tag1=value1,tag2=value2]
@@ -187,20 +194,29 @@ Full Configuration Example
 	  # filter on metrics starting with `environment`,
           # use tags `environment`, `host` and `resource` with measurement name `cpu0.load` and
 	  # extra static tags `region` and `agent`
-          - environment.* environment.host.resource.measurement* region=us-east1,agent=sensu
+          - production.* environment.host.resource.measurement* region=us-east1,agent=sensu
+	  
 	  # 
 	  ## Template only
 	  # The following template does not use filter or extra tags.
           # For a metric path `my_host.cpu.cpu0.load` it will use tags `host` and `resource` 
 	  # with measurement name `cpu0.load`
 	  - host.resource.measurement*
+	  
 	  # 
 	  ## Drop prefix, template with tags after measurement
 	  # For a metric path `stats.load.my_host.cpu` the following template will use tags
 	  # `host` and `resource` and remove `stats` prefix from metric paths
 	  - stats.* ..measurement.host.resource
 	  
-	  # A catch-all template of `measurement*` _should not_ be used - 
+	  #
+	  ## Measurement with multiple fields
+	  # For metric paths `my_host.cpu-0.cpu-idle`, `my_host.cpu-0.cpu-user` et al, the
+	  # following template will use tags `host` with measurement name `cpu-0` and fields
+	  # `cpu-idle`, `cpu-user` et al
+	  - host.measurement.field*
+	  
+	  # NB - A catch-all template of `measurement*` _should not_ be used - 
 	  # that is the default and would have the same effect as if no template was provided
 	  # 
 	  ## Examples from InfluxDB Graphite service configuration
@@ -212,7 +228,7 @@ Full Configuration Example
 	  # - stats.* .host.measurement* region=us-west,agent=sensu
 	  
 	  # filter + template with field key
-	  # - stats.* .host.measurement.field
+	  # - stats.* .host.measurement.field*
 	
         ## (Optional) Memcache integration
 	# 
