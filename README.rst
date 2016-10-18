@@ -199,15 +199,19 @@ Full Configuration Example
 	  # For a metric path `stats.load.my_host.cpu` the following template will use tags
 	  # `host` and `resource` and remove `stats` prefix from metric paths
 	  - ..measurement.host.resource
-	  # A catch-all default template of `measurement*` _should not_ be used - 
+	  # A catch-all template of `measurement*` _should not_ be used - 
 	  # that is the default and would have the same effect as if no template was provided
 	  # 
 	  ## Examples from InfluxDB Graphite service configuration
 	  # 
           ## filter + template
 	  # - *.app env.service.resource.measurement
+	  
 	  ## filter + template + extra tag
 	  # - stats.* .host.measurement* region=us-west,agent=sensu
+	  
+	  # filter + template with field key
+	  # - stats.* .host.measurement.field
 	
         ## (Optional) Memcache integration
 	# 

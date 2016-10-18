@@ -121,8 +121,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          msg="Time info and step do not match our requested values")
         datapoints = [v for v in data[serie] if v]
         self.assertTrue(len(datapoints) == self.num_datapoints,
-                        msg="Expected %s datapoints - got %s" % (
-                            self.num_datapoints, len(datapoints),))
+                        msg="Expected %s datapoints for %s - got %s" % (
+                            self.num_datapoints, serie, len(datapoints),))
 
     def test_multiple_templates(self):
         del self.finder
@@ -215,7 +215,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         del self.finder
         template = "host.measurement.field*"
         self.config['influxdb']['templates'] = [template]
-        measurements = ['cpu']
+        measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
         fields = {'load': 1, 'idle': 1,
                   'usage': 1, 'user': 1,
         }
@@ -246,13 +246,13 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(nodes, expected,
                          msg="Got query %s result %s - wanted %s" % (
                              query.pattern, nodes, expected,))
-        query = Query('%s.%s.*' % (tags['host'], measurements[0], ))
+        query = Query('%s.*.*' % (tags['host'],))
         nodes = list(self.finder.find_nodes(query))
-        node_names = sorted([n.name for n in nodes])
-        expected = sorted(fields.keys())
-        self.assertEqual(node_names, expected,
+        node_paths = sorted([n.path for n in nodes])
+        expected = sorted(metrics)
+        self.assertEqual(node_paths, expected,
                          msg="Got query %s result %s - wanted %s" % (
-                             query.pattern, node_names, expected,))
+                             query.pattern, node_paths, expected,))
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))
@@ -260,15 +260,22 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(metric in data,
                             msg="Did not get data for requested series %s - got data for %s" % (
                                 metric, data.keys(),))
-            self.assertEqual(time_info,
-                             (int(self.start_time.strftime("%s")),
-                              int(self.end_time.strftime("%s")),
-                              self.step),
-                             msg="Time info and step do not match our requested values")
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints,
-                            msg="Expected %s datapoints - got %s" % (
-                                self.num_datapoints, len(datapoints),))
+                            msg="Expected %s datapoints for %s - got %s" % (
+                                self.num_datapoints, metric, len(datapoints),))
+        query = Query('%s.%s.*' % (tags['host'], measurements[0]))
+        _metrics = ['.'.join([tags['host'], measurements[0], f])
+                    for f in fields.keys()]
+        nodes = list(self.finder.find_nodes(query))
+        time_info, _data = self.finder.fetch_multi(nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        for metric in _metrics:
+            datapoints = [v for v in _data[metric] if v]
+            self.assertTrue(len(datapoints) == self.num_datapoints,
+                            msg="Expected %s datapoints for %s - got %s" % (
+                                self.num_datapoints, metric, len(datapoints),))
 
     def test_tagged_data_no_template_config(self):
         del self.finder

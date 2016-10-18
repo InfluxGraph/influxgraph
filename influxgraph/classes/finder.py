@@ -423,8 +423,6 @@ class InfluxDBFinder(object):
         # all requested paths even if they have no datapoints
         for key in paths:
             data.setdefault(key, [])
-        for key in data:
-            data[key] = [v for v in data[key]]
         if self.memcache:
             self.memcache.set(memcache_key, data,
                               time=interval,
