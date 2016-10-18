@@ -5,6 +5,8 @@ python:
   - 2.7
   - 3.4
   - 3.5
+  - pypy
+  - pypy3
 env:
   - INFLUXDB_VERSION=1.0.2
 before_install:
