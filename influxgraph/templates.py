@@ -1,5 +1,24 @@
-import re
+# Copyright (C) [2015-] [Thomson Reuters LLC]
+# Copyright (C) [2015-] [Panos Kittenis]
+# Copyright (C) [2014-2015] [Vimeo, LLC]
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Graphite template parsing functions per InfluxDB's Graphite service template syntax"""
+
+from __future__ import absolute_import, print_function
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
+import re
 import logging
 
 logger = logging.getLogger('graphite_influxdb')
@@ -36,7 +55,7 @@ def generate_filter_regex(_filter):
     """Generate compiled regex pattern from filter string"""
     if not _filter:
         return
-    return re.compile("^%s" % (_filter.replace('.', '\.').replace('*', '%s+' % (
+    return re.compile("^%s" % (_filter.replace('.', r'\.').replace('*', '%s+' % (
         GRAPHITE_PATH_REGEX_PATTERN,))))
 
 def generate_template_regex(template):

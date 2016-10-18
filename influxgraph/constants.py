@@ -23,11 +23,11 @@ INFLUXDB_AGGREGATIONS = [
     # selectors
     'bottom', 'first', 'last', 'max', 'min', 'percentile', 'top']
 
-DEFAULT_AGGREGATIONS = { '\.min$' : 'min',
-                         '\.max$' : 'max',
-                         '\.last$' : 'last',
-                         '\.sum$' : 'sum',
-                         }
+DEFAULT_AGGREGATIONS = {'\.min$' : 'min',
+                        '\.max$' : 'max',
+                        '\.last$' : 'last',
+                        '\.sum$' : 'sum',
+                        }
 
 # Tell influxdb to return time as seconds from epoch
 _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}

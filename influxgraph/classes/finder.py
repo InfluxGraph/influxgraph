@@ -20,23 +20,23 @@ Read metric series from an InfluxDB database via a Graphite-API storage plugin
 compatible API.
 """
 
+from __future__ import absolute_import, print_function
 import json
 import threading
 from multiprocessing import Lock as processLock
 import time
+import datetime
+import logging
+from logging.handlers import TimedRotatingFileHandler
+
 try:
     import statsd
 except ImportError:
     pass
 import memcache
-import datetime
 from influxdb import InfluxDBClient
-import logging
-from logging.handlers import TimedRotatingFileHandler
 from graphite_api.node import BranchNode
-from graphite_api.utils import is_pattern
-from graphite_api.finders import match_entries
-from ..constants import INFLUXDB_AGGREGATIONS, _INFLUXDB_CLIENT_PARAMS, \
+from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
      DEFAULT_AGGREGATIONS
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
@@ -172,12 +172,12 @@ class InfluxDBFinder(object):
         if not log_file:
             return
         try:
-            handler = TimedRotatingFileHandler(log_file)
+            _handler = TimedRotatingFileHandler(log_file)
         except IOError:
             logger.error("Could not write to %s, falling back to stdout",
                          log_file)
         else:
-            logger.addHandler(handler)
+            logger.addHandler(_handler)
             handler.setFormatter(formatter)
 
     def get_series(self, cache=True, limit=LOADER_LIMIT, offset=0):
@@ -274,8 +274,6 @@ class InfluxDBFinder(object):
         """Loads influxdb series list into memcache at a rate of no
         more than once per interval
         """
-        pattern = '*'
-        query = Query(pattern)
         logger.info("Starting background series loader with interval %s", interval)
         while True:
             time.sleep(interval)
@@ -341,7 +339,7 @@ class InfluxDBFinder(object):
                 for key in [k for k in matcher.groupdict()
                             if not (k == 'measurement' or k == 'field')]:
                     _tag = matcher.groupdict()[key]
-                    if not (key, _tag) in _tags:
+                    if (key, _tag) not in _tags:
                         _tags.append((key, _tag))
                 _measurement = matcher.groupdict()['measurement']
                 if not _measurement in _measurements:
@@ -526,7 +524,7 @@ class InfluxDBFinder(object):
         series = []
         for (_, template, _, _) in self.graphite_templates:
             if 'field' in template.groupindex:
-                field_ind = template.groupindex['field']-1
+                # field_ind = template.groupindex['field']-1
                 fields = self._get_field_keys(paths[0])
                 for field in fields:
                     field_key = field.get('fieldKey')

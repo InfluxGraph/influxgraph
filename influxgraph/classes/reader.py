@@ -16,20 +16,19 @@
 
 """Package containing InfluxdbReader class"""
 
+from __future__ import absolute_import, print_function
 import logging
-from logging.handlers import TimedRotatingFileHandler
+
+import memcache
 from ..constants import _INFLUXDB_CLIENT_PARAMS
 from ..utils import calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key
-try:
-    import statsd
-except ImportError:
-    pass
-import memcache
+
 
 logger = logging.getLogger('graphite_influxdb')
 
 class Interval(object):
+    """No-op Interval class used by Graphite-API for whisper backends"""
     intervals = set()
 
 class InfluxDBReader(object):

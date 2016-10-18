@@ -14,13 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""InfluxGraph utility functions"""
+
+from __future__ import absolute_import, print_function
 import datetime
 import sys
 import re
-import datetime
 import hashlib
-from .constants import INFLUXDB_AGGREGATIONS, DEFAULT_AGGREGATIONS, \
-     MEMCACHE_SERIES_DEFAULT_TTL
+from .constants import INFLUXDB_AGGREGATIONS
 
 def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
@@ -156,7 +157,7 @@ def read_influxdb_values(influxdb_data, paths, fields):
             else:
                 try:
                     metric = [p for p in paths
-                                if (infl_key in p and field in p)][0]
+                              if infl_key in p and field in p][0]
                 except IndexError:
                     continue
             _data[metric] = [d[field]

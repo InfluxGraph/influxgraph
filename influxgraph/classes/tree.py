@@ -16,9 +16,10 @@
 
 """Tree representation of Graphite metrics as InfluxDB series"""
 
+from __future__ import absolute_import, print_function
 import json
 import logging
-import datetime
+
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 
@@ -32,9 +33,11 @@ class Node(object):
         self.children = {}
 
     def is_leaf(self):
+        """Returns True/False depending on whether self is a LeafNode or not"""
         return len(self.children) == 0
 
     def insert(self, path):
+        """Insert path in this node's children"""
         if not len(path):
             return
         child_name = path.pop(0)
@@ -43,10 +46,12 @@ class Node(object):
         self.children[child_name].insert(path)
 
     def to_array(self):
+        """Return list of (name, children) items for this node's children"""
         return [(name, node.to_array()) for name, node in self.children.items()]
 
     @staticmethod
     def from_array(parent, array):
+        """Load given parent node's children from array"""
         metric = Node(parent)
         for child_name, child_array in array:
             child = Node.from_array(metric, child_array)
@@ -62,22 +67,28 @@ class NodeTreeIndex(object):
     def __init__(self):
         self.index = Node()
 
-    def insert(self, metric_name):
-        paths = metric_name.split('.')
+    def insert(self, metric_path):
+        """Insert metric path into tree index"""
+        paths = metric_path.split('.')
         self.index.insert(paths)
 
     def insert_split_path(self, paths):
+        """Insert already split path into tree index"""
         self.index.insert(paths)
 
     def clear(self):
+        """Clear tree index"""
         self.index.children = {}
 
     def query(self, query):
+        """Return nodes matching Graphite glob pattern query"""
         nodes = self.search(self.index, query.split('.'), [])
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
     def search(self, node, split_query, split_path):
+        """Return matching children for each query part in split query starting
+        from given node"""
         sub_query = split_query[0]
         matched_children = (
             (path, node.children[path])
@@ -96,19 +107,23 @@ class NodeTreeIndex(object):
                 yield (child_path, child_node)
 
     def to_json(self):
+        """Reutnr Json representation of tree index"""
         return json.dumps(self.to_array())
 
     def to_array(self):
+        """Return array representation of tree index"""
         return self.index.to_array()
     
     @staticmethod
     def from_array(model):
+        """Load tree index from array"""
         metric_index = NodeTreeIndex()
         metric_index.index = Node.from_array(None, model)
         return metric_index
 
     @staticmethod
     def from_json(data):
+        """Load tree index from json data"""
         model = json.load(data)
         index = NodeTreeIndex.from_array(model)
         del model

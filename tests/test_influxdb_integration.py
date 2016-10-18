@@ -7,7 +7,7 @@ import influxgraph
 import influxgraph.utils
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
-     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
+     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS
 import datetime
 import time
 try:
@@ -355,7 +355,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         paths = [node.path for node in nodes]
         aggregation_funcs = sorted(list(set(influxgraph.utils.get_aggregation_func(
             path, self.finder.aggregation_functions) for path in paths)))
-        expected = sorted(influxgraph.utils.DEFAULT_AGGREGATIONS.values())
+        expected = sorted(DEFAULT_AGGREGATIONS.values())
         self.assertEqual(expected, aggregation_funcs,
                          msg="Expected aggregation functions %s for paths %s - got %s" % (
                              expected, paths, aggregation_funcs))
