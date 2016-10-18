@@ -47,9 +47,47 @@ def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
                 tag_items = [d.strip() for d in tag.split('=')]
                 default_tags[tag_items[0]] = tag_items[1]
         parsed_templates.append((generate_filter_regex(_filter),
-                                 generate_template_regex(template),
+                                 _generate_template_tag_index(template),
                                  default_tags, separator))
     return parsed_templates
+
+def apply_template(metric_path_parts, template, default_tags, separator='.'):
+    """Apply template to metric path parts and return measurements, tags and field"""
+    measurement = []
+    tags = {}
+    field = ""
+    measurement_wildcard, field_wildcard = False, False
+    for tag in template.values():
+        if tag == 'measurement*':
+            measurement_wildcard = True
+        if tag == 'field*':
+            field_wildcard = True
+    if measurement_wildcard and field_wildcard:
+        raise Exception("Either 'field*' or 'measurement*' can be used in each template, not both - %s",
+                        template)
+    for i, tag in template.items():
+        if i > len(metric_path_parts):
+            continue
+        if tag == 'measurement':
+            measurement.append(metric_path_parts[i])
+        elif tag == 'field':
+            if len(field):
+                raise Exception("'field' can only be used once in each template - %s",
+                                template)
+            field = metric_path_parts[i]
+        elif tag == 'field*':
+            field = separator.join(metric_path_parts[i:])
+            break
+        elif tag == 'measurement*':
+            measurement.extend(metric_path_parts[i:])
+            break
+        elif tag != "":
+            tags.setdefault(tag, []).append(metric_path_parts[i])
+    for tag, values in tags.items():
+        tags[tag] = separator.join(values)
+    if default_tags:
+        tags.update(default_tags)
+    return separator.join(measurement), tags, field
 
 def generate_filter_regex(_filter):
     """Generate compiled regex pattern from filter string"""
@@ -58,23 +96,12 @@ def generate_filter_regex(_filter):
     return re.compile("^%s" % (_filter.replace('.', r'\.').replace('*', '%s+' % (
         GRAPHITE_PATH_REGEX_PATTERN,))))
 
-def generate_template_regex(template):
-    """Generate template regex from parsed InfluxDB Graphite template string"""
-    # hostname.service.resource.measurement*
-    tags = template.split('.')
-    patterns = []
-    for tag in tags:
-        if 'measurement' in tag:
-            pattern = r"(?P<measurement>%s+)" % (GRAPHITE_PATH_REGEX_PATTERN,)
-            patterns.append(pattern)
-            continue
-        elif 'field' in tag:
-            pattern = r"(?P<field>%s+)" % (GRAPHITE_PATH_REGEX_PATTERN,)
-            patterns.append(pattern)
-            continue
-        # Drop out sub-path
+def _generate_template_tag_index(template):
+    _tags = template.split('.')
+    tags = {}
+    for i in range(len(_tags)):
+        tag = _tags[i]
         if not tag:
-            patterns.append(r"%s+" % (GRAPHITE_PATH_REGEX_PATTERN,))
-            continue
-        patterns.append(r"(?P<%s>%s+)" % (tag, GRAPHITE_PATH_REGEX_PATTERN))
-    return re.compile(r"\.".join(patterns))
+            tag = None
+        tags[i] = tag
+    return tags

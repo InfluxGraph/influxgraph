@@ -42,7 +42,7 @@ from ..constants import _INFLUXDB_CLIENT_PARAMS, \
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns
-from ..templates import _parse_influxdb_graphite_templates
+from ..templates import _parse_influxdb_graphite_templates, apply_template
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
@@ -328,29 +328,25 @@ class InfluxDBFinder(object):
         _tags = []
         _fields = []
         for (_filter, template, default_tags, separator) in self.graphite_templates:
-            for key, val in iter(default_tags.items()):
-                _tags.append((key, val))
             for path in paths:
                 if _filter and not _filter.match(path):
                     continue
-                matcher = template.match(path)
-                if not matcher:
-                    continue
-                for key in [k for k in matcher.groupdict()
-                            if not (k == 'measurement' or k == 'field')]:
-                    _tag = matcher.groupdict()[key]
-                    if (key, _tag) not in _tags:
-                        _tags.append((key, _tag))
-                _measurement = matcher.groupdict()['measurement']
-                if not _measurement in _measurements:
-                    _measurements.append(_measurement)
-                if 'field' in matcher.groupdict() \
-                   and not matcher.groupdict()['field'] in _fields:
-                    _fields.append(matcher.groupdict()['field'])
+                measurement, tags, field = apply_template(
+                    path.split('.'), template, default_tags, separator)
+                if not measurement in _measurements:
+                    _measurements.append(measurement)
+                if not tags in _tags:
+                    _tags.append(tags)
+                if not field:
+                    field = 'value'
+                if not field in _fields:
+                    _fields.append(field)
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        tags = "AND ".join([""""%s" = '%s' """ % (key, val,) for (key, val) in _tags]) \
+        tags = "AND ".join([""""%s" = '%s' """ % (key, val,)
+                            for tag in _tags
+                            for (key, val) in tag.items()]) \
           if _tags else None
         fields = _fields if _fields else ['value']
         return measurements, tags, fields
@@ -523,8 +519,7 @@ class InfluxDBFinder(object):
         # return split_path
         series = []
         for (_, template, _, _) in self.graphite_templates:
-            if 'field' in template.groupindex:
-                # field_ind = template.groupindex['field']-1
+            if 'field' in template.values() or 'field*' in template.values():
                 fields = self._get_field_keys(paths[0])
                 for field in fields:
                     field_key = field.get('fieldKey')
@@ -540,10 +535,14 @@ class InfluxDBFinder(object):
         tags_values = [p.split('=') for p in paths[1:]]
         measurement_ind = None
         for (tag_key, tag_val) in tags_values:
-            for (_, template, _, _) in self.graphite_templates:
-                if tag_key in template.groupindex:
-                    split_path.insert(template.groupindex[tag_key]-1, tag_val)
-                    if 'measurement' in template.groupindex:
-                        measurement_ind = template.groupindex['measurement']-1
+            for (_, template, _, separator) in self.graphite_templates:
+                for i, tmpl_tag_key in template.items():
+                    if not tmpl_tag_key:
+                        split_path.append(None)
+                        continue
+                    if tag_key == tmpl_tag_key:
+                        split_path.insert(i, tag_val)
+                    if 'measurement' in tmpl_tag_key:
+                        measurement_ind = i
         split_path.insert(measurement_ind, paths[0])
-        return split_path
+        return [p for p in split_path if p]
