@@ -198,7 +198,8 @@ Full Configuration Example
 	  ## Drop prefix, template with tags after measurement
 	  # For a metric path `stats.load.my_host.cpu` the following template will use tags
 	  # `host` and `resource` and remove `stats` prefix from metric paths
-	  - ..measurement.host.resource
+	  - stats.* ..measurement.host.resource
+	  
 	  # A catch-all template of `measurement*` _should not_ be used - 
 	  # that is the default and would have the same effect as if no template was provided
 	  # 
