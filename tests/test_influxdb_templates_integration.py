@@ -211,6 +211,45 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          msg="Got query %s result %s - wanted %s" % (
                              query.pattern, nodes, expected,))
 
+    def test_non_greedy_field(self):
+        measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
+        fields = {'load': 1, 'idle': 1,
+                  'usage': 1, 'user': 1,
+        }
+        tags = {'host': 'my_host',
+                'env': 'my_env',
+                }
+        data = [{
+            "measurement": measurement,
+            "tags": tags,
+            "time": _time,
+            "fields": fields,
+            }
+            for measurement in measurements
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        metrics = ['.'.join([tags['host'], m, f])
+                   for f in fields.keys()
+                   for m in measurements]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.assertTrue(self.client.write_points(data))
+        template = "host.measurement.field"
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        query = Query('%s.*.*' % (tags['host'],))
+        nodes = list(self.finder.find_nodes(query))
+        node_paths = sorted([n.path for n in nodes])
+        _metrics = ['.'.join([tags['host'], m, f])
+                    for f in fields.keys() if not '.' in f
+                    for m in measurements ]
+        expected = sorted(_metrics)
+        self.assertEqual(node_paths, expected,
+                         msg="Expected nodes %s from template with non-greedy field - got %s" % (
+                             expected, node_paths))
+
     def test_data_with_fields(self):
         del self.finder
         template = "host.measurement.field*"
@@ -218,6 +257,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
         fields = {'load': 1, 'idle': 1,
                   'usage': 1, 'user': 1,
+                  'user.io': 1, 'idle.io': 1,
+                  'load.io': 1, 'usage.io': 1,
         }
         tags = {'host': 'my_host',
                 'env': 'my_env',

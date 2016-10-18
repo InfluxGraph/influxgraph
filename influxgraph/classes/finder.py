@@ -537,6 +537,9 @@ class InfluxDBFinder(object):
         for (tag_key, tag_val) in tags_values:
             for (_, template, _, separator) in self.graphite_templates:
                 for i, tmpl_tag_key in template.items():
+                    # Add None where template is skipping part of metric path
+                    # so that indices add tags/measurement
+                    # in correct position
                     if not tmpl_tag_key:
                         split_path.append(None)
                         continue
