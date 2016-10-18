@@ -88,7 +88,7 @@ class InfluxDBReader(object):
         timer.start()
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
-        data = read_influxdb_values(data, [self.path])
+        data = read_influxdb_values(data, [self.path], fields=['value'])
         timer.stop()
         values = [v for v in data[self.path]] if self.path in data else []
         if self.memcache:
