@@ -23,6 +23,11 @@ import logging
 
 logger = logging.getLogger('graphite_influxdb')
 
+
+class InvalidTemplateError(Exception):
+    pass
+
+
 def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
     # Logic converted to Python from InfluxDB's Golang Graphite template parsing
     # Format is [filter] <template> [tag1=value1,tag2=value2]
@@ -49,12 +54,11 @@ def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
         parsed_templates.append((generate_filter_regex(_filter),
                                  _generate_template_tag_index(template),
                                  default_tags, separator))
+    for (_, template, _, _) in parsed_templates:
+        _template_sanity_check(template)
     return parsed_templates
 
-def apply_template(metric_path_parts, template, default_tags, separator='.'):
-    """Apply template to metric path parts and return measurements, tags and field"""
-    measurement = []
-    tags = {}
+def _template_sanity_check(template):
     field = ""
     measurement_wildcard, field_wildcard = False, False
     for tag in template.values():
@@ -62,9 +66,22 @@ def apply_template(metric_path_parts, template, default_tags, separator='.'):
             measurement_wildcard = True
         if tag == 'field*':
             field_wildcard = True
+        if tag == 'field':
+            if field:
+                raise InvalidTemplateError(
+                    "'field' can only be used once in each template - %s",
+                    template)
+            field = tag
     if measurement_wildcard and field_wildcard:
-        raise Exception("Either 'field*' or 'measurement*' can be used in each template, not both - %s",
-                        template)
+        raise InvalidTemplateError(
+            "Either 'field*' or 'measurement*' can be used in each template, not both - %s",
+            template)
+
+def apply_template(metric_path_parts, template, default_tags, separator='.'):
+    """Apply template to metric path parts and return measurements, tags and field"""
+    measurement = []
+    tags = {}
+    field = ""
     for i, tag in template.items():
         if i > len(metric_path_parts):
             continue
@@ -72,8 +89,9 @@ def apply_template(metric_path_parts, template, default_tags, separator='.'):
             measurement.append(metric_path_parts[i])
         elif tag == 'field':
             if len(field):
-                raise Exception("'field' can only be used once in each template - %s",
-                                template)
+                raise InvalidTemplateError(
+                    "'field' can only be used once in each template - %s",
+                    template)
             field = metric_path_parts[i]
         elif tag == 'field*':
             field = separator.join(metric_path_parts[i:])

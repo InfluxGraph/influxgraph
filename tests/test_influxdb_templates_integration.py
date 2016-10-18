@@ -12,6 +12,7 @@ from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
 from influxdb import InfluxDBClient
+from influxgraph.templates import InvalidTemplateError
 
 os.environ['TZ'] = 'UTC'
 
@@ -55,7 +56,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client = InfluxDBClient(database=self.db_name)
         self.default_nodes_limit = LOADER_LIMIT
         self.setup_db()
-        self.finder = influxgraph.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
 
     def setup_db(self):
         try:
@@ -147,7 +148,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
-        self.finder = influxgraph.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
         expected = sorted([measurements[0].split('.')[0]] + [self.metric_prefix])
@@ -191,7 +192,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
-        self.finder = influxgraph.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
         expected = sorted(dict.fromkeys(measurements + self.measurements).keys())
@@ -321,7 +322,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
     def test_tagged_data_no_template_config(self):
         del self.finder
         self.config['influxdb']['templates'] = None
-        self.finder = influxgraph.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
         # expected = [self.metric_prefix]
@@ -333,6 +334,12 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
         # expected = [self.tags[self.paths[0]]]
         # self.assertEqual(nodes, expected)
+
+    def test_bad_templates(self):
+        self.config['influxdb']['templates'] = ['host.measurement*.field*']
+        self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
+        self.config['influxdb']['templates'] = ['host.field.field']
+        self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
 
 if __name__ == '__main__':
     unittest.main()
