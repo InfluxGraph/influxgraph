@@ -319,6 +319,62 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                             msg="Expected %s datapoints for %s - got %s" % (
                                 self.num_datapoints, metric, len(datapoints),))
 
+    def test_multi_tag_values_multi_measurements(self):
+        measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
+        fields = {'load': 1, 'idle': 1,
+                  'usage': 1, 'user': 1,
+        }
+        tags = {'host': 'my_host1',
+                'env': 'my_env1',
+                }
+        data = [{
+            "measurement": measurement,
+            "tags": tags,
+            "time": _time,
+            "fields": fields,
+            }
+            for measurement in measurements
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        metrics = ['.'.join([tags['host'], m, f])
+                   for f in fields.keys()
+                   for m in measurements]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.assertTrue(self.client.write_points(data))
+        tags_env2 = {'host': 'my_host2',
+                     'env': 'my_env2',
+                     }
+        for d in data:
+            d['tags'] = tags_env2
+        self.assertTrue(self.client.write_points(data))
+        template = "env.host.measurement.field*"
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        query = Query('*.*.*.*')
+        nodes = list(self.finder.find_nodes(query))
+        node_paths = sorted([n.path for n in nodes])
+        tag_values = ['.'.join([t['env'], t['host']])
+                      for t in [tags, tags_env2]]
+        _metrics = ['.'.join([t, m, f])
+                    for t in tag_values
+                    for f in fields.keys() if not '.' in f
+                    for m in measurements]
+        expected = sorted(_metrics)
+        self.assertEqual(node_paths, expected,
+                         msg="Expected %s nodes - got %s" % (
+                             len(expected), len(node_paths)))
+        _, multi_tag_data = self.finder.fetch_multi(nodes,
+                                          int(self.start_time.strftime("%s")),
+                                          int(self.end_time.strftime("%s")))
+        for metric in _metrics:
+            datapoints = [v for v in multi_tag_data[metric] if v]
+            self.assertTrue(len(datapoints) == self.num_datapoints,
+                            msg="Expected %s datapoints for %s - got %s" % (
+                                self.num_datapoints, metric, len(datapoints),))
+
     def test_tagged_data_no_template_config(self):
         del self.finder
         self.config['influxdb']['templates'] = None
