@@ -149,19 +149,26 @@ def get_aggregation_func(path, aggregation_functions):
 def read_influxdb_values(influxdb_data, paths, fields):
     """Return key -> values dict for values from InfluxDB data"""
     _data = {}
-    for i in range(len(influxdb_data.keys())):
-        for field in fields:
-            infl_key = influxdb_data.keys()[i][0]
-            if field == 'value':
-                metric = paths[i]
-            else:
-                try:
-                    metric = [p for p in paths
-                              if infl_key in p and field in p][0]
-                except IndexError:
-                    continue
-            _data[metric] = [d[field]
-                             for d in influxdb_data.get_points(infl_key)]
+    if not type(influxdb_data) == type([]):
+        influxdb_data = [influxdb_data]
+    for infl_data in influxdb_data:
+        for i in range(len(infl_data.keys())):
+            for field in fields:
+                infl_key = infl_data.keys()[i][0]
+                if field == 'value':
+                    metric = paths[i]
+                else:
+                    try:
+                        metric = [p for p in paths
+                                  if infl_key in p and field in p][0]
+                    except IndexError:
+                        continue
+                    else:
+                        # Delete metric from paths so that subsequent searches
+                        # for differing tag values do not overwrite its data
+                        del paths[paths.index(metric)]
+                _data[metric] = [d[field]
+                                 for d in infl_data.get_points(infl_key)]
     return _data
 
 def gen_memcache_pattern_key(pattern):
