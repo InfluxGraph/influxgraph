@@ -58,6 +58,20 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.setup_db()
         self.finder = influxgraph.InfluxDBFinder(self.config)
 
+    def write_data(self, measurements, tags, fields):
+        data = [{
+            "measurement": measurement,
+            "tags": tags,
+            "time": _time,
+            "fields": fields,
+            }
+            for measurement in measurements
+            for _time in [
+                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                ]]
+        self.assertTrue(self.client.write_points(data))
+
     def setup_db(self):
         try:
             self.client.drop_database(self.db_name)
@@ -125,7 +139,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                         msg="Expected %s datapoints for %s - got %s" % (
                             self.num_datapoints, serie, len(datapoints),))
 
-    def test_multiple_templates(self):
+    def test_template_drop_path_part(self):
         del self.finder
         # Filter out first part of metric, keep the remainder as
         # measurement name
@@ -168,6 +182,69 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(nodes, expected,
                          msg="Got sub branch query result %s - wanted %s" % (
                              nodes, expected,))
+
+    def test_multiple_templates(self):
+        del self.finder
+        templates = ["*.diskio. host.measurement.name.field*",
+                     "*.disk. host.measurement.path.field*",
+                     "*.cpu. host.measurement.cpu.field*",
+                     "host.measurement.field*",
+                     ]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        measurements = ['cpu', 'diskio', 'disk']
+        fields = [{'load': 1, 'idle': 1,
+                  'usage': 1, 'user': 1,
+                  },
+                 {'io_time': 1,
+                  'read_bytes': 1,
+                  'write_bytes': 1,
+                  'read_time': 1,
+                  'write_time': 1,
+                  },
+                 {'free': 1,
+                  'total': 1,
+                  'used': 1,
+                 }]
+        tags = [{'host': 'my_host',
+                'cpu': 'cpu-total'
+                },
+                {'host': 'my_host',
+                'name': 'sda',
+                },
+                {'host': 'my_host',
+                 'path': 'somepath',
+                }]
+        for i in range(len(measurements)):
+            self.write_data([measurements[i]], tags[i], fields[i])
+        self.config['influxdb']['templates'] = templates
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        metrics_cpu = ['.'.join([tags[0]['host'], measurements[0], tags[0]['cpu'], f])
+                       for f in fields[0].keys()]
+        metrics_diskio = ['.'.join([tags[1]['host'], measurements[1], tags[1]['name'], f])
+                           for f in fields[1].keys()]
+        metrics_disk = ['.'.join([tags[2]['host'], measurements[2], tags[2]['path'], f])
+                        for f in fields[2].keys()]
+        cpu_query = Query('%s.%s.*.*' % (tags[0]['host'], measurements[0],))
+        diskio_query = Query('%s.%s.*.*' % (tags[1]['host'], measurements[1],))
+        disk_query = Query('%s.%s.*.*' % (tags[2]['host'], measurements[2],))
+        cpu_nodes = list(self.finder.find_nodes(cpu_query))
+        diskio_nodes = list(self.finder.find_nodes(diskio_query))
+        disk_nodes = list(self.finder.find_nodes(disk_query))
+        for i in range(len([cpu_nodes, diskio_nodes, disk_nodes])):
+            nodes = [cpu_nodes, diskio_nodes, disk_nodes][i]
+            metrics = [metrics_cpu, metrics_diskio, metrics_disk][i]
+            node_paths = [n.path for n in nodes]
+            self.assertEqual(sorted(node_paths), sorted(metrics))
+        for nodes in [cpu_nodes, diskio_nodes, disk_nodes]:
+            _, data = self.finder.fetch_multi(cpu_nodes,
+                                              int(self.start_time.strftime("%s")),
+                                              int(self.end_time.strftime("%s")))
+            for metric in metrics_cpu:
+                datapoints = [v for v in data[metric] if v]
+                self.assertTrue(len(datapoints) == self.num_datapoints,
+                                msg="Expected %s datapoints for %s - got %s" % (
+                                    self.num_datapoints, metric, len(datapoints),))
 
     def test_template_measurement_first(self):
         del self.finder
