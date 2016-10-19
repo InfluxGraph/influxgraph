@@ -343,6 +343,8 @@ class InfluxDBFinder(object):
                     field = 'value'
                 if not field in _fields:
                     _fields.append(field)
+            if _measurements:
+                break
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
@@ -351,7 +353,7 @@ class InfluxDBFinder(object):
                      for tag in _tags] \
                      if _tags else None
         tag_pairs = itertools.product(*tag_sets)
-        tags = ["AND ".join(t) for t in tag_pairs]
+        tags = [" AND ".join(t) for t in tag_pairs]
         fields = _fields if _fields else ['value']
         return measurements, tags, fields
 
@@ -377,7 +379,7 @@ class InfluxDBFinder(object):
                                   for field in fields])
         query = 'select %s from %s where (time > %ds and time <= %ds) ' % (
             query_fields, measurement, start_time, end_time,)
-        group_by = 'GROUP BY time(%ss)' % (interval,)
+        group_by = ' GROUP BY time(%ss)' % (interval,)
         if tags:
             _queries = []
             _query = query
@@ -410,7 +412,6 @@ class InfluxDBFinder(object):
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return time_info, data
-        logger.debug('fetch_multi() query: %s', query)
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
                      datetime.datetime.fromtimestamp(float(end_time)), interval)
@@ -558,5 +559,7 @@ class InfluxDBFinder(object):
                         split_path.insert(i, tag_val)
                     if 'measurement' in tmpl_tag_key:
                         measurement_ind = i
+                if split_path:
+                    break
         split_path.insert(measurement_ind, paths[0])
         return [p for p in split_path if p]
