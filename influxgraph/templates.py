@@ -83,7 +83,7 @@ def apply_template(metric_path_parts, template, default_tags, separator='.'):
     tags = {}
     field = ""
     for i, tag in template.items():
-        if i > len(metric_path_parts):
+        if i >= len(metric_path_parts):
             continue
         if tag == 'measurement':
             measurement.append(metric_path_parts[i])
