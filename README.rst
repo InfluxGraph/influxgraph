@@ -52,13 +52,14 @@ Main features
 --------------
 
 * InfluxDB Graphite template support - allows for exposure of InfluxDB tagged data as Graphite metrics
-* Dynamically calculated group by intervals based on query date/time range - keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges
+* Dynamically calculated group by intervals based on query date/time range
 * Configurable per-query aggregation functions by regular expression pattern
-* Configurable per-query retention policies by query date/time range. Use pre-calculated downsampled data in a retention policy for historical data dynamically
+* Configurable per-query retention policies by query date/time range. Use pre-calculated downsampled data in a retention policy for historical data automatically
 * In-memory index for metric path queries
 * Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
+* Multi-query support - runs multiple queries in one statement to InfluxDB for metrics in more than one series
 * Memcached integration
-* Python 3 compatibility
+* Python 3 and PyPy compatibility
 
 Goals
 ------
@@ -70,8 +71,8 @@ Goals
 
 The two top points provide both
 
-- A backwards compatible migration path for existing Graphite installations to use InfluxDB as a drop-in storage back-end replacement with no API client side changes required, meaning existing Grafana or other dashboards continue to work as-is
-- A forwards compatible migration path for native InfluxDB collection agents to expose their data as Graphite API compatible metrics which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, multi-series plotting and function support et al
+- A backwards compatible migration path for existing Graphite installations to use InfluxDB as a drop-in storage back-end replacement with no API client side changes required, meaning existing Grafana or other dashboards continue to work as-is.
+- A forwards compatible migration path for native InfluxDB collection agents to expose their data via the *Graphite API* which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, multi-series plotting and function support et al.
 
 As of this time of writing, no alternatives exist with similar functionality and compatibility.
 
@@ -94,15 +95,17 @@ Known Limitations
 InfluxDB Graphite metric templates
 ==================================
 
-This project can make use of any InfluxDB data and expose them as Graphite API compatible metrics, as well as make use of Graphite metrics added to InfluxDB as-is sans tags.
+`InfluxGraph` can make use of any InfluxDB data and expose them as Graphite API metrics, as well as make use of Graphite metrics added to InfluxDB as-is sans tags.
+
+Even data written to InfluxDB by native InfluxDB API clients can be exposed as Graphite metrics, allowing transparent to clients use of the Graphite API with InfluxDB acting as its storage back-end.
 
 To make use of tagged InfluxDB data, the plugin needs to know how to parse a Graphite metric path into the tags used by InfluxDB.
 
-The easiest way to do this is to use the Graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details. This presumes existing metrics collection agents are using the Graphite protocol to write to InfluxDB via its Graphite input service.
+The easiest way to do this is to use the Graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details. This presumes existing metrics collection agents are using the Graphite line protocol to write to InfluxDB via its Graphite input service.
 
-If on the other hand, native `InfluxDB`_ metrics collection agents like `Telegraf <https://www.influxdata.com/time-series-platform/telegraf/>`_ are used, that data can too be exposed as Graphite metrics by writing appropriate template(s) in Graphite-API configuration alone.
+If, on the other hand, native `InfluxDB`_ metrics collection agents like `Telegraf <https://www.influxdata.com/time-series-platform/telegraf/>`_ are used, that data can too be exposed as Graphite metrics by writing appropriate template(s) in Graphite-API configuration alone.
 
-By default, the storage plugin makes no assumptions that data is tagged, per InfluxDB default Graphite plugin configuration as below::
+By default, the storage plugin makes no assumptions that data is tagged, per InfluxDB default Graphite service template configuration as below::
   
   [[graphite]]
     enabled = true
@@ -172,13 +175,14 @@ Full Configuration Example
 	# (Optional) Graphite template configuration
 	# One template per line, identical to InfluxDB Graphite input service template configuration
 	# See https://github.com/influxdata/influxdb/tree/master/services/graphite for template
-	# configuration documentation
+	# configuration documentation.
 	# 
-	# Note that care should be taken so that template configuration results in 
-	# sane measurement and field names that do not override each other and so
-	# that wildcard queries do not have conflicting tags and can be 
-	# satisfied in **one query** by InfluxDB
-	#
+	# Note that care should be taken so that InfluxDB template configuration
+	# results in sane measurement and field names that do not override each other.
+	# 
+	# InfluxGraph will run multiple queries in the same statement where multiple
+	# tag values are requested for the same measurement and/or field.
+	# 
 	# For best InfluxDB performance and so that data can be queried correctly 
 	# by InfluxGraph, fewer measurements with multiple fields are preferred.
 	# 
@@ -191,9 +195,10 @@ Full Configuration Example
 	  ##  Filter, template and extra static tags
 	  # 
 	  # For a metric path `production.my_host.cpu.cpu0.load` the following template will
-	  # filter on metrics starting with `environment`,
-          # use tags `environment`, `host` and `resource` with measurement name `cpu0.load` and
-	  # extra static tags `region` and `agent`
+	  # filter on metrics starting with `production`,
+          # use tags `environment`, `host` and `resource` with measurement name `cpu0.load`
+	  # and extra static tags `region` and `agent` set to `us-east-1` and
+	  # `sensu` respectively
           - production.* environment.host.resource.measurement* region=us-east1,agent=sensu
 	  
 	  # 
@@ -212,7 +217,7 @@ Full Configuration Example
 	  #
 	  ## Measurement with multiple fields
 	  # For metric paths `my_host.cpu-0.cpu-idle`, `my_host.cpu-0.cpu-user` et al, the
-	  # following template will use tags `host` with measurement name `cpu-0` and fields
+	  # following template will use tag `host` with measurement name `cpu-0` and fields
 	  # `cpu-idle`, `cpu-user` et al
 	  - host.measurement.field*
 	  
@@ -348,13 +353,13 @@ For a query spanning 1 month, a 15min interval is used. TTL is also set to 15min
 Calculated intervals
 --------------------
 
-A data `group by` interval is automatically calculated depending on the date/time range of the query.
+A data `group by` interval is automatically calculated depending on the date/time range of the query. This keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges.
 
-This mirrors what `Grafana`_ does when talking directly to InfluxDB.
+Default configuration mirrors what `Grafana`_ uses when talking directly to InfluxDB.
 
 Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Full Configuration Example`_ section for all supported configuration options.
 
-Users that wish to retrieve all data regardless of date/time range are advised to query `InfluxDB`_ directly.
+Users that wish to retrieve all data points regardless of date/time range are advised to query `InfluxDB`_ directly.
 
 
 Varnish caching InfluxDB API
