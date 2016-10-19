@@ -344,7 +344,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         self.assertTrue(self.client.write_points(data))
-        tags_env2 = {'host': 'my_host2',
+        tags_env2 = {'host': 'my_host1',
                      'env': 'my_env2',
                      }
         for d in data:
@@ -356,8 +356,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         query = Query('*.*.*.*')
         nodes = list(self.finder.find_nodes(query))
         node_paths = sorted([n.path for n in nodes])
-        tag_values = ['.'.join([t['env'], t['host']])
-                      for t in [tags, tags_env2]]
+        tag_values = set(['.'.join([t['env'], t['host']])
+                          for t in [tags, tags_env2]])
         _metrics = ['.'.join([t, m, f])
                     for t in tag_values
                     for f in fields.keys() if not '.' in f

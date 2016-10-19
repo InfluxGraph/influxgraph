@@ -28,6 +28,7 @@ import time
 import datetime
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import itertools
 
 try:
     import statsd
@@ -345,28 +346,12 @@ class InfluxDBFinder(object):
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        #
         tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
                      for tag_val in _tags[tag]]
                      for tag in _tags] \
                      if _tags else None
-        tag_set_num = len(tag_sets[0]) if tag_sets else 0
-        tag_pairs = [[
-            tag[i] for tag in tag_sets]
-            for i in range(tag_set_num)]
+        tag_pairs = itertools.product(*tag_sets)
         tags = ["AND ".join(t) for t in tag_pairs]
-        # tags = []
-        # for i in range(tag_set_num):
-        #     tag_set = []
-        #     for tag in tag_sets:
-        #         tag_set.append(tag[i])
-        #     tags.append(tag_set)
-        
-        # tags = []
-        # for tag in __tags:
-        #     for i in range(len(tag)):
-        #         tags.append(tag[i])
-        # import ipdb; ipdb.set_trace()
         fields = _fields if _fields else ['value']
         return measurements, tags, fields
 
@@ -402,7 +387,8 @@ class InfluxDBFinder(object):
                 _queries.append(_query)
                 _query = query
             query = ';'.join(_queries)
-        # import ipdb; ipdb.set_trace()
+        else:
+            query += group_by
         return query, memcache_key, fields
     
     def fetch_multi(self, nodes, start_time, end_time):
