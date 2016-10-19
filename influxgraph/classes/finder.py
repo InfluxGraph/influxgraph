@@ -460,7 +460,6 @@ class InfluxDBFinder(object):
         logger.info("Building index..")
         index = NodeTreeIndex()
         for serie in data:
-            # import ipdb; ipdb.set_trace()
             # If we have metrics with tags in them split them out and
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
