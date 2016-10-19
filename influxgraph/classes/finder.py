@@ -325,7 +325,7 @@ class InfluxDBFinder(object):
 
     def _gen_query_values_from_templates(self, paths, retention):
         _measurements = []
-        _tags = []
+        _tags = {}
         _fields = []
         for (_filter, template, default_tags, separator) in self.graphite_templates:
             for path in paths:
@@ -335,8 +335,9 @@ class InfluxDBFinder(object):
                     path.split('.'), template, default_tags, separator)
                 if not measurement in _measurements:
                     _measurements.append(measurement)
-                if not tags in _tags:
-                    _tags.append(tags)
+                for tag in tags:
+                    if not tag in _tags or not tags[tag] in _tags[tag]:
+                        _tags.setdefault(tag, []).append(tags[tag])
                 if not field:
                     field = 'value'
                 if not field in _fields:
@@ -344,10 +345,28 @@ class InfluxDBFinder(object):
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        tags = "AND ".join([""""%s" = '%s' """ % (key, val,)
-                            for tag in _tags
-                            for (key, val) in tag.items()]) \
-          if _tags else None
+        #
+        tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
+                     for tag_val in _tags[tag]]
+                     for tag in _tags] \
+                     if _tags else None
+        tag_set_num = len(tag_sets[0]) if tag_sets else 0
+        tag_pairs = [[
+            tag[i] for tag in tag_sets]
+            for i in range(tag_set_num)]
+        tags = ["AND ".join(t) for t in tag_pairs]
+        # tags = []
+        # for i in range(tag_set_num):
+        #     tag_set = []
+        #     for tag in tag_sets:
+        #         tag_set.append(tag[i])
+        #     tags.append(tag_set)
+        
+        # tags = []
+        # for tag in __tags:
+        #     for i in range(len(tag)):
+        #         tags.append(tag[i])
+        # import ipdb; ipdb.set_trace()
         fields = _fields if _fields else ['value']
         return measurements, tags, fields
 
@@ -373,10 +392,17 @@ class InfluxDBFinder(object):
                                   for field in fields])
         query = 'select %s from %s where (time > %ds and time <= %ds) ' % (
             query_fields, measurement, start_time, end_time,)
-        if tags:
-            query += "AND %s" % (tags,)
         group_by = 'GROUP BY time(%ss)' % (interval,)
-        query += group_by
+        if tags:
+            _queries = []
+            _query = query
+            for tag in tags:
+                _query += "AND %s" % (tag,)
+                _query += group_by
+                _queries.append(_query)
+                _query = query
+            query = ';'.join(_queries)
+        # import ipdb; ipdb.set_trace()
         return query, memcache_key, fields
     
     def fetch_multi(self, nodes, start_time, end_time):
