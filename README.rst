@@ -35,6 +35,8 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
     finders:
       - influxgraph.InfluxDBFinder
 
+See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ for additional configuration examples.
+
 Docker Image
 -------------
 
@@ -164,7 +166,7 @@ Full Configuration Example
 	## Logging configuration
 	# 
         # Log to file (optional). Default is no finder specific logging.
-        log_file: /var/log/graphite_influxdb_finder/graphite_influxdb_finder.log
+        log_file: /var/log/influxgraph/influxgraph_finder.log
         # Log file logging level (optional)
         # Values are standard logging levels - `info`, `debug`, `warning`, `critical` et al
         # Default is `info`
@@ -328,7 +330,7 @@ Defaults are overridden if ``aggregation_functions`` is configured in ``graphite
 
 An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
 
-Known InfluxDB aggregation functions are defined at ``graphite_influxdb.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
+Known InfluxDB aggregation functions are defined at ``influxgraph.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
 
 .. note::
 
@@ -387,7 +389,7 @@ Substitute the default ``8086`` backend port with the InfluxDB API port for your
 Graphite API example configuration ::
 
   finders:
-    - graphite_influxdb.InfluxdbFinder
+    - influxgraph.InfluxDBFinder
   influxdb:
     db: graphite
     port: <varnish port>
