@@ -546,8 +546,8 @@ class InfluxDBFinder(object):
         split_path = []
         tags_values = [p.split('=') for p in paths[1:]]
         measurement_ind = None
-        for (tag_key, tag_val) in tags_values:
-            for (_, template, _, separator) in self.graphite_templates:
+        for (_, template, _, separator) in self.graphite_templates:
+            for (tag_key, tag_val) in tags_values:
                 for i, tmpl_tag_key in template.items():
                     # Add None where template is skipping part of metric path
                     # so that indices add tags/measurement
@@ -557,9 +557,22 @@ class InfluxDBFinder(object):
                         continue
                     if tag_key == tmpl_tag_key:
                         split_path.insert(i, tag_val)
-                    if 'measurement' in tmpl_tag_key:
+                    elif 'measurement' in tmpl_tag_key:
                         measurement_ind = i
-                if split_path:
-                    break
-        split_path.insert(measurement_ind, paths[0])
-        return [p for p in split_path if p]
+            # Split path should be at least as large as number of template tags
+            # taking into account measurement and number of fields in template
+            field_inds = len([v for v in template.values() if v and 'field' in v])
+            if (len(split_path) + 1 + field_inds) >= len(template.keys()):
+                logger.debug("Matched template %s with split path %s and "
+                             "tags %s", template, split_path, tags_values)
+                split_path.insert(measurement_ind, paths[0])
+                break
+            else:
+                logger.debug("Resetting split path for template %s",
+                             template,)
+                split_path = []
+                measurement_ind = None
+        path = [p for p in split_path if p]
+        logger.debug("Parsed metric path %s from template %s",
+                     path, template)
+        return path
