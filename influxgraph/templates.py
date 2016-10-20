@@ -22,7 +22,7 @@ import logging
 
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
 
-logger = logging.getLogger('graphite_influxdb')
+logger = logging.getLogger('influxgraph')
 
 
 class InvalidTemplateError(Exception):

@@ -51,7 +51,7 @@ from .tree import NodeTreeIndex
 
 _SERIES_LOADER_LOCK = processLock()
 
-logger = logging.getLogger('graphite_influxdb')
+logger = logging.getLogger('influxgraph')
 
 
 class InfluxDBFinder(object):
@@ -400,7 +400,7 @@ class InfluxDBFinder(object):
         """Fetch datapoints for all series between start and end times
         
         :param nodes: List of nodes to retrieve data for
-        :type nodes: list(:mod:`graphite_influxdb.classes.InfluxDBLeafNode`)
+        :type nodes: list(:mod:`influxgraph.classes.InfluxDBLeafNode`)
         :param start_time: Start time of query
         :param end_time: End time of query
         """
@@ -452,6 +452,12 @@ class InfluxDBFinder(object):
                 logger.error("Error occured in reindexing thread - %s", ex)
     
     def build_index(self, data=None):
+        """Build new node tree index
+
+        :param data: (Optional) data to use to build index
+        :type data: InfluxDB series data as returned by
+        :mod:``influxgraph.classes.InfluxDBFinder.get_all_series`
+        """
         logger.info('Starting index build')
         try:
             data = self.get_all_series() if not data else data
@@ -476,10 +482,10 @@ class InfluxDBFinder(object):
         self.index = index
         logger.info("Finished building index")
         self.index_lock.release()
-        del data
         self.save_index()
     
     def save_index(self):
+        """Save index to file"""
         if not self.index_path:
             return
         try:
@@ -492,6 +498,7 @@ class InfluxDBFinder(object):
         logger.info("Wrote index file to %s", self.index_path)
     
     def load_index(self):
+        """Load index from file"""
         if not self.index_path:
             return
         try:
@@ -520,18 +527,7 @@ class InfluxDBFinder(object):
     def _get_series_with_fields(self, serie):
         paths = serie.split(',')
         if not self.graphite_templates:
-            # logger.debug("Found tagged series in DB with no templates configured, "
-            #              "guessing structure from tags - configuration needs updating..")
-            # for (tag_key, tag_val) in tags_values:
-            #     # import ipdb; ipdb.set_trace()
-            #     if 'host' or 'hostname' in tag_key:
-            #         split_path.insert(0, tag_val)
-            #         continue
-            #     split_path.append(tag_val)
-            #     # TODO - check field keys
             return [paths[0:1]]
-        # split_path.append(paths[0])
-        # return split_path
         series = []
         for (_, template, _, _) in self.graphite_templates:
             if 'field' in template.values() or 'field*' in template.values():

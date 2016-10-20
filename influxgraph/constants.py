@@ -33,7 +33,7 @@ DEFAULT_AGGREGATIONS = {r'\.min$' : 'min',
 
 # Tell influxdb to return time as seconds from epoch
 _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
-SERIES_LOADER_MUTEX_KEY = 'graphite_influxdb_series_loader'
+SERIES_LOADER_MUTEX_KEY = 'influxgraph_series_loader'
 MEMCACHE_SERIES_DEFAULT_TTL = 1800
 LOADER_LIMIT = 100000
 
