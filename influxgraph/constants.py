@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Constants and default settings for InfluxGraph"""
+
 # https://influxdb.com/docs/v0.9/query_language/functions.html
 # NB - Transformation functions like derivative are invalid without an aggregation
 # when used in a 'group by' query - we leave those to graphite-api to perform
@@ -23,10 +25,10 @@ INFLUXDB_AGGREGATIONS = [
     # selectors
     'bottom', 'first', 'last', 'max', 'min', 'percentile', 'top']
 
-DEFAULT_AGGREGATIONS = {'\.min$' : 'min',
-                        '\.max$' : 'max',
-                        '\.last$' : 'last',
-                        '\.sum$' : 'sum',
+DEFAULT_AGGREGATIONS = {r'\.min$' : 'min',
+                        r'\.max$' : 'max',
+                        r'\.last$' : 'last',
+                        r'\.sum$' : 'sum',
                         }
 
 # Tell influxdb to return time as seconds from epoch

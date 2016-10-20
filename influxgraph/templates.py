@@ -17,18 +17,20 @@
 """Graphite template parsing functions per InfluxDB's Graphite service template syntax"""
 
 from __future__ import absolute_import, print_function
-from .constants import GRAPHITE_PATH_REGEX_PATTERN
 import re
 import logging
+
+from .constants import GRAPHITE_PATH_REGEX_PATTERN
 
 logger = logging.getLogger('graphite_influxdb')
 
 
 class InvalidTemplateError(Exception):
+    """Raised on Graphite template configuration validation errors"""
     pass
 
 
-def _parse_influxdb_graphite_templates(templates, separator='.', default=None):
+def _parse_influxdb_graphite_templates(templates, separator='.'):
     # Logic converted to Python from InfluxDB's Golang Graphite template parsing
     # Format is [filter] <template> [tag1=value1,tag2=value2]
     parsed_templates = []
@@ -117,8 +119,7 @@ def generate_filter_regex(_filter):
 def _generate_template_tag_index(template):
     _tags = template.split('.')
     tags = {}
-    for i in range(len(_tags)):
-        tag = _tags[i]
+    for i, tag in enumerate(_tags):
         if not tag:
             tag = None
         tags[i] = tag
