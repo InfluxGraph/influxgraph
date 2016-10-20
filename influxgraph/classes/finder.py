@@ -42,7 +42,7 @@ from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      DEFAULT_AGGREGATIONS
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     Query, get_retention_policy, _compile_aggregation_patterns
+     Query, get_retention_policy, _compile_aggregation_patterns, heapsort
 from ..templates import _parse_influxdb_graphite_templates, apply_template
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
@@ -324,7 +324,7 @@ class InfluxDBFinder(object):
         aggregation_func = aggregation_funcs[0]
         return aggregation_func
 
-    def _gen_query_values_from_templates(self, paths, retention):
+    def _get_all_template_values(self, paths):
         _measurements = []
         _tags = {}
         _fields = []
@@ -334,10 +334,10 @@ class InfluxDBFinder(object):
                     continue
                 measurement, tags, field = apply_template(
                     path.split('.'), template, default_tags, separator)
-                if not measurement in _measurements:
+                if measurement not in _measurements:
                     _measurements.append(measurement)
                 for tag in tags:
-                    if not tag in _tags or not tags[tag] in _tags[tag]:
+                    if tag not in _tags or tags[tag] not in _tags[tag]:
                         _tags.setdefault(tag, []).append(tags[tag])
                 if not field:
                     field = 'value'
@@ -345,6 +345,10 @@ class InfluxDBFinder(object):
                     _fields.append(field)
             if _measurements:
                 break
+        return _measurements, _tags, _fields
+
+    def _gen_query_values_from_templates(self, paths, retention):
+        _measurements, _tags, _fields = self._get_all_template_values(paths)
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
@@ -375,8 +379,7 @@ class InfluxDBFinder(object):
         if not fields:
             fields = ['value']
         query_fields = ', '.join(['%s("%s") as "%s"'  % (
-            aggregation_func, field, field)
-                                  for field in fields])
+            aggregation_func, field, field) for field in fields])
         query = 'select %s from %s where (time > %ds and time <= %ds) ' % (
             query_fields, measurement, start_time, end_time,)
         group_by = ' GROUP BY time(%ss)' % (interval,)
@@ -545,34 +548,28 @@ class InfluxDBFinder(object):
     def _split_series_with_tags(self, paths):
         split_path = []
         tags_values = [p.split('=') for p in paths[1:]]
-        measurement_ind = None
+        measurement_found = False
         for (_, template, _, separator) in self.graphite_templates:
             for (tag_key, tag_val) in tags_values:
                 for i, tmpl_tag_key in template.items():
-                    # Add None where template is skipping part of metric path
-                    # so that indices add tags/measurement
-                    # in correct position
                     if not tmpl_tag_key:
-                        split_path.append(None)
                         continue
                     if tag_key == tmpl_tag_key:
-                        split_path.insert(i, tag_val)
-                    elif 'measurement' in tmpl_tag_key:
-                        measurement_ind = i
-            # Split path should be at least as large as number of template tags
-            # taking into account measurement and number of fields in template
-            field_inds = len([v for v in template.values() if v and 'field' in v])
-            if (len(split_path) + 1 + field_inds) >= len(template.keys()):
-                logger.debug("Matched template %s with split path %s and "
-                             "tags %s", template, split_path, tags_values)
-                split_path.insert(measurement_ind, paths[0])
+                        split_path.append((i, tag_val))
+                    elif 'measurement' in tmpl_tag_key and not measurement_found:
+                        measurement_found = True
+                        split_path.append((i, paths[0]))
+            # Split path should be at least as large as number of wanted
+            # template tags taking into account measurement and number of fields
+            # in template
+            field_inds = len([v for v in template.values()
+                              if v and 'field' in v])
+            if (len(split_path) + field_inds) >= len(
+                    [k for k, v in template.items() if v]):
                 break
             else:
-                logger.debug("Resetting split path for template %s",
-                             template,)
+                # Reset path and measurement flag if template does not match
                 split_path = []
-                measurement_ind = None
-        path = [p for p in split_path if p]
-        logger.debug("Parsed metric path %s from template %s",
-                     path, template)
+                measurement_found = False
+        path = [p[1] for p in heapsort(split_path)]
         return path

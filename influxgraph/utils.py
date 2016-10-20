@@ -21,11 +21,14 @@ import datetime
 import sys
 import re
 import hashlib
+from heapq import heappush, heappop
+
 from .constants import INFLUXDB_AGGREGATIONS
+
 
 def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
-    
+
     Returns interval in seconds
     :param start_time: Start time in seconds from epoch
     :param end_time: End time in seconds from epoch
@@ -34,7 +37,7 @@ def calculate_interval(start_time, end_time, deltas=None):
     :param deltas: Delta configuration to use. Defaults hardcoded if no
     configuration is provided
     :type deltas: dict(max time range of query in seconds: interval to use in seconds)
-    
+
     :rtype: int - *Interval in seconds*
     """
     time_delta = end_time - start_time
@@ -86,6 +89,7 @@ def get_retention_policy(interval, retention_policies):
     return retention_policies[max(sorted(retention_policies.keys()))]
 
 class Query(object):
+    """Graphite-API compatible query class"""
 
     def __init__(self, pattern):
         self.pattern = pattern
@@ -149,7 +153,7 @@ def get_aggregation_func(path, aggregation_functions):
 def read_influxdb_values(influxdb_data, paths, fields):
     """Return key -> values dict for values from InfluxDB data"""
     _data = {}
-    if not type(influxdb_data) == type([]):
+    if not isinstance(influxdb_data, list):
         influxdb_data = [influxdb_data]
     for infl_data in influxdb_data:
         for i in range(len(infl_data.keys())):
@@ -183,3 +187,10 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
+
+# Function as per Python official documentation
+def heapsort(iterable):
+    h = []
+    for value in iterable:
+        heappush(h, value)
+    return [heappop(h) for _ in range(len(h))]

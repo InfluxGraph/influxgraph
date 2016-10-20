@@ -246,6 +246,26 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                                 msg="Expected %s datapoints for %s - got %s" % (
                                     self.num_datapoints, metric, len(datapoints),))
 
+    def test_template_multiple_tags(self):
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        template = "*.disk. host.measurement.path.fstype.field*"
+        measurement = 'disk'
+        tags = {'host': 'my_host',
+                'path': '/',
+                'fstype': 'ext4',
+                }
+        fields = {'free': 1,
+                  'used': 1,
+                  }
+        self.write_data([measurement], tags, fields)
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        query = Query('%s.%s.%s.%s.*' % (
+            tags['host'], measurement, tags['path'], tags['fstype']))
+        nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in nodes]), sorted(fields.keys()))
+
     def test_template_measurement_first(self):
         del self.finder
         template = "..measurement.host.resource"
@@ -255,30 +275,18 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         tags = {'host': 'my_host',
                 'resource': 'cpu',
                 }
-        data = [{
-            "measurement": measurement,
-            "tags": tags,
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
-            for measurement in measurements
-            for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+        fields = {'value': 1}
+        self.write_data(measurements, tags, fields)
         self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        expected = sorted(dict.fromkeys(measurements + self.measurements).keys())
+        expected = sorted(measurements)
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))
         query = Query('%s.*' % (measurements[0]))
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        expected = sorted([tags['host'], self.tags[self.paths[1]]])
+        expected = [tags['host']]
         self.assertEqual(nodes, expected,
                          msg="Got query %s result %s - wanted %s" % (
                              query.pattern, nodes, expected,))
