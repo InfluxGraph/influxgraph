@@ -460,6 +460,24 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                             msg="Expected %s datapoints for %s - got %s" % (
                                 self.num_datapoints, metric, len(datapoints),))
 
+    def test_field_data_no_template_match(self):
+        del self.finder
+        measurements = ['test']
+        fields = {'field1': 1, 'field2': 2}
+        tags = {'env': 'my_env',
+                'region': 'my_region',
+                'dc': 'dc1'
+                }
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, tags, fields)
+        self.config['influxdb']['templates'] = ['env.template_tag.measurement.field*']
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        query = Query('*')
+        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        expected = []
+        self.assertEqual(nodes, expected)
+
     def test_tagged_data_no_template_config(self):
         del self.finder
         self.config['influxdb']['templates'] = None

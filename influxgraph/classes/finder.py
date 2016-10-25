@@ -535,6 +535,9 @@ class InfluxDBFinder(object):
                 for field in fields:
                     field_key = field.get('fieldKey')
                     split_path = self._split_series_with_tags(paths)
+                    if not split_path:
+                        # No template match
+                        continue
                     split_path.append(field_key)
                     series.append(split_path)
             else:
