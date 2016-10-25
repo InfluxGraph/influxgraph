@@ -44,3 +44,6 @@ LOADER_LIMIT = 100000
 # injection vulnerabilities
 # https://github.com/graphite-project/carbon/issues/417
 GRAPHITE_PATH_REGEX_PATTERN = "[a-zA-Z0-9-_:]"
+
+# Memcache key for field keys list
+_MEMCACHE_FIELDS_KEY = 'infl_fields_key'

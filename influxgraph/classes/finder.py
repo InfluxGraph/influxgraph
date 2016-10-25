@@ -39,7 +39,7 @@ from influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
-     DEFAULT_AGGREGATIONS
+     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns, heapsort
@@ -163,10 +163,10 @@ class InfluxDBFinder(object):
         """Setup log level and log file if set"""
         if logger.handlers:
             return
-        level = getattr(logging, level.upper())
-        logger.setLevel(level)
         formatter = logging.Formatter(
             '[%(levelname)s] %(asctime)s - %(module)s.%(funcName)s() - %(message)s')
+        level = getattr(logging, level.upper())
+        logger.setLevel(level)
         handler = logging.StreamHandler()
         logger.addHandler(handler)
         handler.setFormatter(formatter)
@@ -179,7 +179,7 @@ class InfluxDBFinder(object):
                          log_file)
         else:
             logger.addHandler(_handler)
-            handler.setFormatter(formatter)
+            _handler.setFormatter(formatter)
 
     def get_series(self, cache=True, limit=LOADER_LIMIT, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
@@ -332,6 +332,7 @@ class InfluxDBFinder(object):
             for path in paths:
                 if _filter and not _filter.match(path):
                     continue
+                # import ipdb; ipdb.set_trace()
                 measurement, tags, field = apply_template(
                     path.split('.'), template, default_tags, separator)
                 if measurement not in _measurements:
@@ -466,6 +467,7 @@ class InfluxDBFinder(object):
                          "Retrying after 30sec..", ex)
             time.sleep(30)
             return self.build_index()
+        all_fields = self._get_field_keys()
         # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
@@ -475,7 +477,7 @@ class InfluxDBFinder(object):
             # to be inserted into index
             if ',' in serie:
                 for split_path in self._get_series_with_fields(
-                        serie, separator=separator):
+                        serie, all_fields, separator=separator):
                     index.insert_split_path(split_path)
             else:
                 index.insert(serie)
@@ -521,18 +523,27 @@ class InfluxDBFinder(object):
         logger.info("Loaded index from disk")
 
         
-    def _get_field_keys(self, measurement):
-        field_keys = self.client.query('SHOW FIELD KEYS FROM "%s"' % (measurement,))
-        return field_keys[measurement]
+    def _get_field_keys(self):
+        field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
+          if self.memcache else None
+        if field_keys:
+            logger.debug("Found field keys in memcache")
+            return field_keys
+        logger.debug("Calling InfluxDB for field keys")
+        field_keys = self.client.query('SHOW FIELD KEYS')
+        if self.memcache:
+            self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
+                              time=self.memcache_ttl)
+        return field_keys
 
-    def _get_series_with_fields(self, serie, separator='.'):
+    def _get_series_with_fields(self, serie, all_fields, separator='.'):
         paths = serie.split(',')
         if not self.graphite_templates:
             return [paths[0:1]]
         series = []
         for (_, template, _, _) in self.graphite_templates:
             if 'field' in template.values() or 'field*' in template.values():
-                fields = self._get_field_keys(paths[0])
+                fields = all_fields[paths[0]]
                 for field in fields:
                     field_key = field.get('fieldKey')
                     split_path = self._split_series_with_tags(paths)

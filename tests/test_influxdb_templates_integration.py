@@ -10,7 +10,7 @@ import influxgraph
 import influxgraph.utils
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
-     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT
+     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, _MEMCACHE_FIELDS_KEY
 from influxdb import InfluxDBClient
 from influxgraph.templates import InvalidTemplateError
 
@@ -546,6 +546,13 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
         self.config['influxdb']['templates'] = ['host.field.field']
         self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
+
+    def test_memcache_field_keys(self):
+        self.config['influxdb']['memcache'] = {'host': 'localhost'}
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        self.finder.memcache.delete(_MEMCACHE_FIELDS_KEY)
+        self.finder._get_field_keys()
+        self.assertTrue(self.finder.memcache.get(_MEMCACHE_FIELDS_KEY))
 
 if __name__ == '__main__':
     unittest.main()
