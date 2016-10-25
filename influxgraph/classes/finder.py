@@ -451,7 +451,7 @@ class InfluxDBFinder(object):
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
     
-    def build_index(self, data=None):
+    def build_index(self, data=None, separator='.'):
         """Build new node tree index
 
         :param data: (Optional) data to use to build index
@@ -474,7 +474,8 @@ class InfluxDBFinder(object):
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if ',' in serie:
-                for split_path in self._get_series_with_fields(serie):
+                for split_path in self._get_series_with_fields(
+                        serie, separator=separator):
                     index.insert_split_path(split_path)
             else:
                 index.insert(serie)
@@ -524,7 +525,7 @@ class InfluxDBFinder(object):
         field_keys = self.client.query('SHOW FIELD KEYS FROM "%s"' % (measurement,))
         return field_keys[measurement]
 
-    def _get_series_with_fields(self, serie):
+    def _get_series_with_fields(self, serie, separator='.'):
         paths = serie.split(',')
         if not self.graphite_templates:
             return [paths[0:1]]
@@ -535,7 +536,10 @@ class InfluxDBFinder(object):
                 for field in fields:
                     field_key = field.get('fieldKey')
                     split_path = self._split_series_with_tags(paths)
-                    split_path.append(field_key)
+                    if not split_path:
+                        # No template match
+                        continue
+                    split_path.extend(field_key.split(separator))
                     series.append(split_path)
             else:
                 series.append(self._split_series_with_tags(paths))
