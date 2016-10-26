@@ -37,7 +37,7 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
 
 See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for additional examples.
 
-.. contents::
+.. contents:: Table of Contents
 
 Docker Image
 -------------
