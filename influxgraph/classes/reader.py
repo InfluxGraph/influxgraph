@@ -81,7 +81,7 @@ class InfluxDBReader(object):
                                'unit_is_ms',
                                'what_is_query_individual_duration'])
         _query = 'select %s(value) as value from "%s" where (time > %ds and ' \
-            'time <= %ds) GROUP BY time(%ss)' % (
+            'time <= %ds) GROUP BY time(%ss) fill(previous)' % (
                 aggregation_func, self.path, start_time, end_time, interval,)
         logger.debug("fetch() path=%s querying influxdb query: '%s'",
                      self.path, _query)

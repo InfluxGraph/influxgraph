@@ -36,7 +36,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.measurements = ['cpu', 'memory', 'load', 'iops']
         self.graphite_series = ["%s" % (".".join(
             [self.tags[p] for p in self.paths] + [m])) for m in self.measurements]
-        self.step, self.num_datapoints, self.db_name = 60, 2, 'integration_test'
+        self.step, self.num_datapoints, self.db_name = 60, 31, 'integration_test'
         self.start_time, self.end_time = (datetime.datetime.utcnow() - datetime.timedelta(hours=1)), \
           datetime.datetime.utcnow()
         self.steps = int(round((int(self.end_time.strftime("%s")) - \

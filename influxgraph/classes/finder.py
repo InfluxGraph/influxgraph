@@ -382,7 +382,7 @@ class InfluxDBFinder(object):
             aggregation_func, field, field) for field in fields])
         query = 'select %s from %s where (time > %ds and time <= %ds) ' % (
             query_fields, measurement, start_time, end_time,)
-        group_by = ' GROUP BY time(%ss)' % (interval,)
+        group_by = ' GROUP BY time(%ss) fill(previous)' % (interval,)
         if tags:
             _queries = []
             _query = query

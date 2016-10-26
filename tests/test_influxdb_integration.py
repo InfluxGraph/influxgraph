@@ -42,7 +42,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.client.write_points(data))
 
     def setUp(self):
-        self.step, self.num_datapoints, self.db_name = 60, 2, 'integration_test'
+        self.step, self.num_datapoints, self.db_name = 60, 31, 'integration_test'
         self.start_time, self.end_time = (datetime.datetime.utcnow() - datetime.timedelta(hours=1)), \
           datetime.datetime.utcnow()
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
