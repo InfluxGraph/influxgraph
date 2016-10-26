@@ -483,7 +483,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         # self.assertEqual(nodes, expected)
 
     def test_tagged_data_multi_greedy_field(self):
-        # cpu,application_short_name=influxdb,building_id=b00312,environment_class=development,hostname=compass-int-infl-02,metric_group=compass_metrics,region=amers3
         del self.finder
         measurements = ['cpu']
         fields = {'cpu0.load': 1, 'cpu0.idle': 1,
@@ -537,6 +536,32 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         _, data = self.finder.fetch_multi(nodes, int(self.start_time.strftime("%s")),
                                           int(self.end_time.strftime("%s")))
         metrics = [n.path for n in nodes]
+        for metric in metrics:
+            datapoints = [v for v in data[metric] if v]
+            self.assertTrue(len(datapoints) == self.num_datapoints)
+
+    def test_field_template_with_value_field(self):
+        template = "env.host.measurement.field*"
+        del self.finder
+        measurements = ['cpuusage']
+        fields = {'value': 1}
+        tags = {'host': 'my_host1',
+                'env': 'my_env1',
+                }
+        metrics = ['.'.join([tags['env'], tags['host'], m])
+                   for m in measurements]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, tags, fields)
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        cpu_nodes = list(self.finder.find_nodes(Query('my_env1.my_host1.*')))
+        expected = measurements
+        self.assertEqual([n.name for n in cpu_nodes], expected)
+        nodes = list(self.finder.find_nodes(Query('my_env1.my_host1.*.*')))
+        self.assertEqual(nodes, [])
+        _, data = self.finder.fetch_multi(cpu_nodes, int(self.start_time.strftime("%s")),
+                                          int(self.end_time.strftime("%s")))
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints)

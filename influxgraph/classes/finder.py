@@ -332,7 +332,6 @@ class InfluxDBFinder(object):
             for path in paths:
                 if _filter and not _filter.match(path):
                     continue
-                # import ipdb; ipdb.set_trace()
                 measurement, tags, field = apply_template(
                     path.split('.'), template, default_tags, separator)
                 if measurement not in _measurements:
@@ -467,7 +466,7 @@ class InfluxDBFinder(object):
                          "Retrying after 30sec..", ex)
             time.sleep(30)
             return self.build_index()
-        all_fields = self._get_field_keys()
+        all_fields = self.get_field_keys()
         # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
@@ -523,7 +522,8 @@ class InfluxDBFinder(object):
         logger.info("Loaded index from disk")
 
         
-    def _get_field_keys(self):
+    def get_field_keys(self):
+        """Get field keys for all measurements"""
         field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
           if self.memcache else None
         if field_keys:
@@ -550,7 +550,8 @@ class InfluxDBFinder(object):
                     if not split_path:
                         # No template match
                         continue
-                    split_path.extend(field_key.split(separator))
+                    split_path.extend([f for f in field_key.split(separator)
+                                       if f != 'value'])
                     series.append(split_path)
             else:
                 series.append(self._split_series_with_tags(paths))
