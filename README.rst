@@ -35,7 +35,9 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
     finders:
       - influxgraph.InfluxDBFinder
 
-See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ for additional configuration examples.
+See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for additional examples.
+
+.. contents::
 
 Docker Image
 -------------
@@ -51,7 +53,7 @@ There will now be a Graphite-API running on ``localhost:8000`` from the containe
 To use a modified Graphite-API config either build a new image from ``ikuosu/influxgraph`` with a ``graphite-api.yaml`` in the directory where ``docker build`` is called or edit the file on the container and kill gunicorn processes to make them restart.
 
 Main features
---------------
+==============
 
 * InfluxDB Graphite template support - allows for exposure of InfluxDB tagged data as Graphite metrics
 * Dynamically calculated group by intervals based on query date/time range
@@ -64,10 +66,10 @@ Main features
 * Python 3 and PyPy compatibility
 
 Goals
-------
+======
 
 * Backwards compatibility with existing Graphite API clients like Grafana and Graphite installations migrated to InfluxDB backends using Graphite input service *with or without* Graphite template configuration
-* Forwards compatibility with native InfluxDB API input data exposed as Graphite metrics
+* Forwards compatibility with native InfluxDB API input data exposed via Graphite API
 * Clean, readable code with complete documentation for public endpoints
 * Complete code coverage with both unit and integration testing. Code has `>90%` test coverage and is integration tested against a real InfluxDB service
 
@@ -79,7 +81,7 @@ The two top points provide both
 As of this time of writing, no alternatives exist with similar functionality and compatibility.
 
 Dependencies
--------------
+=============
 
 With the exception of `InfluxDB`_ itself, the other dependencies are installed automatically by ``pip``.
 
@@ -87,12 +89,6 @@ With the exception of `InfluxDB`_ itself, the other dependencies are installed a
 * `Graphite-API`_
 * ``python-memcached`` Python module
 * `InfluxDB`_ service
-
-Known Limitations
--------------------
-
-- In memory index can use *a lot* of memory in InfluxDB installations with a large number of unique metrics (> 1M). `Pypy <http://pypy.org>`_ is recommended in that case which allows for a much lower memory footprint compared to the CPython intepreter.
-
 
 InfluxDB Graphite metric templates
 ==================================
@@ -106,6 +102,8 @@ To make use of tagged InfluxDB data, the plugin needs to know how to parse a Gra
 The easiest way to do this is to use the Graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details. This presumes existing metrics collection agents are using the Graphite line protocol to write to InfluxDB via its Graphite input service.
 
 If, on the other hand, native `InfluxDB`_ metrics collection agents like `Telegraf <https://www.influxdata.com/time-series-platform/telegraf/>`_ are used, that data can too be exposed as Graphite metrics by writing appropriate template(s) in Graphite-API configuration alone.
+
+See `Telegraf default configuration template <https://github.com/InfluxGraph/influxgraph/wiki/Telegraf-default-configuration-template>`_ for an example of this.
 
 By default, the storage plugin makes no assumptions that data is tagged, per InfluxDB default Graphite service template configuration as below::
   
@@ -312,7 +310,7 @@ Full Configuration Example
 
 
 Aggregation function configuration
-==================================
+-----------------------------------
 
 The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
 
@@ -397,6 +395,14 @@ Graphite API example configuration ::
 Where ``<varnish_port>`` is Varnish's listening port.
 
 A different HTTP caching service will similarly work just as well.
+
+Known Limitations
+==================
+
+- In memory index can use *a lot* of memory in InfluxDB installations with a large number of unique metrics (> 1M). `Pypy <http://pypy.org>`_ is recommended in that case which allows for a much lower memory footprint compared to the CPython intepreter.
+
+The docker container in this document uses PyPy.
+
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
