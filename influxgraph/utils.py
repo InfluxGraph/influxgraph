@@ -42,26 +42,30 @@ def calculate_interval(start_time, end_time, deltas=None):
     """
     time_delta = end_time - start_time
     deltas = deltas if deltas else {
+        # 15 min -> 10s
+        900: 10,
+        # 30 min -> 30s
+        1800: 30,
         # # 1 hour -> 1s
         # 3600 : 1,
         # # 1 day -> 30s
         # 86400 : 30,
         # 3 days -> 1min
-        259200 : 60,
+        259200: 60,
         # 7 days -> 5min
-        604800 : 300,
+        604800: 300,
         # 14 days -> 10min
-        1209600 : 600,
+        1209600: 600,
         # 28 days -> 15min
-        2419200 : 900,
+        2419200: 900,
         # 2 months -> 30min
-        4838400 : 1800,
+        4838400: 1800,
         # 4 months -> 1hour
-        9676800 : 3600,
+        9676800: 3600,
         # 12 months -> 3hours
-        31536000 : 7200,
+        31536000: 7200,
         # 4 years -> 12hours
-        126144000 : 43200,
+        126144000: 43200,
         }
     for delta in sorted(deltas.keys()):
         if time_delta <= delta:
