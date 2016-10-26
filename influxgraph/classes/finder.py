@@ -241,7 +241,7 @@ class InfluxDBFinder(object):
 
     def get_all_series(self, cache=True,
                        limit=LOADER_LIMIT, offset=0, _data=None):
-        """Retrieve all series for query"""
+        """Retrieve all series"""
         data = self.get_series(
             cache=cache, limit=limit, offset=offset)
         return self._pagination_runner(data, Query('*'), self.get_all_series, cache=cache,
@@ -303,6 +303,11 @@ class InfluxDBFinder(object):
             logger.debug("Series list loader finished in %s", dt)
     
     def find_nodes(self, query):
+        """Find and return nodes matching query
+
+        :param query: Query to search for
+        :type query: :mod:`influxgraph.utils.Query`
+        """
         paths = self.index.query(query.pattern)
         for path in paths:
             if path['is_leaf']:
@@ -455,8 +460,7 @@ class InfluxDBFinder(object):
         """Build new node tree index
 
         :param data: (Optional) data to use to build index
-        :type data: InfluxDB series data as returned by
-        :mod:``influxgraph.classes.InfluxDBFinder.get_all_series`
+        :type data: list
         """
         logger.info('Starting index build')
         try:
@@ -521,7 +525,6 @@ class InfluxDBFinder(object):
         self.index = index
         logger.info("Loaded index from disk")
 
-        
     def get_field_keys(self):
         """Get field keys for all measurements"""
         field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
