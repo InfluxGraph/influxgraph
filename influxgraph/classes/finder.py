@@ -39,7 +39,7 @@ from influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
-     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY
+     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, _FIELD_KEYS_KEY
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns, heapsort
@@ -444,11 +444,11 @@ class InfluxDBFinder(object):
                               time=interval,
                               min_compress_len=50)
         return time_info, data
-    
+
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return (d for k in data for d in k if d)
-    
+
     def _reindex(self, interval=900):
         while True:
             time.sleep(interval)
@@ -456,7 +456,7 @@ class InfluxDBFinder(object):
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-    
+
     def build_index(self, data=None, separator='.'):
         """Build new node tree index
 
@@ -471,7 +471,7 @@ class InfluxDBFinder(object):
                          "Retrying after 30sec..", ex)
             time.sleep(30)
             return self.build_index()
-        all_fields = self.get_field_keys()
+        all_fields = dict(self.get_field_keys())
         # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
@@ -490,7 +490,7 @@ class InfluxDBFinder(object):
         logger.info("Finished building index")
         self.index_lock.release()
         self.save_index()
-    
+
     def save_index(self):
         """Save index to file"""
         if not self.index_path:
@@ -503,7 +503,7 @@ class InfluxDBFinder(object):
                          self.index_path, ex)
             return
         logger.info("Wrote index file to %s", self.index_path)
-    
+
     def load_index(self):
         """Load index from file"""
         if not self.index_path:
@@ -526,19 +526,35 @@ class InfluxDBFinder(object):
         self.index = index
         logger.info("Loaded index from disk")
 
+    def _read_field_keys_store_memcache(self):
+        for ((field_key, _), field_vals) in self.client.query('SHOW FIELD KEYS').items():
+            key = gen_memcache_pattern_key(
+                '_'.join([_MEMCACHE_FIELDS_KEY, field_key])) \
+                if self.memcache else None
+            field_vals = list(field_vals)
+            if self.memcache:
+                self.memcache.set(key, field_vals)
+            yield field_key, field_vals
+
+    def _read_fields_from_memcache(self, field_keys_list):
+        for field_key in field_keys_list:
+            key = gen_memcache_pattern_key('_'.join([_MEMCACHE_FIELDS_KEY, field_key]))
+            yield field_key, self.memcache.get(key)
+
     def get_field_keys(self):
         """Get field keys for all measurements"""
-        field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
+        field_keys_list = self.memcache.get(_FIELD_KEYS_KEY) \
           if self.memcache else None
-        if field_keys:
-            logger.debug("Found field keys in memcache")
-            return field_keys
+        if field_keys_list:
+            logger.debug("Found field keys list in memcache")
+            return dict(self._read_fields_from_memcache(field_keys_list))
         logger.debug("Calling InfluxDB for field keys")
-        field_keys = dict(((k,list(v)) for ((k, _), v)
-                           in self.client.query('SHOW FIELD KEYS').items()))
+        field_keys = dict(self._read_field_keys_store_memcache())
         if self.memcache:
-            self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
-                              time=self.memcache_ttl)
+            if not self.memcache.set(_FIELD_KEYS_KEY, field_keys.keys()):
+                logger.error("Could not add %s field keys to memcache - "
+                             "adjust memcache server max value settings and "
+                             "update configuration to be able to cache field keys")
         return field_keys
 
     def _get_series_with_fields(self, serie, all_fields, separator='.'):

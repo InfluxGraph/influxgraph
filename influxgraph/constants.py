@@ -47,3 +47,4 @@ GRAPHITE_PATH_REGEX_PATTERN = "[a-zA-Z0-9-_:]"
 
 # Memcache key for field keys list
 _MEMCACHE_FIELDS_KEY = 'infl_fields_key'
+_FIELD_KEYS_KEY = "%s_%s" % (_MEMCACHE_FIELDS_KEY, 'keys',)
