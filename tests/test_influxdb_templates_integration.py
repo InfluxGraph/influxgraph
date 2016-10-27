@@ -576,8 +576,9 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
         self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.memcache.delete(_MEMCACHE_FIELDS_KEY)
-        self.finder.get_field_keys()
-        self.assertTrue(self.finder.memcache.get(_MEMCACHE_FIELDS_KEY))
+        keys_list = self.finder.get_field_keys()
+        keys_memcache = self.finder.memcache.get(_MEMCACHE_FIELDS_KEY)
+        self.assertEqual(keys_list, keys_memcache)
 
 if __name__ == '__main__':
     unittest.main()

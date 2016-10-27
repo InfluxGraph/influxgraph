@@ -290,6 +290,7 @@ class InfluxDBFinder(object):
             logger.debug("Starting series list loader..")
             _SERIES_LOADER_LOCK.acquire()
             try:
+                self.get_field_keys()
                 for _ in self.get_all_series_list():
                     pass
             except Exception as ex:
@@ -533,7 +534,8 @@ class InfluxDBFinder(object):
             logger.debug("Found field keys in memcache")
             return field_keys
         logger.debug("Calling InfluxDB for field keys")
-        field_keys = self.client.query('SHOW FIELD KEYS')
+        field_keys = dict(((k,list(v)) for ((k, _), v)
+                           in self.client.query('SHOW FIELD KEYS').items()))
         if self.memcache:
             self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
                               time=self.memcache_ttl)
