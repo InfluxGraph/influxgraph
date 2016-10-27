@@ -12,6 +12,9 @@ An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
 .. image:: https://coveralls.io/repos/InfluxGraph/influxgraph/badge.png?branch=master
   :target: https://coveralls.io/r/InfluxGraph/influxgraph?branch=master
   :alt: Coverage
+.. image:: https://readthedocs.org/projects/influxgraph/badge/?version=latest
+  :target: http://influxgraph.readthedocs.io/en/latest/?badge=latest
+  :alt: Documentation Status
 
 
 This project started as a re-write of `graphite-influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
