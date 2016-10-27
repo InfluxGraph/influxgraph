@@ -578,7 +578,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.finder.memcache.delete(_FIELD_KEYS_KEY)
         keys_list = self.finder.get_field_keys()
         keys_list_memcache = self.finder.memcache.get(_FIELD_KEYS_KEY)
-        self.assertEqual(keys_list.keys(), keys_list_memcache)
+        self.assertEqual(list(keys_list.keys()), keys_list_memcache)
         keys_memcache = self.finder.get_field_keys()
         self.assertEqual(keys_list, keys_memcache)
 

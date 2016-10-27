@@ -471,7 +471,7 @@ class InfluxDBFinder(object):
                          "Retrying after 30sec..", ex)
             time.sleep(30)
             return self.build_index()
-        all_fields = dict(self.get_field_keys())
+        all_fields = self.get_field_keys()
         # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
@@ -551,7 +551,7 @@ class InfluxDBFinder(object):
         logger.debug("Calling InfluxDB for field keys")
         field_keys = dict(self._read_field_keys_store_memcache())
         if self.memcache:
-            if not self.memcache.set(_FIELD_KEYS_KEY, field_keys.keys()):
+            if not self.memcache.set(_FIELD_KEYS_KEY, list(field_keys.keys())):
                 logger.error("Could not add %s field keys to memcache - "
                              "adjust memcache server max value settings and "
                              "update configuration to be able to cache field keys")
