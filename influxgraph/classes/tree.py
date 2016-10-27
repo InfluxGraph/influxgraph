@@ -19,6 +19,7 @@
 from __future__ import absolute_import, print_function
 import json
 import logging
+import weakref
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
@@ -29,7 +30,7 @@ class Node(object):
     """Node class of a graphite metric"""
     
     def __init__(self, parent=None):
-        self.parent = parent
+        self.parent = weakref.ref(parent) if parent else parent
         self.children = {}
 
     def is_leaf(self):
