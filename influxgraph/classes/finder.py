@@ -137,11 +137,12 @@ class InfluxDBFinder(object):
                 self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
                                   time=series_loader_interval)
                 try:
+                    self.get_field_keys()
                     for _ in self.get_all_series_list():
                         pass
                 except Exception as ex:
                     logger.error("Error calling InfluxDB from initial series "
-                                 "load - %s", ex)
+                                 "and field list load - %s", ex)
                 finally:
                     _SERIES_LOADER_LOCK.release()
         loader = threading.Thread(target=self._series_loader,
