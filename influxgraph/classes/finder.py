@@ -137,7 +137,8 @@ class InfluxDBFinder(object):
                 self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
                                   time=series_loader_interval)
                 try:
-                    self.get_field_keys()
+                    if self.graphite_templates:
+                        self.get_field_keys()
                     for _ in self.get_all_series_list():
                         pass
                 except Exception as ex:
@@ -291,7 +292,8 @@ class InfluxDBFinder(object):
             logger.debug("Starting series list loader..")
             _SERIES_LOADER_LOCK.acquire()
             try:
-                self.get_field_keys()
+                if self.graphite_templates:
+                    self.get_field_keys()
                 for _ in self.get_all_series_list():
                     pass
             except Exception as ex:
@@ -472,7 +474,8 @@ class InfluxDBFinder(object):
                          "Retrying after 30sec..", ex)
             time.sleep(30)
             return self.build_index()
-        all_fields = self.get_field_keys()
+        all_fields = self.get_field_keys() if self.graphite_templates \
+          else None
         # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
