@@ -575,6 +575,9 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
     def test_memcache_field_keys(self):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
         self.finder = influxgraph.InfluxDBFinder(self.config)
+        self.assertTrue(self.finder.memcache.get(_MEMCACHE_FIELDS_KEY),
+                        msg="Expected field key list to be loaded to cache "
+                        "at startup")
         self.finder.memcache.delete(_MEMCACHE_FIELDS_KEY)
         keys_list = self.finder.get_field_keys()
         keys_memcache = self.finder.memcache.get(_MEMCACHE_FIELDS_KEY)
