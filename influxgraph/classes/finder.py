@@ -537,8 +537,11 @@ class InfluxDBFinder(object):
         field_keys = dict(((k,list(v)) for ((k, _), v)
                            in self.client.query('SHOW FIELD KEYS').items()))
         if self.memcache:
-            self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
-                              time=self.memcache_ttl)
+            if not self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
+                                     time=self.memcache_ttl,
+                                     min_compress_len=1):
+                logger.error("Could not add field key list to memcache - "
+                             "likely field list size over max memcache value")
         return field_keys
 
     def _get_series_with_fields(self, serie, all_fields, separator='.'):
