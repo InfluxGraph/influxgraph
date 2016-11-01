@@ -56,7 +56,7 @@ logger = logging.getLogger('influxgraph')
 
 class InfluxDBFinder(object):
     """Graphite-Api finder for InfluxDB.
-    
+
     Finds and fetches metric series from InfluxDB.
     """
     __fetch_multi__ = 'influxdb'
@@ -64,7 +64,7 @@ class InfluxDBFinder(object):
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path', 'graphite_templates')
-    
+
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
         self.client = InfluxDBClient(influxdb_config.get('host', 'localhost'),
@@ -150,7 +150,7 @@ class InfluxDBFinder(object):
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True
         loader.start()
-    
+
     def _start_reindexer(self, reindex_interval):
         self.load_index()
         if not self.index:
@@ -160,7 +160,7 @@ class InfluxDBFinder(object):
                                      kwargs={'interval': reindex_interval})
         reindexer.daemon = True
         reindexer.start()
-    
+
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
         if logger.handlers:
@@ -185,7 +185,7 @@ class InfluxDBFinder(object):
 
     def get_series(self, cache=True, limit=LOADER_LIMIT, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
-        
+
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
@@ -248,7 +248,7 @@ class InfluxDBFinder(object):
             cache=cache, limit=limit, offset=offset)
         return self._pagination_runner(data, Query('*'), self.get_all_series, cache=cache,
                                        limit=limit, offset=offset)
-    
+
     def get_all_series_list(self, limit=LOADER_LIMIT, offset=0, _data=None,
                             *args, **kwargs):
         """Retrieve all series for series loader"""
@@ -256,7 +256,7 @@ class InfluxDBFinder(object):
         data = self._get_series(limit=limit, offset=offset)
         return self._pagination_runner(data, query, self.get_all_series_list,
                                        limit=limit, offset=offset)
-    
+
     def _pagination_runner(self, data, query, get_series_func,
                            limit=None, offset=None, _data=None,
                            *args, **kwargs):
@@ -272,7 +272,7 @@ class InfluxDBFinder(object):
                 _data=_data, **kwargs)
         self._store_last_offset(query, limit, offset)
         return data
-    
+
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
         more than once per interval
@@ -305,7 +305,7 @@ class InfluxDBFinder(object):
                 _SERIES_LOADER_LOCK.release()
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
-    
+
     def find_nodes(self, query):
         """Find and return nodes matching query
 
@@ -404,10 +404,10 @@ class InfluxDBFinder(object):
         else:
             query += group_by
         return query, memcache_key, fields
-    
+
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
-        
+
         :param nodes: List of nodes to retrieve data for
         :type nodes: list(:mod:`influxgraph.classes.InfluxDBLeafNode`)
         :param start_time: Start time of query
@@ -447,11 +447,11 @@ class InfluxDBFinder(object):
                               time=interval,
                               min_compress_len=50)
         return time_info, data
-    
+
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return (d for k in data for d in k if d)
-    
+
     def _reindex(self, interval=900):
         while True:
             time.sleep(interval)
@@ -459,7 +459,7 @@ class InfluxDBFinder(object):
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-    
+
     def build_index(self, data=None, separator='.'):
         """Build new node tree index
 
@@ -494,7 +494,7 @@ class InfluxDBFinder(object):
         logger.info("Finished building index")
         self.index_lock.release()
         self.save_index()
-    
+
     def save_index(self):
         """Save index to file"""
         if not self.index_path:
@@ -507,23 +507,20 @@ class InfluxDBFinder(object):
                          self.index_path, ex)
             return
         logger.info("Wrote index file to %s", self.index_path)
-    
+
     def load_index(self):
         """Load index from file"""
         if not self.index_path:
             return
         try:
             index_fh = open(self.index_path, 'rt')
-        except IOError as ex:
-            logger.error("Error reading index file %s - %s", self.index_path, ex)
-            return
         except Exception as ex:
-            logger.error("Error loading index from %s - %s", self.index_path, ex)
+            logger.error("Error reading index file %s - %s", self.index_path, ex)
             return
         try:
             index = NodeTreeIndex.from_json(index_fh)
         except Exception as ex:
-            logger.error("Error reading index file - %s", ex)
+            logger.error("Error loading index file - %s", ex)
             return
         finally:
             index_fh.close()

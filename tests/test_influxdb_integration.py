@@ -13,7 +13,8 @@ import influxgraph
 import influxgraph.utils
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
-     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS
+     MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
+     _INFLUXDB_CLIENT_PARAMS
 import memcache
 
 os.environ['TZ'] = 'UTC'
@@ -288,6 +289,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_single_fetch_data(self):
         """Test single fetch data for a series by name"""
+        self.config['influxdb']['memcache'] = {'host': 'localhost'}
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         node = list(self.finder.find_nodes(Query(self.series1)))[0]
         time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
@@ -348,6 +351,11 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             self.assertFalse(data[metric_name],
                              msg="Expected no data for non-existant series %s - got %s" % (
                                  metric_name, data,))
+        fake_nodes = list(self.finder.find_nodes(Query('fake_pathy_path')))
+        time_info, data = self.finder.fetch_multi(fake_nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        self.assertFalse(data)
 
     def test_multi_fetch_data_multi_series_configured_aggregation_functions(self):
         """Test fetching data for multiple series with aggregation functions configured"""
@@ -418,6 +426,25 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             self.assertTrue(finder.memcache.get(loader_memcache_key),
                             msg="No memcache data for series loader query %s" % (query.pattern,))
         del finder
+
+    def test_reindex(self):
+        del self.finder
+        _reindex_interval = 2
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'log_level' : 'debug',
+                                  'reindex_interval': _reindex_interval,
+                                  'memcache' : { 'host': 'localhost',
+                                                 'ttl' : 60,
+                                                 'max_value': 20,
+                                                 },
+                                  },}
+        finder = influxgraph.InfluxDBFinder(config)
+        time.sleep(_reindex_interval)
+        self.assertTrue(finder.index)
 
     def test_get_series_pagination(self):
         query, limit = Query('*'), 5

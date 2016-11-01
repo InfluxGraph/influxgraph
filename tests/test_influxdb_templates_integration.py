@@ -539,6 +539,25 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints)
+        template = "env.host.measurement.field"
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        nodes = list(self.finder.find_nodes(Query('*.*.*.*')))
+        node_names = sorted(dict.fromkeys([n.name for n in nodes]).keys())
+        expected = sorted(['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total', 'wio', 'cpu_number'])
+        self.assertEqual(node_names, expected)
+        _, data = self.finder.fetch_multi(nodes, int(self.start_time.strftime("%s")),
+                                          int(self.end_time.strftime("%s")))
+        metrics = ['.'.join([tags['env'], tags['host'], measurements[0], f])
+                   for f in ['wio', 'cpu_number']]
+        for metric in metrics:
+            datapoints = [v for v in data[metric] if v]
+            self.assertTrue(len(datapoints) == self.num_datapoints)
+        bad_metrics = ['.'.join([tags['env'], tags['host'], measurements[0], f])
+                       for f in ['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total']]
+        for metric in bad_metrics:
+            datapoints = [v for v in data[metric] if v]
+            self.assertTrue(len(datapoints) == 0)
 
     def test_field_template_with_value_field(self):
         template = "env.host.measurement.field*"
@@ -572,9 +591,17 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.config['influxdb']['templates'] = ['host.field.field']
         self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
 
+    def test_template_nofilter_extra_tags(self):
+        self.config['influxdb']['templates'] = ['host.measurement* env=int,region=the_west']
+        finder = influxgraph.InfluxDBFinder(self.config)
+        self.assertTrue(finder.graphite_templates)
+        self.assertEqual({'env': 'int', 'region': 'the_west'}, finder.graphite_templates[0][2])
+
     def test_memcache_field_keys(self):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
+        self.config['influxdb']['series_loader_interval'] = 2
         self.finder = influxgraph.InfluxDBFinder(self.config)
+        time.sleep(2)
         self.assertTrue(self.finder.memcache.get(_MEMCACHE_FIELDS_KEY),
                         msg="Expected field key list to be loaded to cache "
                         "at startup")

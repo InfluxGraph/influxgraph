@@ -90,10 +90,6 @@ def apply_template(metric_path_parts, template, default_tags, separator='.'):
         if tag == 'measurement':
             measurement.append(metric_path_parts[i])
         elif tag == 'field':
-            if len(field):
-                raise InvalidTemplateError(
-                    "'field' can only be used once in each template - %s",
-                    template)
             field = metric_path_parts[i]
         elif tag == 'field*':
             field = separator.join(metric_path_parts[i:])

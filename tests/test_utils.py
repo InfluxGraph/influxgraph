@@ -72,3 +72,6 @@ class InfluxGraphUtilsTestCase(unittest.TestCase):
 
     def test_empty_aggregation_functions(self):
         self.assertFalse(influxgraph.utils._compile_aggregation_patterns(None))
+
+    def test_parse_empty_template(self):
+        self.assertFalse(influxgraph.templates._parse_influxdb_graphite_templates(['']))
