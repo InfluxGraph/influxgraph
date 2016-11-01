@@ -11,7 +11,7 @@ from influxdb import InfluxDBClient
 import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
-from influxgraph.utils import Query
+from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
      _INFLUXDB_CLIENT_PARAMS
@@ -300,8 +300,22 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(len(datapoints) == self.num_datapoints,
                         msg="Expected %s datapoints - got %s" % (
                             self.num_datapoints, len(datapoints),))
+
+    def test_single_fetch_memcache_integration(self):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
         self.finder = influxgraph.InfluxDBFinder(self.config)
+        node = list(self.finder.find_nodes(Query(self.series1)))[0]
+        aggregation_func = get_aggregation_func(
+            node.path, self.finder.aggregation_functions)
+        memcache_key = gen_memcache_key(int(self.start_time.strftime("%s")),
+                                        int(self.end_time.strftime("%s")),
+                                        aggregation_func, [node.path])
+        self.finder.memcache.delete(memcache_key)
+        node.reader.fetch(int(self.start_time.strftime("%s")),
+                          int(self.end_time.strftime("%s")))
+        self.assertTrue(node.reader.memcache.get(memcache_key),
+                        msg="Expected data for %s to be in memcache after a fetch" % (
+                            node.path,))
         time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
         datapoints = [v for v in data if v]
@@ -543,7 +557,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                 query, memcache_key,))
         time_info, reader_data = nodes[0].reader.fetch(int(self.start_time.strftime("%s")),
                                                        int(self.end_time.strftime("%s")))
-        self.assertEqual(len(data[self.series1]), len(reader_data[self.series1]),
+        self.assertEqual(len(data[self.series1]), len(reader_data),
                          msg="Reader cached data does not match finder cached data"
                          " for series %s" % (self.series1,))
     

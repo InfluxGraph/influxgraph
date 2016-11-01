@@ -44,7 +44,7 @@ class InfluxDBReader(object):
                  aggregation_functions=None,
                  deltas=None,
                  # 1MB default
-                 memcache_max_value=1048576):
+                 memcache_max_value=1):
         self.client = client
         self.path = path
         self.statsd_client = statsd_client
@@ -52,7 +52,7 @@ class InfluxDBReader(object):
         if memcache_host:
             self.memcache = memcache.Client(
                 [memcache_host], pickleProtocol=-1,
-                server_max_value_length=memcache_max_value)
+                server_max_value_length=1024**2*memcache_max_value)
         else:
             self.memcache = None
         self.deltas = deltas
@@ -72,9 +72,9 @@ class InfluxDBReader(object):
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         [self.path])
         data = self.memcache.get(memcache_key) if self.memcache else None
-        if data:
+        if data and self.path in data:
             logger.debug("Found cached data for key %s", memcache_key)
-            return time_info, data
+            return time_info, data[self.path]
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
                                'target_type_is_gauge',
@@ -91,12 +91,10 @@ class InfluxDBReader(object):
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
         data = read_influxdb_values(data, [self.path], fields=['value'])
         timer.stop()
-        values = [v for v in data[self.path]] if self.path in data else []
         if self.memcache:
-            self.memcache.set(memcache_key, values,
-                              time=interval,
-                              min_compress_len=50)
-        return time_info, values
+            self.memcache.set(
+                memcache_key, data, time=interval, min_compress_len=50)
+        return time_info, data.get(self.path, [])
     
     def get_intervals(self):
         """Noop function - Used for whisper backends but not
