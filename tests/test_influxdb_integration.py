@@ -289,7 +289,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_single_fetch_data(self):
         """Test single fetch data for a series by name"""
-        self.config['influxdb']['memcache'] = {'host': 'localhost'}
         self.finder = influxgraph.InfluxDBFinder(self.config)
         node = list(self.finder.find_nodes(Query(self.series1)))[0]
         time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
@@ -301,7 +300,15 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(len(datapoints) == self.num_datapoints,
                         msg="Expected %s datapoints - got %s" % (
                             self.num_datapoints, len(datapoints),))
-        
+        self.config['influxdb']['memcache'] = {'host': 'localhost'}
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
+                                            int(self.end_time.strftime("%s")))
+        datapoints = [v for v in data if v]
+        self.assertTrue(self.steps == len(data),
+                        msg="Expected %s datapoints, got %s instead" % (
+                            self.steps, len(data),))
+
     def test_multi_fetch_data_multi_series(self):
         """Test fetching data for multiple series by name"""
         nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".leaf*")))

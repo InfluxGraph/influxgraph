@@ -25,7 +25,7 @@ from ..utils import calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key
 
 
-logger = logging.getLogger('graphite_influxdb')
+logger = logging.getLogger('influxgraph')
 
 class Interval(object):
     """No-op Interval class used by Graphite-API for whisper backends"""
