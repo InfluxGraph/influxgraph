@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
+import sys
+import tempfile
+import datetime
+import time
+import json
+
 from influxdb import InfluxDBClient
 import influxdb.exceptions
 import influxgraph
@@ -8,13 +14,7 @@ import influxgraph.utils
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS
-import datetime
-import time
-try:
-    import memcache
-except ImportError:
-    pass
-import sys
+import memcache
 
 os.environ['TZ'] = 'UTC'
 
@@ -745,6 +745,32 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             os.unlink(bad_index_path)
         except OSError:
             pass
+
+    def test_index_load_from_file(self):
+        values = [['carbon.relays.host.dispatcher1.wallTime_us'],
+                  ['carbon.relays.host.metricsReceived'],
+                  ['carbon.relays.host.metricsDropped'],
+                  ['carbon.relays.host.metricsQueued'],
+                  ]
+        data = {'results': [{'series': [{
+            'columns': ['key'],
+            'values': values,
+            }]}]}
+        _tempfile = tempfile.NamedTemporaryFile(mode='wt', delete=False)
+        try:
+            _tempfile.write(json.dumps(data))
+        except Exception:
+            os.unlink(_tempfile.name)
+            raise
+        else:
+            _tempfile.close()
+        expected = ['carbon']
+        try:
+            self.finder.index.clear()
+            self.finder.build_index(data=self.finder._read_static_data(_tempfile.name))
+            self.assertEqual([n.name for n in self.finder.find_nodes(Query('*'))], expected)
+        finally:
+            os.unlink(_tempfile.name)
 
 if __name__ == '__main__':
     unittest.main()
