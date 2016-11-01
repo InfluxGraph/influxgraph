@@ -376,7 +376,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                 series, data.keys(),))
 
     def test_memcache_configuration_off_by_default(self):
-        self.assertFalse(self.finder.memcache_host)
+        self.assertFalse(self.finder.memcache)
 
     def test_series_loader(self):
         query = Query('*')
@@ -405,13 +405,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         time.sleep(_loader_interval/2.0)
         # if finder.memcache:
         #     self.assertTrue(finder.memcache.get(SERIES_LOADER_MUTEX_KEY))
-        self.assertTrue(finder.memcache_host)
+        self.assertTrue(finder.memcache)
         self.assertEqual(finder.memcache_ttl, 60,
                          msg="Configured TTL of %s sec, got %s sec TTL instead" % (
                              60, finder.memcache_ttl,))
-        self.assertEqual(finder.memcache_max_value, 20,
+        self.assertEqual(finder.memcache.server_max_value_length, 1024**2*20,
                          msg="Configured max value of %s MB, got %s instead" % (
-                             20, finder.memcache_max_value,))
+                             1024**2*20, finder.memcache.server_max_value_length,))
         # Give series loader more than long enough to finish
         time.sleep(_loader_interval + 2)
         if finder.memcache:
@@ -458,13 +458,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             _memcache.delete(_key)
         _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         finder = influxgraph.InfluxdbFinder(config)
-        self.assertTrue(finder.memcache_host)
+        self.assertTrue(finder.memcache)
         self.assertEqual(finder.memcache_ttl, 60,
                          msg="Configured TTL of %s sec, got %s sec TTL instead" % (
                              60, finder.memcache_ttl,))
-        self.assertEqual(finder.memcache_max_value, 20,
+        self.assertEqual(finder.memcache.server_max_value_length, 1024**2*20,
                          msg="Configured max value of %s MB, got %s instead" % (
-                             20, finder.memcache_max_value,))
+                             1024**2*20, finder.memcache.server_max_value_length,))
         node_names = list(finder.get_all_series(
             limit=limit))
         self.assertTrue(self.series[0] in node_names,
@@ -531,13 +531,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'memcache' : { 'host': 'localhost'},
                                   },}
         finder = influxgraph.InfluxdbFinder(config)
-        self.assertTrue(finder.memcache_host)
+        self.assertTrue(finder.memcache)
         self.assertEqual(finder.memcache_ttl, MEMCACHE_SERIES_DEFAULT_TTL,
                          msg="Default TTL should be %s sec, got %s sec TTL instead" % (
                              MEMCACHE_SERIES_DEFAULT_TTL, finder.memcache_ttl,))
-        self.assertEqual(finder.memcache_max_value, 1,
+        self.assertEqual(finder.memcache.server_max_value_length, 1024**2*1,
                          msg="Default max value should be 1 MB, got %s instead" % (
-                             finder.memcache_max_value,))
+                             1024**2*finder.memcache.server_max_value_length,))
 
     def test_named_branch_query(self):
         query = Query(self.metric_prefix)

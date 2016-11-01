@@ -61,7 +61,7 @@ class InfluxDBFinder(object):
     """
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'statsd_client', 'aggregation_functions',
-                 'memcache', 'memcache_host', 'memcache_ttl', 'memcache_max_value',
+                 'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path', 'graphite_templates')
     
@@ -73,26 +73,26 @@ class InfluxDBFinder(object):
                                      influxdb_config.get('passw', 'root'),
                                      influxdb_config.get('db', 'graphite'),
                                      influxdb_config.get('ssl', 'false'),)
+        self._setup_logger(influxdb_config.get('log_level', 'info'),
+                           influxdb_config.get('log_file', None))
         try:
-            self.statsd_client = statsd.StatsClient(influxdb_config['statsd'].get('host'),
-                                                    influxdb_config['statsd'].get('port', 8125)) \
-                if 'statsd' in influxdb_config and influxdb_config['statsd'].get('host') else NullStatsd()
+            self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
+                                                    config['statsd'].get('port', 8125)) \
+                if 'statsd' in config and config['statsd'].get('host') else NullStatsd()
         except NameError:
             logger.warning("Statsd client configuration present but 'statsd' module "
                            "not installed - ignoring statsd configuration..")
             self.statsd_client = NullStatsd()
         memcache_conf = influxdb_config.get('memcache', {})
-        self.memcache_host = memcache_conf.get('host')
+        memcache_host = memcache_conf.get('host')
         self.memcache_ttl = memcache_conf.get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
-        self.memcache_max_value = memcache_conf.get('max_value', 1)
-        if self.memcache_host:
+        memcache_max_value = memcache_conf.get('max_value', 1)
+        if memcache_host:
             self.memcache = memcache.Client(
-                [self.memcache_host], pickleProtocol=-1,
-                server_max_value_length=1024**2*self.memcache_max_value)
+                [memcache_host], pickleProtocol=-1,
+                server_max_value_length=1024**2*memcache_max_value)
         else:
             self.memcache = None
-        self._setup_logger(influxdb_config.get('log_level', 'info'),
-                           influxdb_config.get('log_file', None))
         self.aggregation_functions = _compile_aggregation_patterns(
             influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
         series_loader_interval = influxdb_config.get('series_loader_interval', 900)
@@ -114,8 +114,8 @@ class InfluxDBFinder(object):
         self.reader = InfluxDBReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
-            memcache_host=self.memcache_host,
-            memcache_max_value=self.memcache_max_value,
+            memcache_host=memcache_host,
+            memcache_max_value=memcache_max_value,
             deltas=self.deltas)
         self._start_reindexer(reindex_interval)
 
