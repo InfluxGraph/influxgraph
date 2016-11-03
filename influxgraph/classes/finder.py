@@ -552,9 +552,6 @@ class InfluxDBFinder(object):
                              separator='.'):
         for field in fields:
             field_key = field.get('fieldKey')
-            if not split_path:
-                # No template match
-                continue
             field_keys = [f for f in field_key.split(separator)
                           if f != 'value']
             series.append(split_path + field_keys)
@@ -565,6 +562,9 @@ class InfluxDBFinder(object):
             return [paths[0:1]]
         series = []
         split_path = self._split_series_with_tags(paths)
+        if not split_path:
+            # No template match
+            return series
         for (_, template, _, _) in self.graphite_templates:
             if 'field' in template.values() or 'field*' in template.values():
                 self._add_fields_to_paths(
