@@ -29,6 +29,7 @@ import datetime
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import itertools
+import gc
 
 try:
     import statsd
@@ -476,7 +477,6 @@ class InfluxDBFinder(object):
             return self.build_index()
         all_fields = self.get_field_keys() if self.graphite_templates \
           else None
-        # data = self._read_static_data('series.json')
         logger.info("Building index..")
         index = NodeTreeIndex()
         for serie in data:
@@ -484,7 +484,7 @@ class InfluxDBFinder(object):
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if ',' in serie:
-                for split_path in self._get_series_with_fields(
+                for split_path in self._get_series_with_tags(
                         serie, all_fields, separator=separator):
                     index.insert_split_path(split_path)
             else:
@@ -494,6 +494,8 @@ class InfluxDBFinder(object):
         logger.info("Finished building index")
         self.index_lock.release()
         self.save_index()
+        collected = gc.collect()
+        logger.debug("GC'd %s objects after index re-build", collected)
 
     def save_index(self):
         """Save index to file"""
@@ -512,6 +514,7 @@ class InfluxDBFinder(object):
         """Load index from file"""
         if not self.index_path:
             return
+        logger.info("Loading index from file %s", self.index_path,)
         try:
             index_fh = open(self.index_path, 'rt')
         except Exception as ex:
@@ -532,7 +535,7 @@ class InfluxDBFinder(object):
         field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
           if self.memcache else None
         if field_keys:
-            logger.debug("Found field keys in memcache")
+            logger.debug("Found cached field keys")
             return field_keys
         logger.debug("Calling InfluxDB for field keys")
         field_keys = dict(((k,list(v)) for ((k, _), v)
@@ -545,25 +548,30 @@ class InfluxDBFinder(object):
                              "likely field list size over max memcache value")
         return field_keys
 
-    def _get_series_with_fields(self, serie, all_fields, separator='.'):
+    def _add_fields_to_paths(self, fields, split_path, series,
+                             separator='.'):
+        for field in fields:
+            field_key = field.get('fieldKey')
+            if not split_path:
+                # No template match
+                continue
+            field_keys = [f for f in field_key.split(separator)
+                          if f != 'value']
+            series.append(split_path + field_keys)
+
+    def _get_series_with_tags(self, serie, all_fields, separator='.'):
         paths = serie.split(',')
         if not self.graphite_templates:
             return [paths[0:1]]
         series = []
+        split_path = self._split_series_with_tags(paths)
         for (_, template, _, _) in self.graphite_templates:
             if 'field' in template.values() or 'field*' in template.values():
-                fields = all_fields[paths[0]]
-                for field in fields:
-                    field_key = field.get('fieldKey')
-                    split_path = self._split_series_with_tags(paths)
-                    if not split_path:
-                        # No template match
-                        continue
-                    split_path.extend([f for f in field_key.split(separator)
-                                       if f != 'value'])
-                    series.append(split_path)
+                self._add_fields_to_paths(
+                    all_fields[paths[0]], split_path, series,
+                    separator=separator)
             else:
-                series.append(self._split_series_with_tags(paths))
+                series.append(split_path)
         return series
 
     def _split_series_with_tags(self, paths):
