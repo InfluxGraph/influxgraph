@@ -448,7 +448,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                             msg="Expected %s datapoints for %s - got %s" % (
                                 self.num_datapoints, metric, len(datapoints),))
 
-    def test_field_data_no_template_match(self):
+    def test_field_data_part_or_no_template_match(self):
         del self.finder
         measurements = ['test']
         fields = {'field1': 1, 'field2': 2}
@@ -462,8 +462,28 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.config['influxdb']['templates'] = ['env.template_tag.measurement.field*']
         self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
-        nodes = sorted([n.name for n in self.finder.find_nodes(query)])
+        nodes = [n.name for n in self.finder.find_nodes(query)]
         expected = []
+        self.assertEqual(nodes, expected)
+        self.config['influxdb']['templates'] = ['env.template_tag.measurement.field*',
+                                                'env.region.measurement.field*']
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        query = Query('*')
+        nodes = sorted([n.path for n in self.finder.find_nodes(query)])
+        expected = [tags['env']]
+        self.assertEqual(nodes, expected)
+        query = Query('*.*')
+        nodes = sorted([n.path for n in self.finder.find_nodes(query)])
+        expected = sorted(['.'.join([tags['env'], tags['region']])])
+        self.assertEqual(nodes, expected)
+        query = Query('*.*.*')
+        nodes = sorted([n.path for n in self.finder.find_nodes(query)])
+        expected = sorted(['.'.join([tags['env'], tags['region'], measurements[0]])])
+        self.assertEqual(nodes, expected)
+        query = Query('*.*.*.*')
+        nodes = sorted([n.path for n in self.finder.find_nodes(query)])
+        expected = sorted(['.'.join([tags['env'], tags['region'], measurements[0], f])
+                           for f in fields.keys()])
         self.assertEqual(nodes, expected)
 
     def test_tagged_data_no_template_config(self):
