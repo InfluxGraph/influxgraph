@@ -596,8 +596,8 @@ class InfluxDBFinder(object):
             if (len(split_path) + field_inds) >= len(
                     [k for k, v in template.items() if v]):
                 break
+            # Reset path and measurement flag if template does not match
             else:
-                # Reset path and measurement flag if template does not match
                 split_path = []
                 measurement_found = False
         path = [p[1] for p in heapsort(split_path)]

@@ -184,10 +184,11 @@ Full Configuration Example
 	# results in sane measurement and field names that do not override each other.
 	# 
 	# InfluxGraph will run multiple queries in the same statement where multiple
-	# tag values are requested for the same measurement and/or field.
+	# tag values are requested for the same measurement and/or field(s).
 	# 
 	# For best InfluxDB performance and so that data can be queried correctly 
-	# by InfluxGraph, fewer measurements with multiple fields are preferred.
+	# by InfluxGraph, fewer measurements with multiple fields per 
+	# measurement are preferred.
 	# 
 	# NB - separator for templates is not configurable as of yet
 	# 
@@ -213,15 +214,18 @@ Full Configuration Example
 	  
 	  # 
 	  ## Drop prefix, template with tags after measurement
-	  # For a metric path `stats.load.my_host.cpu` the following template will use tags
-	  # `host` and `resource` and remove `stats` prefix from metric paths
+	  # For a metric path `stats.dc.load.my_host.cpu` the following template will use tags
+	  # `host` and `resource` ignoring paths starting with `stats.dc`, if any
 	  - stats.* ..measurement.host.resource
 	  
 	  #
-	  ## Measurement with multiple fields
-	  # For metric paths `my_host.cpu-0.cpu-idle`, `my_host.cpu-0.cpu-user` et al, the
-	  # following template will use tag `host` with measurement name `cpu-0` and fields
-	  # `cpu-idle`, `cpu-user` et al
+	  ## Measurements with multiple fields
+	  # 
+	  # For metric paths `my_host.cpu-0.cpu-idle`, `my_host.cpu-0.cpu-user`,
+	  # `my_host.cpu.total.load` et al, the following template will use tag
+	  # `host` with measurement names `cpu-0` and `cpu` and fields
+	  # `cpu-idle`, `cpu-user`, `total.load` et al
+	  # 
 	  - host.measurement.field*
 	  
 	  # NB - A catch-all template of `measurement*` _should not_ be used - 
