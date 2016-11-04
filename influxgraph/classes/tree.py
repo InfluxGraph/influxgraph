@@ -17,8 +17,12 @@
 """Tree representation of Graphite metrics"""
 
 from __future__ import absolute_import, print_function
-import json
 import weakref
+import sys
+if sys.version_info.major > 2:
+    import pickle
+else:
+    import cPickle as pickle
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
@@ -104,9 +108,9 @@ class NodeTreeIndex(object):
             else:
                 yield (child_path, child_node)
 
-    def to_json(self):
-        """Reutnr Json representation of tree index"""
-        return json.dumps(self.to_array())
+    def to_file(self, file_h):
+        """Dump tree contents to file handle"""
+        pickle.dump(self.to_array(), file_h)
 
     def to_array(self):
         """Return array representation of tree index"""
@@ -120,9 +124,6 @@ class NodeTreeIndex(object):
         return metric_index
 
     @staticmethod
-    def from_json(data):
-        """Load tree index from json data"""
-        model = json.load(data)
-        index = NodeTreeIndex.from_array(model)
-        del model
-        return index
+    def from_file(file_h):
+        """Load tree index from file handle"""
+        return NodeTreeIndex.from_array(pickle.load(file_h))
