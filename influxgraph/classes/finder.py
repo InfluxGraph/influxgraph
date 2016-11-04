@@ -27,7 +27,7 @@ from multiprocessing import Lock as processLock
 import time
 import datetime
 import logging
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import WatchedFileHandler
 import itertools
 import gc
 
@@ -176,7 +176,7 @@ class InfluxDBFinder(object):
         if not log_file:
             return
         try:
-            _handler = TimedRotatingFileHandler(log_file)
+            _handler = WatchedFileHandler(log_file)
         except IOError:
             logger.error("Could not write to %s, falling back to stdout",
                          log_file)
@@ -478,6 +478,7 @@ class InfluxDBFinder(object):
         all_fields = self.get_field_keys() if self.graphite_templates \
           else None
         logger.info("Building index..")
+        start_time = datetime.datetime.now()
         index = NodeTreeIndex()
         for serie in data:
             # If we have metrics with tags in them split them out and
@@ -491,7 +492,8 @@ class InfluxDBFinder(object):
                 index.insert(serie)
         self.index_lock.acquire()
         self.index = index
-        logger.info("Finished building index")
+        logger.info("Finished building index in %s",
+                    datetime.datetime.now() - start_time)
         self.index_lock.release()
         self.save_index()
         collected = gc.collect()
