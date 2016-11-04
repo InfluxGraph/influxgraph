@@ -576,20 +576,24 @@ class InfluxDBFinder(object):
                 series.append(split_path)
         return series
 
+    def _make_path_from_template(self, split_path, paths, template, tags_values):
+        measurement_found = False
+        for (tag_key, tag_val) in tags_values:
+            for i, tmpl_tag_key in template.items():
+                if not tmpl_tag_key:
+                    continue
+                if tag_key == tmpl_tag_key:
+                    split_path.append((i, tag_val))
+                elif 'measurement' in tmpl_tag_key and not measurement_found:
+                    measurement_found = True
+                    split_path.append((i, paths[0]))
+
     def _split_series_with_tags(self, paths):
         split_path = []
         tags_values = [p.split('=') for p in paths[1:]]
-        measurement_found = False
         for (_, template, _, separator) in self.graphite_templates:
-            for (tag_key, tag_val) in tags_values:
-                for i, tmpl_tag_key in template.items():
-                    if not tmpl_tag_key:
-                        continue
-                    if tag_key == tmpl_tag_key:
-                        split_path.append((i, tag_val))
-                    elif 'measurement' in tmpl_tag_key and not measurement_found:
-                        measurement_found = True
-                        split_path.append((i, paths[0]))
+            self._make_path_from_template(
+                split_path, paths, template, tags_values)
             # Split path should be at least as large as number of wanted
             # template tags taking into account measurement and number of fields
             # in template
@@ -598,9 +602,10 @@ class InfluxDBFinder(object):
             if (len(split_path) + field_inds) >= len(
                     [k for k, v in template.items() if v]):
                 break
-            # Reset path and measurement flag if template does not match
+            # Reset path if template does not match
             else:
                 split_path = []
-                measurement_found = False
+        if not split_path:
+            return []
         path = [p[1] for p in heapsort(split_path)]
         return path
