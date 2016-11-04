@@ -484,10 +484,15 @@ class InfluxDBFinder(object):
             # If we have metrics with tags in them split them out and
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
-            if ',' in serie:
+            if self.graphite_templates:
                 for split_path in self._get_series_with_tags(
                         serie, all_fields, separator=separator):
                     index.insert_split_path(split_path)
+            # Series with tags and no templates,
+            # add only measurement to index
+            elif ',' in serie:
+                index.insert(serie.split(',')[0])
+            # No tags, no template
             else:
                 index.insert(serie)
         self.index_lock.acquire()
@@ -563,21 +568,25 @@ class InfluxDBFinder(object):
         if not self.graphite_templates:
             return [paths[0:1]]
         series = []
-        split_path = self._split_series_with_tags(paths)
+        split_path, template = self._split_series_with_tags(paths)
         if not split_path:
             # No template match
             return series
-        for (_, template, _, _) in self.graphite_templates:
-            if 'field' in template.values() or 'field*' in template.values():
-                self._add_fields_to_paths(
-                    all_fields[paths[0]], split_path, series,
-                    separator=separator)
-            else:
-                series.append(split_path)
+        if 'field' in template.values() or 'field*' in template.values():
+            self._add_fields_to_paths(
+                all_fields[paths[0]], split_path, series, separator=separator)
+        else:
+            series.append(split_path)
         return series
 
-    def _make_path_from_template(self, split_path, paths, template, tags_values):
+    def _make_path_from_template(self, split_path, measurement, template, tags_values,
+                                 separator='.'):
         measurement_found = False
+        if not tags_values and separator in measurement and \
+          'measurement*' == [t for t in template.values() if t][0]:
+            for i, measurement in enumerate(measurement.split(separator)):
+                split_path.append((i, measurement))
+            return
         for (tag_key, tag_val) in tags_values:
             for i, tmpl_tag_key in template.items():
                 if not tmpl_tag_key:
@@ -586,14 +595,14 @@ class InfluxDBFinder(object):
                     split_path.append((i, tag_val))
                 elif 'measurement' in tmpl_tag_key and not measurement_found:
                     measurement_found = True
-                    split_path.append((i, paths[0]))
+                    split_path.append((i, measurement))
 
     def _split_series_with_tags(self, paths):
-        split_path = []
+        split_path, template = [], None
         tags_values = [p.split('=') for p in paths[1:]]
         for (_, template, _, separator) in self.graphite_templates:
             self._make_path_from_template(
-                split_path, paths, template, tags_values)
+                split_path, paths[0], template, tags_values)
             # Split path should be at least as large as number of wanted
             # template tags taking into account measurement and number of fields
             # in template
@@ -605,7 +614,6 @@ class InfluxDBFinder(object):
             # Reset path if template does not match
             else:
                 split_path = []
-        if not split_path:
-            return []
-        path = [p[1] for p in heapsort(split_path)]
-        return path
+        path = [p[1] for p in heapsort(split_path)] if split_path \
+          else split_path
+        return path, template

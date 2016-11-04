@@ -148,24 +148,12 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                                                 template]
         measurements = ['my_host.cpu.load', 'my_host.cpu.idle',
                         'my_host.cpu.usage', 'my_host.cpu.user']
-        data = [{
-            "measurement": measurement,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
-            for measurement in measurements
-            for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+        fields = {"value": 1}
+        self.write_data(measurements, {}, fields)
         self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        expected = sorted([measurements[0].split('.')[0]] + [self.metric_prefix])
+        expected = sorted(['my_host', self.metric_prefix])
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))
@@ -268,7 +256,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_template_measurement_first(self):
         del self.finder
-        template = "..measurement.host.resource"
+        template = "measurement.host.resource"
         self.config['influxdb']['templates'] = [template]
         measurements = ['load', 'idle',
                         'usage', 'user']
@@ -630,7 +618,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         keys_memcache = self.finder.memcache.get(_MEMCACHE_FIELDS_KEY)
         self.assertEqual(keys_list, keys_memcache)
 
-    def test_template_no_match_fields(self):
+    def test_template_measurement_no_tags(self):
         template = "env.host.measurement.field*"
         del self.finder
         measurements = ['cpuusage']
@@ -643,8 +631,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         self.write_data(measurements, tags, fields)
-        fields = {'my_extra_field': 1,
-                  'my_other_extra_field': 1,
+        fields = {'value': 1,
                   }
         self.write_data(measurements, {}, fields)
         self.config['influxdb']['templates'] = [template]

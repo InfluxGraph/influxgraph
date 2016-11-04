@@ -213,10 +213,10 @@ Full Configuration Example
 	  - host.resource.measurement*
 	  
 	  # 
-	  ## Drop prefix, template with tags after measurement
-	  # For a metric path `stats.dc.load.my_host.cpu` the following template will use tags
-	  # `host` and `resource` ignoring paths starting with `stats.dc`, if any
-	  - stats.* ..measurement.host.resource
+	  ## Template with tags after measurement
+	  # For a metric path `load.my_host.cpu` the following template will use tags
+	  # `host` and `resource` for measurement `load`
+	  - measurement.host.resource
 	  
 	  #
 	  ## Measurements with multiple fields
@@ -228,8 +228,16 @@ Full Configuration Example
 	  # 
 	  - host.measurement.field*
 	  
-	  # NB - A catch-all template of `measurement*` _should not_ be used - 
-	  # that is the default and would have the same effect as if no template was provided
+	  # NB - A catch-all template of `measurement*` _should only_ be used -
+	  # if it is also used in InfluxDB template configuration in addition
+	  # to other templates. If it is present by it self, it would have the
+	  # same effect as if no templates are configured but will induce
+	  # additional overhead for no reason.
+	  # 
+	  # Metric drop is a No-Op. Eg a template of `..measurement*` is for
+	  # the finder equivalent to `measurement*`.
+	  # The finder can only see data in the DB so if part of metric name
+	  # is dropped and not inserted in DB, the finder will not ever see it
 	  # 
 	  ## Examples from InfluxDB Graphite service configuration
 	  # 
