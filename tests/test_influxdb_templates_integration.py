@@ -630,5 +630,31 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         keys_memcache = self.finder.memcache.get(_MEMCACHE_FIELDS_KEY)
         self.assertEqual(keys_list, keys_memcache)
 
+    def test_template_no_match_fields(self):
+        template = "env.host.measurement.field*"
+        del self.finder
+        measurements = ['cpuusage']
+        fields = {'value': 1}
+        tags = {'host': 'my_host1',
+                'env': 'my_env1',
+                }
+        metrics = ['.'.join([tags['env'], tags['host'], m])
+                   for m in measurements]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, tags, fields)
+        fields = {'my_extra_field': 1,
+                  'my_other_extra_field': 1,
+                  }
+        self.write_data(measurements, {}, fields)
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        nodes = [n.name for n in self.finder.find_nodes(Query('*'))]
+        expected = [tags['env']]
+        self.assertEqual(nodes, expected)
+        cpu_nodes = list(self.finder.find_nodes(Query('my_env1.my_host1.*')))
+        expected = measurements
+        self.assertEqual([n.name for n in cpu_nodes], expected)
+
 if __name__ == '__main__':
     unittest.main()
