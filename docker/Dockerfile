@@ -34,6 +34,7 @@ ONBUILD ADD graphite-api.yaml /etc/graphite-api.yaml
 ONBUILD RUN chmod 0644 /etc/graphite-api.yaml
 
 # Nginx service
+ADD nginx.conf /etc/nginx/nginx.conf
 ADD graphite_nginx.conf /etc/nginx/sites-available/graphite.conf
 RUN ln -s /etc/nginx/sites-available/graphite.conf /etc/nginx/sites-enabled/
 RUN mkdir /etc/service/nginx
