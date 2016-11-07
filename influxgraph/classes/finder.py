@@ -510,7 +510,7 @@ class InfluxDBFinder(object):
         if not self.index_path:
             return
         try:
-            with open(self.index_path, 'wb') as index_fh:
+            with open(self.index_path, 'wt') as index_fh:
                 self.index.to_file(index_fh)
         except IOError as ex:
             logger.error("Error writing to index file %s - %s",
@@ -524,7 +524,7 @@ class InfluxDBFinder(object):
             return
         logger.info("Loading index from file %s", self.index_path,)
         try:
-            index_fh = open(self.index_path, 'rb')
+            index_fh = open(self.index_path, 'rt')
         except Exception as ex:
             logger.error("Error reading index file %s - %s", self.index_path, ex)
             return
