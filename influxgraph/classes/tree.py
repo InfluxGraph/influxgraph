@@ -19,7 +19,7 @@
 from __future__ import absolute_import, print_function
 import weakref
 import sys
-if sys.version_info.major > 2:
+if sys.version_info >= (3,):
     import pickle
 else:
     import cPickle as pickle
