@@ -17,12 +17,8 @@
 """Tree representation of Graphite metrics"""
 
 from __future__ import absolute_import, print_function
-import weakref
 import sys
-if sys.version_info >= (3,):
-    import pickle
-else:
-    import cPickle as pickle
+import json
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
@@ -31,7 +27,7 @@ class Node(object):
     """Node class of a graphite metric"""
     
     def __init__(self, parent=None):
-        self.parent = weakref.ref(parent) if parent else parent
+        self.parent = parent
         self.children = {}
 
     def is_leaf(self):
@@ -110,7 +106,7 @@ class NodeTreeIndex(object):
 
     def to_file(self, file_h):
         """Dump tree contents to file handle"""
-        pickle.dump(self.to_array(), file_h)
+        json.dump(self.to_array(), file_h)
 
     def to_array(self):
         """Return array representation of tree index"""
@@ -126,4 +122,4 @@ class NodeTreeIndex(object):
     @staticmethod
     def from_file(file_h):
         """Load tree index from file handle"""
-        return NodeTreeIndex.from_array(pickle.load(file_h))
+        return NodeTreeIndex.from_array(json.load(file_h))
