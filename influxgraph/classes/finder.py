@@ -511,8 +511,8 @@ class InfluxDBFinder(object):
         if not self.index_path:
             return
         try:
-            with gzip.GzipFile(self.index_path, 'wt') as index_fh:
-                self.index.to_file(index_fh)
+            index_fh = gzip.GzipFile(self.index_path, 'wt')
+            self.index.to_file(index_fh)
         except IOError as ex:
             logger.error("Error writing to index file %s - %s",
                          self.index_path, ex)
@@ -521,6 +521,8 @@ class InfluxDBFinder(object):
             logger.error("Error saving index file %s - %s",
                          self.index_path, ex)
             return
+        finally:
+            index_fh.close()
         logger.info("Wrote index file to %s", self.index_path)
 
     def load_index(self):
