@@ -793,6 +793,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             os.unlink(bad_index_path)
         except OSError:
             pass
+        try:
+            os.unlink('index')
+        except OSError:
+            pass
+        config['search_index'] = 'index'
+        finder = influxgraph.InfluxDBFinder(config)
+        self.assertTrue(os.path.isfile('index'))
 
     def test_index_load_from_file(self):
         values = [['carbon.relays.host.dispatcher1.wallTime_us'],

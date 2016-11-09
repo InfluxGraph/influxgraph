@@ -521,7 +521,7 @@ class InfluxDBFinder(object):
             logger.error("Error saving index file %s - %s",
                          self.index_path, ex)
             return
-        finally:
+        else:
             index_fh.close()
         logger.info("Wrote index file to %s", self.index_path)
 
