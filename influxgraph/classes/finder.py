@@ -511,7 +511,7 @@ class InfluxDBFinder(object):
         if not self.index_path:
             return
         try:
-            index_fh = gzip.GzipFile(self.index_path, 'wt')
+            index_fh = gzip.GzipFile(self.index_path, 'w')
             self.index.to_file(index_fh)
         except IOError as ex:
             logger.error("Error writing to index file %s - %s",
@@ -520,7 +520,7 @@ class InfluxDBFinder(object):
         except Exception as ex:
             logger.error("Error saving index file %s - %s",
                          self.index_path, ex)
-            return
+            raise
         else:
             index_fh.close()
         logger.info("Wrote index file to %s", self.index_path)
@@ -531,7 +531,7 @@ class InfluxDBFinder(object):
             return
         logger.info("Loading index from file %s", self.index_path,)
         try:
-            index_fh = gzip.GzipFile(self.index_path, 'rt')
+            index_fh = gzip.GzipFile(self.index_path, 'r')
         except Exception as ex:
             logger.error("Error reading index file %s - %s", self.index_path, ex)
             return
@@ -553,7 +553,7 @@ class InfluxDBFinder(object):
             logger.debug("Found cached field keys")
             return field_keys
         logger.debug("Calling InfluxDB for field keys")
-        field_keys = dict(((k,list(v)) for ((k, _), v)
+        field_keys = dict(((k, list(v)) for ((k, _), v)
                            in self.client.query('SHOW FIELD KEYS').items()))
         if self.memcache:
             if not self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,

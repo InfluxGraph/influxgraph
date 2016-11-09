@@ -72,7 +72,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                        'integration_test.agg_path.sum',
                        ]
         self.setup_db()
-        self.finder = influxgraph.InfluxdbFinder(self.config)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
@@ -94,7 +94,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             'deltas' : {3600: 1},},
             # 'search_index': 'index',
             }
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.deltas)
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
@@ -430,7 +430,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         except NameError:
             pass
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         time.sleep(_loader_interval/2.0)
         # if finder.memcache:
         #     self.assertTrue(finder.memcache.get(SERIES_LOADER_MUTEX_KEY))
@@ -505,7 +505,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         for _key in memcache_keys:
             _memcache.delete(_key)
         _memcache.delete(SERIES_LOADER_MUTEX_KEY)
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.memcache)
         self.assertEqual(finder.memcache_ttl, 60,
                          msg="Configured TTL of %s sec, got %s sec TTL instead" % (
@@ -578,7 +578,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'log_level' : 'debug',
                                   'memcache' : { 'host': 'localhost'},
                                   },}
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.memcache)
         self.assertEqual(finder.memcache_ttl, MEMCACHE_SERIES_DEFAULT_TTL,
                          msg="Default TTL should be %s sec, got %s sec TTL instead" % (
@@ -639,7 +639,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             _memcache.delete(SERIES_LOADER_MUTEX_KEY)
         except NameError:
             pass
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         time.sleep(1)
         query = Query(prefix + '.*.*.*.*.' + leaf_nodes[0])
         nodes = list(finder.find_nodes(query))
@@ -724,7 +724,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 ]]
         self.assertTrue(self.client.write_points(write_data, retention_policy='10m'))
         self.assertTrue(self.client.write_points(write_data, retention_policy='30m'))
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         time.sleep(1)
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
@@ -780,14 +780,14 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         'statsd': {'host': 'localhost' },
                         'search_index': bad_index_path,
                         }
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         del finder
         mask = int('0600') if sys.version_info <= (2,) else 0o600
         os.chmod(bad_index_path, mask)
         # Corrupt data in index file
         with open(bad_index_path, 'wt') as index_fh:
             index_fh.write('fasdfa}\n')
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.index)
         try:
             os.unlink(bad_index_path)
@@ -802,6 +802,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         time.sleep(1)
         del finder
         self.assertTrue(os.path.isfile('index'))
+        # Make finder again to load from disk
+        finder = influxgraph.InfluxDBFinder(config)
 
     def test_index_load_from_file(self):
         values = [['carbon.relays.host.dispatcher1.wallTime_us'],

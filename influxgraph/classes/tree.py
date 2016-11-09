@@ -106,7 +106,9 @@ class NodeTreeIndex(object):
 
     def to_file(self, file_h):
         """Dump tree contents to file handle"""
-        json.dump(self.to_array(), file_h)
+        data = bytes(json.dumps(self.to_array()), 'utf-8') \
+          if not isinstance(b'', str) else json.dumps(self.to_array())
+        file_h.write(data)
 
     def to_array(self):
         """Return array representation of tree index"""
@@ -122,4 +124,6 @@ class NodeTreeIndex(object):
     @staticmethod
     def from_file(file_h):
         """Load tree index from file handle"""
-        return NodeTreeIndex.from_array(json.load(file_h))
+        data = file_h.read().decode('utf-8') \
+          if not isinstance(b'', str) else file_h.read()
+        return NodeTreeIndex.from_array(json.loads(data))
