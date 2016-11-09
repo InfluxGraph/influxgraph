@@ -501,7 +501,7 @@ class InfluxDBFinder(object):
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
         self.index_lock.release()
-        self.save_index()
+        threading.Thread(target=self.save_index).start()
         collected = gc.collect()
         logger.debug("GC'd %s objects after index re-build", collected)
 
