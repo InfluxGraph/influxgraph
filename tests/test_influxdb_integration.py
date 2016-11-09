@@ -799,6 +799,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             pass
         config['search_index'] = 'index'
         finder = influxgraph.InfluxDBFinder(config)
+        time.sleep(1)
+        del finder
         self.assertTrue(os.path.isfile('index'))
 
     def test_index_load_from_file(self):
