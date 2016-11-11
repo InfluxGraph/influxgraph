@@ -8,7 +8,7 @@ python:
   - 3.5
   - pypy
 env:
-  - INFLUXDB_VERSION=1.0.2
+  - INFLUXDB_VERSION=1.1.0~rc2
 before_install:
   - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
   - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
