@@ -27,8 +27,8 @@ from graphite_api.finders import match_entries
 class Node(object):
     """Node class of a graphite metric"""
     
-    def __init__(self, parent=None):
-        self.parent = weakref.ref(parent) if parent else parent
+    def __init__(self, parent):
+        self.parent = parent
         self.children = {}
 
     def is_leaf(self):
@@ -64,7 +64,7 @@ class NodeTreeIndex(object):
     __slots__ = ['index']
 
     def __init__(self):
-        self.index = Node()
+        self.index = Node(None)
 
     def insert(self, metric_path):
         """Insert metric path into tree index"""
@@ -109,10 +109,7 @@ class NodeTreeIndex(object):
         """Dump tree contents to file handle"""
         data = bytes(json.dumps(self.to_array()), 'utf-8') \
           if not isinstance(b'', str) else json.dumps(self.to_array())
-        try:
-            file_h.write(data)
-        finally:
-            file_h.close()
+        file_h.write(data)
 
     def to_array(self):
         """Return array representation of tree index"""
@@ -131,5 +128,4 @@ class NodeTreeIndex(object):
         data = file_h.read().decode('utf-8') \
           if not isinstance(b'', str) else file_h.read()
         index = NodeTreeIndex.from_array(json.loads(data))
-        file_h.close()
         return index
