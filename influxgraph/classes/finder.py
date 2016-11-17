@@ -65,7 +65,7 @@ class InfluxDBFinder(object):
     __slots__ = ('client', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
-                 'index_lock', 'index_path', 'graphite_templates')
+                 'index_lock', 'index_path', 'graphite_templates',)
 
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
@@ -462,6 +462,8 @@ class InfluxDBFinder(object):
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
+            collected = gc.collect()
+            logger.debug("GC'd %s objects after index re-build", collected)
 
     def build_index(self, data=None, separator='.'):
         """Build new node tree index
@@ -498,13 +500,13 @@ class InfluxDBFinder(object):
             else:
                 index.insert(serie)
         self.index_lock.acquire()
+        if self.index:
+            self.index.clear()
         self.index = index
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
         self.index_lock.release()
         threading.Thread(target=self.save_index).start()
-        collected = gc.collect()
-        logger.debug("GC'd %s objects after index re-build", collected)
 
     def save_index(self):
         """Save index to file"""
@@ -553,8 +555,10 @@ class InfluxDBFinder(object):
             logger.debug("Found cached field keys")
             return field_keys
         logger.debug("Calling InfluxDB for field keys")
-        field_keys = dict(((k, list(v)) for ((k, _), v)
-                           in self.client.query('SHOW FIELD KEYS').items()))
+        data = self.client.query('SHOW FIELD KEYS')
+        field_keys = {}
+        for ((key, _), vals) in data.items():
+            field_keys[key] = [val['fieldKey'] for val in vals]
         if self.memcache:
             if not self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
                                      time=self.memcache_ttl,
@@ -565,8 +569,7 @@ class InfluxDBFinder(object):
 
     def _add_fields_to_paths(self, fields, split_path, series,
                              separator='.'):
-        for field in fields:
-            field_key = field.get('fieldKey')
+        for field_key in fields:
             field_keys = [f for f in field_key.split(separator)
                           if f != 'value']
             series.append(split_path + field_keys)
