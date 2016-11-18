@@ -26,6 +26,7 @@ from graphite_api.finders import match_entries
 
 class Node(object):
     """Node class of a graphite metric"""
+    __slots__ = ('parent', 'children')
     
     def __init__(self, parent):
         self.parent = parent
@@ -61,7 +62,7 @@ class NodeTreeIndex(object):
     """Node tree index class with graphite glob searches per sub-part of a
     query
     """
-    __slots__ = ['index']
+    __slots__ = ('index')
 
     def __init__(self):
         self.index = Node(None)
