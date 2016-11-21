@@ -10,6 +10,7 @@ python:
 env:
   - INFLUXDB_VERSION=1.1.0~rc2
 before_install:
+  - pip install -U pip setuptools
   - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
   - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
   - sudo /etc/init.d/influxdb start

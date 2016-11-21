@@ -28,7 +28,6 @@ class IndexTreeTestCase(unittest.TestCase):
         self.assertTrue(len(result) == 2)
         self.assertTrue(result[0]['metric'] == 'b1.b1.b1')
         self.assertTrue(result[1]['metric'] == 'b1.b1.b2')
-        # import ipdb; ipdb.set_trace()
         result = list(self.index.query('b1.b1.*.*'))
         self.assertTrue(len(result) == 3)
         self.assertTrue(result[0]['metric'] == 'b1.b1.b1.b1')
