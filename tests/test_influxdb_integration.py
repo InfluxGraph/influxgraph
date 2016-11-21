@@ -6,6 +6,7 @@ import tempfile
 import datetime
 import time
 import json
+from gzip import GzipFile
 
 from influxdb import InfluxDBClient
 import influxdb.exceptions
@@ -15,6 +16,7 @@ from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
      _INFLUXDB_CLIENT_PARAMS
+from influxgraph.classes.tree import NodeTreeIndex
 import memcache
 
 os.environ['TZ'] = 'UTC'
