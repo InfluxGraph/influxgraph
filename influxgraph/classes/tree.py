@@ -62,7 +62,7 @@ class Node(object):
         metric = Node(parent)
         for child_name, child_array in array:
             child = Node.from_array(metric, child_array)
-            metric.children = deque()
+            metric.children = []
             metric.children.append((child_name, child))
         return metric
 
@@ -86,7 +86,7 @@ class NodeTreeIndex(object):
 
     def clear(self):
         """Clear tree index"""
-        self.index.children = {}
+        self.index.children = []
 
     def query(self, query):
         """Return nodes matching Graphite glob pattern query"""
