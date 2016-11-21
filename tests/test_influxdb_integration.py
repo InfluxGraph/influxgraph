@@ -800,10 +800,16 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         config['search_index'] = 'index'
         finder = influxgraph.InfluxDBFinder(config)
         time.sleep(1)
-        del finder
         self.assertTrue(os.path.isfile('index'))
-        # Make finder again to load from disk
-        finder = influxgraph.InfluxDBFinder(config)
+        # Reload index from file
+        index_fh = GzipFile(config['search_index'], 'r')
+        try:
+            index = NodeTreeIndex.from_file(index_fh)
+        finally:
+            index_fh.close()
+        self.assertTrue(index is not None)
+        for query in ['*', '*.*', '*.*.*', '*.*.*.*']:
+            self.assertEqual(list(index.query(query)), list(finder.index.query(query)))
 
     def test_index_load_from_file(self):
         values = [['carbon.relays.host.dispatcher1.wallTime_us'],

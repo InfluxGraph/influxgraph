@@ -59,7 +59,7 @@ class Node(object):
         metric = Node(parent)
         for child_name, child_array in array:
             child = Node.from_array(metric, child_array)
-            metric.children[child_name] = child
+            metric.children.append((child_name, child))
         return metric
 
 class NodeTreeIndex(object):
