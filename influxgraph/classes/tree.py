@@ -30,24 +30,30 @@ class Node(object):
     
     def __init__(self, parent):
         self.parent = parent
-        self.children = {}
+        self.children = []
 
     def is_leaf(self):
         """Returns True/False depending on whether self is a LeafNode or not"""
         return len(self.children) == 0
 
-    def insert(self, path):
+    def insert(self, paths):
         """Insert path in this node's children"""
-        if not len(path):
+        if not len(paths):
             return
-        child_name = path.pop(0)
-        if not child_name in self.children:
-            self.children[child_name] = Node(self)
-        self.children[child_name].insert(path)
+        found = False
+        child_name = paths.pop(0)
+        for (_child_name, node) in self.children:
+            if child_name == _child_name:
+                found = True
+                return node.insert(paths)
+        if not found:
+            node = Node(self)
+            self.children.append((child_name, node))
+        return node.insert(paths)
 
     def to_array(self):
         """Return list of (name, children) items for this node's children"""
-        return [(name, node.to_array()) for name, node in self.children.items()]
+        return [(name, node.to_array()) for (name, node,) in self.children]
 
     @staticmethod
     def from_array(parent, array):
@@ -82,7 +88,7 @@ class NodeTreeIndex(object):
 
     def query(self, query):
         """Return nodes matching Graphite glob pattern query"""
-        nodes = self.search(self.index, query.split('.'), [])
+        nodes = sorted(self.search(self.index, query.split('.'), []))
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
@@ -90,12 +96,14 @@ class NodeTreeIndex(object):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
+        keys = [key for (key, _) in node.children]
+        matched_paths = match_entries(keys, sub_query)
         matched_children = (
-            (path, node.children[path])
-            for path in match_entries(node.children.keys(), sub_query)) \
-            if is_pattern(sub_query) \
-            else [(sub_query, node.children[sub_query])] \
-            if sub_query in node.children else []
+            (path, _node)
+            for (path, _node) in node.children
+            if path in matched_paths) if is_pattern(sub_query) \
+            else [(sub_query, [n for (k, n) in node.children if k == sub_query][0])] \
+            if sub_query in keys else []
         for child_name, child_node in matched_children:
             child_path = split_path[:]
             child_path.extend([child_name])
