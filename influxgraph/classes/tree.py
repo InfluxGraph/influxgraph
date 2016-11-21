@@ -44,11 +44,9 @@ class Node(object):
         child_name = paths.pop(0)
         for (_child_name, node) in self.children:
             if child_name == _child_name:
-                found = True
                 return node.insert(paths)
-        if not found:
-            node = Node(self)
-            self.children.append((child_name, node))
+        node = Node(self)
+        self.children.append((child_name, node))
         return node.insert(paths)
 
     def to_array(self):
