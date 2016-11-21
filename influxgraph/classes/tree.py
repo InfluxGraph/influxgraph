@@ -41,7 +41,6 @@ class Node(object):
         """Insert path in this node's children"""
         if not len(paths):
             return
-        found = False
         child_name = paths.popleft()
         for (_child_name, node) in self.children:
             if child_name == _child_name:
