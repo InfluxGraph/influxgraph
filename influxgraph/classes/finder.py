@@ -338,9 +338,9 @@ class InfluxDBFinder(object):
         return aggregation_func
 
     def _get_all_template_values(self, paths):
-        _measurements = []
+        _measurements = deque()
         _tags = {}
-        _fields = []
+        _fields = deque()
         for (_filter, template, default_tags, separator) in self.graphite_templates:
             for path in paths:
                 if _filter and not _filter.match(path):
@@ -579,7 +579,7 @@ class InfluxDBFinder(object):
         paths = serie.split(',')
         if not self.graphite_templates:
             return [paths[0:1]]
-        series = []
+        series = deque()
         split_path, template = self._split_series_with_tags(paths)
         if not split_path:
             # No template match
@@ -610,7 +610,7 @@ class InfluxDBFinder(object):
                     split_path.append((i, measurement))
 
     def _split_series_with_tags(self, paths):
-        split_path, template = [], None
+        split_path, template = deque(), None
         tags_values = [p.split('=') for p in paths[1:]]
         for (_, template, _, separator) in self.graphite_templates:
             self._make_path_from_template(
