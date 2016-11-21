@@ -19,6 +19,7 @@
 from __future__ import absolute_import, print_function
 import sys
 import json
+from collections import deque
 import weakref
 
 from graphite_api.utils import is_pattern
@@ -41,7 +42,7 @@ class Node(object):
         if not len(paths):
             return
         found = False
-        child_name = paths.pop(0)
+        child_name = paths.popleft()
         for (_child_name, node) in self.children:
             if child_name == _child_name:
                 return node.insert(paths)
@@ -73,7 +74,7 @@ class NodeTreeIndex(object):
 
     def insert(self, metric_path):
         """Insert metric path into tree index"""
-        paths = metric_path.split('.')
+        paths = deque(metric_path.split('.'))
         self.index.insert(paths)
 
     def insert_split_path(self, paths):
