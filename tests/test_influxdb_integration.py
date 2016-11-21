@@ -291,7 +291,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_single_fetch_data(self):
         """Test single fetch data for a series by name"""
-        self.finder = influxgraph.InfluxDBFinder(self.config)
         node = list(self.finder.find_nodes(Query(self.series1)))[0]
         time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
@@ -305,6 +304,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_single_fetch_memcache_integration(self):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
+        del self.config['search_index']
         self.finder = influxgraph.InfluxDBFinder(self.config)
         node = list(self.finder.find_nodes(Query(self.series1)))[0]
         aggregation_func = get_aggregation_func(
