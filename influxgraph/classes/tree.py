@@ -31,16 +31,18 @@ class Node(object):
     
     def __init__(self, parent):
         self.parent = parent
-        self.children = []
+        self.children = None
 
     def is_leaf(self):
         """Returns True/False depending on whether self is a LeafNode or not"""
-        return len(self.children) == 0
+        return self.children is None
 
     def insert(self, paths):
         """Insert path in this node's children"""
         if not len(paths):
             return
+        if self.children is None:
+            self.children = []
         child_name = paths.popleft()
         for (_child_name, node) in self.children:
             if child_name == _child_name:
@@ -51,7 +53,8 @@ class Node(object):
 
     def to_array(self):
         """Return list of (name, children) items for this node's children"""
-        return [(name, node.to_array()) for (name, node,) in self.children]
+        return [(name, node.to_array()) for (name, node,) in self.children] \
+          if self.children is not None else []
 
     @staticmethod
     def from_array(parent, array):
@@ -59,6 +62,7 @@ class Node(object):
         metric = Node(parent)
         for child_name, child_array in array:
             child = Node.from_array(metric, child_array)
+            metric.children = deque()
             metric.children.append((child_name, child))
         return metric
 
@@ -94,14 +98,18 @@ class NodeTreeIndex(object):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
-        keys = [key for (key, _) in node.children]
+        keys = [key for (key, _) in node.children] \
+          if node.children is not None else []
         matched_paths = match_entries(keys, sub_query)
         matched_children = (
             (path, _node)
             for (path, _node) in node.children
-            if path in matched_paths) if is_pattern(sub_query) \
-            else [(sub_query, [n for (k, n) in node.children if k == sub_query][0])] \
-            if sub_query in keys else []
+            if path in matched_paths) \
+            if node.children is not None and is_pattern(sub_query) \
+            else [(sub_query, [n for (k, n) in node.children
+                               if k == sub_query][0])] \
+                               if node.children is not None \
+                               and sub_query in keys else []
         for child_name, child_node in matched_children:
             child_path = split_path[:]
             child_path.extend([child_name])

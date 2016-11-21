@@ -801,7 +801,10 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             pass
         config['search_index'] = 'index'
         finder = influxgraph.InfluxDBFinder(config)
-        time.sleep(1)
+        # Delete object which has the effect of joining
+        # the index save thread
+        del finder
+        finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(os.path.isfile('index'))
         # Reload index from file
         index_fh = GzipFile(config['search_index'], 'r')
