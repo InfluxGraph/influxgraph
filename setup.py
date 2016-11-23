@@ -1,5 +1,6 @@
 import versioneer
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
 
 setup(
     name='influxgraph',
@@ -28,4 +29,5 @@ setup(
     extras_require={
         'statsd' : ['statsd'],
         },
+    ext_modules = cythonize("influxgraph/classes/ext/tree.pyx"),
     )
