@@ -52,13 +52,14 @@ class Node(object):
     def to_array(self):
         """Return list of (name, children) items for this node's children"""
         return [(name, node.to_array()) for (name, node,) in self.children] \
-          if self.children is not None else []
+          if self.children is not None else None
 
     @staticmethod
     def from_array(array):
         """Load given parent node's children from array"""
-        # import ipdb; ipdb.set_trace()
         metric = Node()
+        if array is None:
+            return metric
         for child_name, child_array in array:
             child = Node.from_array(child_array)
             metric.children = []
