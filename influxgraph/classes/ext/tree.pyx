@@ -23,6 +23,17 @@ import json
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 
+
+cdef bytes _encode_bytes(unicode _str):
+    if not isinstance(b'', str):
+        return _str.encode('utf-8')
+    return bytes(_str)
+
+cdef _decode_str(bytes _str):
+    if not isinstance(b'', str):
+        return _str.decode('utf-8')
+    return _str
+
 cdef class Node:
     """Node class of a graphite metric"""
     __slots__ = ('children')
@@ -61,7 +72,7 @@ cdef class Node:
         """Return list of (name, children) items for this node's children"""
         cdef bytes name
         cdef Node node
-        return [(name, node.to_array()) for (name, node,) in self.children] \
+        return [(_decode_str(name), node.to_array()) for (name, node,) in self.children] \
           if self.children is not None else None
 
     @staticmethod
@@ -85,19 +96,14 @@ cdef class NodeTreeIndex:
     def __cinit__(self):
         self.index = Node()
 
-    cdef bytes _decode_bytes(self, unicode _str):
-        if not isinstance(b'', str):
-            return bytes(_str, 'utf-8')
-        return bytes(_str)
-
     cpdef insert(self, unicode metric_path):
         """Insert metric path into tree index"""
-        paths = [self._decode_bytes(s) for s in metric_path.split('.')]
+        paths = [_encode_bytes(s) for s in metric_path.split('.')]
         self.index.insert(paths)
 
     cpdef insert_split_path(self, list paths):
         """Insert already split path into tree index"""
-        self.index.insert([self._decode_bytes(s) for s in  paths])
+        self.index.insert([_encode_bytes(s) for s in  paths])
 
     cpdef clear(self):
         """Clear tree index"""
@@ -109,20 +115,20 @@ cdef class NodeTreeIndex:
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
-    def search(self, Node node, list split_query, list split_path):
+    def search(self, node, split_query, split_path):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
-        keys = [key for (key, _) in node.children] \
+        keys = [_decode_str(key) for (key, _) in node.children] \
           if node.children is not None else []
         matched_paths = match_entries(keys, sub_query)
         matched_children = (
-            (path, _node)
+            (_decode_str(path), _node)
             for (path, _node) in node.children
-            if path in matched_paths) \
+            if _decode_str(path) in matched_paths) \
             if node.children is not None and is_pattern(sub_query) \
             else [(sub_query, [n for (k, n) in node.children
-                               if k == sub_query][0])] \
+                               if _decode_str(k) == sub_query][0])] \
                                if node.children is not None \
                                and sub_query in keys else []
         for child_name, child_node in matched_children:
