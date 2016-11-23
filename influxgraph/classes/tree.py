@@ -37,13 +37,17 @@ class Node(object):
 
     def insert(self, paths):
         """Insert path in this node's children"""
-        if not len(paths):
+        if len(paths) == 0:
             return
         if self.children is None:
             self.children = []
         child_name = paths.popleft()
         for (_child_name, node) in self.children:
-            if child_name == _child_name:
+            # Fast path for end of recursion - avoids extra recursion
+            # for empty paths list
+            if len(paths) == 0 and child_name == _child_name:
+                return
+            elif child_name == _child_name:
                 return node.insert(paths)
         node = Node()
         self.children.append((child_name, node))

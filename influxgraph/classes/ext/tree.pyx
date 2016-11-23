@@ -19,15 +19,15 @@
 from __future__ import absolute_import, print_function
 import sys
 import json
-from collections import deque
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
+from cpython.string cimport PyString_AsString
 
 cdef class Node:
     """Node class of a graphite metric"""
     __slots__ = ('children')
-    cdef public children
+    cdef readonly children
 
     def __cinit__(self):
         self.children = None
@@ -36,32 +36,41 @@ cdef class Node:
         """Returns True/False depending on whether self is a LeafNode or not"""
         return self.children is None
 
-    def insert(self, paths):
+    cpdef insert(self, paths):
         """Insert path in this node's children"""
-        if not len(paths):
+        if len(paths) == 0:
             return
         if self.children is None:
             self.children = []
-        child_name = paths.popleft()
+        child_name = paths[0]
+        del paths[0]
         for (_child_name, node) in self.children:
+            # Fast path for end of recursion - avoids extra recursion
+            # for empty paths list
+            if len(paths) == 0 and child_name == _child_name:
+                return
             if child_name == _child_name:
                 return node.insert(paths)
         node = Node()
         self.children.append((child_name, node))
         return node.insert(paths)
 
-    cpdef list to_array(self):
+    cdef void clear(self):
+        self.children = None
+
+    cdef list to_array(self):
         """Return list of (name, children) items for this node's children"""
         cdef bytes name
         cdef Node node
         return [(name, node.to_array()) for (name, node,) in self.children] \
-          if self.children is not None else []
+          if self.children is not None else None
 
     @staticmethod
     def from_array(array):
         """Load given parent node's children from array"""
-        # import ipdb; ipdb.set_trace()
         metric = Node()
+        if array is None:
+            return metric
         for child_name, child_array in array:
             child = Node.from_array(child_array)
             metric.children = []
@@ -84,25 +93,24 @@ cdef class NodeTreeIndex:
 
     cpdef insert(self, unicode metric_path):
         """Insert metric path into tree index"""
-        # cdef list paths
-        paths = deque([self._decode_bytes(s) for s in metric_path.split('.')])
+        paths = [self._decode_bytes(s) for s in metric_path.split('.')]
         self.index.insert(paths)
 
-    cpdef insert_split_path(self, paths):
+    cpdef insert_split_path(self, list paths):
         """Insert already split path into tree index"""
-        self.index.insert(deque([self._decode_bytes(s) for s in  paths]))
+        self.index.insert([self._decode_bytes(s) for s in  paths])
 
-    def clear(self):
+    cpdef clear(self):
         """Clear tree index"""
-        self.index.children = None
+        self.index.clear()
 
-    def query(self, query):
+    def query(self, str query):
         """Return nodes matching Graphite glob pattern query"""
-        nodes = sorted(self.search(self.index, query.split('.'), []))
+        cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
-    def search(self, node, split_query, split_path):
+    def search(self, Node node, list split_query, list split_path):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
@@ -134,7 +142,7 @@ cdef class NodeTreeIndex:
           if not isinstance(b'', str) else json.dumps(self.to_array())
         file_h.write(data)
 
-    def to_array(self):
+    cdef list to_array(self):
         """Return array representation of tree index"""
         return self.index.to_array()
     
