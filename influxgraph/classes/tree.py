@@ -75,18 +75,23 @@ class NodeTreeIndex(object):
     def __init__(self):
         self.index = Node()
 
+    def _decode_bytes(self, _str):
+        if not isinstance(b'', str):
+            return bytes(_str, 'utf-8')
+        return bytes(_str)
+
     def insert(self, metric_path):
         """Insert metric path into tree index"""
-        paths = deque(metric_path.split('.'))
+        paths = deque([self._decode_bytes(s) for s in metric_path.split('.')])
         self.index.insert(paths)
 
     def insert_split_path(self, paths):
         """Insert already split path into tree index"""
-        self.index.insert(paths)
+        self.index.insert(deque([self._decode_bytes(s) for s in  paths]))
 
     def clear(self):
         """Clear tree index"""
-        self.index.children = []
+        self.index.children = None
 
     def query(self, query):
         """Return nodes matching Graphite glob pattern query"""
@@ -98,18 +103,14 @@ class NodeTreeIndex(object):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
-        keys = [key for (key, _) in node.children] \
-          if node.children is not None else []
+        keys = [key for (key, _) in node.children]
         matched_paths = match_entries(keys, sub_query)
         matched_children = (
             (path, _node)
             for (path, _node) in node.children
-            if path in matched_paths) \
-            if node.children is not None and is_pattern(sub_query) \
-            else [(sub_query, [n for (k, n) in node.children
-                               if k == sub_query][0])] \
-                               if node.children is not None \
-                               and sub_query in keys else []
+            if path in matched_paths) if is_pattern(sub_query) \
+            else [(sub_query, [n for (k, n) in node.children if k == sub_query][0])] \
+            if sub_query in keys else []
         for child_name, child_node in matched_children:
             child_path = split_path[:]
             child_path.extend([child_name])
@@ -134,7 +135,7 @@ class NodeTreeIndex(object):
     def from_array(model):
         """Load tree index from array"""
         metric_index = NodeTreeIndex()
-        metric_index.index = Node.from_array(model)
+        metric_index.index = Node.from_array(None, model)
         return metric_index
 
     @staticmethod
