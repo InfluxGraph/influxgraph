@@ -49,7 +49,10 @@ from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
 from ..templates import _parse_influxdb_graphite_templates, apply_template
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
-from .tree import NodeTreeIndex
+# try:
+from .ext.tree import NodeTreeIndex
+# except ImportError:
+# from .tree import NodeTreeIndex
 
 
 _SERIES_LOADER_LOCK = processLock()
@@ -492,7 +495,7 @@ class InfluxDBFinder(object):
             if self.graphite_templates:
                 for split_path in self._get_series_with_tags(
                         serie, all_fields, separator=separator):
-                    index.insert_split_path(deque(split_path))
+                    index.insert_split_path(split_path)
             # Series with tags and no templates,
             # add only measurement to index
             elif ',' in serie:
