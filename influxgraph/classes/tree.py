@@ -20,7 +20,6 @@ from __future__ import absolute_import, print_function
 import sys
 import json
 from collections import deque
-import weakref
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
@@ -103,14 +102,18 @@ class NodeTreeIndex(object):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
-        keys = [key for (key, _) in node.children]
+        keys = [key for (key, _) in node.children] \
+          if node.children is not None else []
         matched_paths = match_entries(keys, sub_query)
         matched_children = (
             (path, _node)
             for (path, _node) in node.children
-            if path in matched_paths) if is_pattern(sub_query) \
-            else [(sub_query, [n for (k, n) in node.children if k == sub_query][0])] \
-            if sub_query in keys else []
+            if path in matched_paths) \
+            if node.children is not None and is_pattern(sub_query) \
+            else [(sub_query, [n for (k, n) in node.children
+                               if k == sub_query][0])] \
+                               if node.children is not None \
+                               and sub_query in keys else []
         for child_name, child_node in matched_children:
             child_path = split_path[:]
             child_path.extend([child_name])
@@ -130,12 +133,12 @@ class NodeTreeIndex(object):
     def to_array(self):
         """Return array representation of tree index"""
         return self.index.to_array()
-    
+
     @staticmethod
     def from_array(model):
         """Load tree index from array"""
         metric_index = NodeTreeIndex()
-        metric_index.index = Node.from_array(None, model)
+        metric_index.index = Node.from_array(model)
         return metric_index
 
     @staticmethod
