@@ -22,7 +22,6 @@ import json
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
-from cpython.string cimport PyString_AsString
 
 cdef class Node:
     """Node class of a graphite metric"""
