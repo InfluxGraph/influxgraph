@@ -36,23 +36,23 @@ cdef class Node:
         """Returns True/False depending on whether self is a LeafNode or not"""
         return self.children is None
 
-    cpdef insert(self, paths):
+    cpdef insert(self, list paths):
         """Insert path in this node's children"""
         if len(paths) == 0:
             return
         if self.children is None:
-            self.children = []
-        child_name = paths[0]
+            self.children = ()
+        cdef bytes child_name = paths[0]
         del paths[0]
         for (_child_name, node) in self.children:
-            # Fast path for end of recursion - avoids extra recursion
-            # for empty paths list
+            # Fast path for end of paths - avoids extra recursion
+            # on adding leaf nodes
             if len(paths) == 0 and child_name == _child_name:
                 return
             if child_name == _child_name:
                 return node.insert(paths)
         node = Node()
-        self.children.append((child_name, node))
+        self.children += ((child_name, node),)
         return node.insert(paths)
 
     cdef void clear(self):

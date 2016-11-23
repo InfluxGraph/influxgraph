@@ -40,7 +40,7 @@ class Node(object):
         if len(paths) == 0:
             return
         if self.children is None:
-            self.children = []
+            self.children = ()
         child_name = paths.popleft()
         for (_child_name, node) in self.children:
             # Fast path for end of recursion - avoids extra recursion
@@ -50,7 +50,7 @@ class Node(object):
             elif child_name == _child_name:
                 return node.insert(paths)
         node = Node()
-        self.children.append((child_name, node))
+        self.children += ((child_name, node),)
         return node.insert(paths)
 
     def to_array(self):
