@@ -27,10 +27,9 @@ from graphite_api.finders import match_entries
 
 class Node(object):
     """Node class of a graphite metric"""
-    __slots__ = ('parent', 'children')
+    __slots__ = ('children')
     
-    def __init__(self, parent):
-        self.parent = parent
+    def __init__(self):
         self.children = None
 
     def is_leaf(self):
@@ -47,7 +46,7 @@ class Node(object):
         for (_child_name, node) in self.children:
             if child_name == _child_name:
                 return node.insert(paths)
-        node = Node(self)
+        node = Node()
         self.children.append((child_name, node))
         return node.insert(paths)
 
@@ -57,11 +56,12 @@ class Node(object):
           if self.children is not None else []
 
     @staticmethod
-    def from_array(parent, array):
+    def from_array(array):
         """Load given parent node's children from array"""
-        metric = Node(parent)
+        # import ipdb; ipdb.set_trace()
+        metric = Node()
         for child_name, child_array in array:
-            child = Node.from_array(metric, child_array)
+            child = Node.from_array(child_array)
             metric.children = []
             metric.children.append((child_name, child))
         return metric
@@ -73,7 +73,7 @@ class NodeTreeIndex(object):
     __slots__ = ('index')
 
     def __init__(self):
-        self.index = Node(None)
+        self.index = Node()
 
     def insert(self, metric_path):
         """Insert metric path into tree index"""
@@ -134,7 +134,7 @@ class NodeTreeIndex(object):
     def from_array(model):
         """Load tree index from array"""
         metric_index = NodeTreeIndex()
-        metric_index.index = Node.from_array(None, model)
+        metric_index.index = Node.from_array(model)
         return metric_index
 
     @staticmethod
