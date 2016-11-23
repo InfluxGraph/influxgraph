@@ -49,10 +49,10 @@ from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
 from ..templates import _parse_influxdb_graphite_templates, apply_template
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
-# try:
-from .ext.tree import NodeTreeIndex
-# except ImportError:
-# from .tree import NodeTreeIndex
+try:
+    from .ext.tree import NodeTreeIndex
+except ImportError:
+    from .tree import NodeTreeIndex
 
 
 _SERIES_LOADER_LOCK = processLock()
