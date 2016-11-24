@@ -2,7 +2,7 @@
 
 /* BEGIN: Cython Metadata
 {
-    "distutils": {},
+    "distutils": {}, 
     "module_name": "influxgraph.classes.ext.tree"
 }
 END: Cython Metadata */
@@ -664,7 +664,7 @@ struct __pyx_obj_11influxgraph_7classes_3ext_4tree_NodeTreeIndex {
 /* "influxgraph/classes/ext/tree.pyx":113
  *         self.index.clear()
  * 
- *     def query(self, str query):             # <<<<<<<<<<<<<<
+ *     def query(self, query):             # <<<<<<<<<<<<<<
  *         """Return nodes matching Graphite glob pattern query"""
  *         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
  */
@@ -1243,7 +1243,7 @@ int __pyx_module_is_main_influxgraph__classes__ext__tree = 0;
 static PyObject *__pyx_builtin_staticmethod;
 static PyObject *__pyx_builtin_AttributeError;
 static const char __pyx_k_[] = "";
-static const char __pyx_k__2[] = ".";
+static const char __pyx_k__3[] = ".";
 static const char __pyx_k_sys[] = "sys";
 static const char __pyx_k_args[] = "args";
 static const char __pyx_k_data[] = "data";
@@ -1269,6 +1269,7 @@ static const char __pyx_k_utf_8[] = "utf-8";
 static const char __pyx_k_write[] = "write";
 static const char __pyx_k_append[] = "append";
 static const char __pyx_k_decode[] = "decode";
+static const char __pyx_k_encode[] = "encode";
 static const char __pyx_k_extend[] = "extend";
 static const char __pyx_k_file_h[] = "file_h";
 static const char __pyx_k_import[] = "__import__";
@@ -1298,11 +1299,11 @@ static const char __pyx_k_query_locals_genexpr[] = "query.<locals>.genexpr";
 static const char __pyx_k_search_locals_genexpr[] = "search.<locals>.genexpr";
 static const char __pyx_k_influxgraph_classes_ext_tree[] = "influxgraph.classes.ext.tree";
 static const char __pyx_k_Tree_representation_of_Graphite[] = "Tree representation of Graphite metrics";
-static const char __pyx_k_home_zefrer_Projects_influxgrap[] = "/home/zefrer/Projects/influxgraph/influxgraph/classes/ext/tree.pyx";
+static const char __pyx_k_home_panos_influxgraph_influxgr[] = "/home/panos/influxgraph/influxgraph/classes/ext/tree.pyx";
 static PyObject *__pyx_kp_b_;
 static PyObject *__pyx_n_s_AttributeError;
 static PyObject *__pyx_n_s_NodeTreeIndex_search;
-static PyObject *__pyx_kp_s__2;
+static PyObject *__pyx_kp_s__3;
 static PyObject *__pyx_n_s_append;
 static PyObject *__pyx_n_s_args;
 static PyObject *__pyx_n_s_array;
@@ -1315,6 +1316,7 @@ static PyObject *__pyx_n_s_close;
 static PyObject *__pyx_n_s_data;
 static PyObject *__pyx_n_s_decode;
 static PyObject *__pyx_n_s_dumps;
+static PyObject *__pyx_n_s_encode;
 static PyObject *__pyx_n_s_extend;
 static PyObject *__pyx_n_s_file_h;
 static PyObject *__pyx_n_s_from_array;
@@ -1322,7 +1324,7 @@ static PyObject *__pyx_n_s_from_file;
 static PyObject *__pyx_n_s_genexpr;
 static PyObject *__pyx_n_s_graphite_api_finders;
 static PyObject *__pyx_n_s_graphite_api_utils;
-static PyObject *__pyx_kp_s_home_zefrer_Projects_influxgrap;
+static PyObject *__pyx_kp_s_home_panos_influxgraph_influxgr;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_index;
 static PyObject *__pyx_n_s_influxgraph_classes_ext_tree;
@@ -1381,21 +1383,22 @@ static PyObject *__pyx_tp_new_11influxgraph_7classes_3ext_4tree___pyx_scope_stru
 static PyObject *__pyx_tp_new_11influxgraph_7classes_3ext_4tree___pyx_scope_struct_2_search(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new_11influxgraph_7classes_3ext_4tree___pyx_scope_struct_3_genexpr(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_int_1;
-static PyObject *__pyx_slice__4;
 static PyObject *__pyx_slice__5;
-static PyObject *__pyx_tuple__3;
-static PyObject *__pyx_tuple__6;
+static PyObject *__pyx_slice__6;
+static PyObject *__pyx_tuple__2;
+static PyObject *__pyx_tuple__4;
 static PyObject *__pyx_tuple__7;
-static PyObject *__pyx_tuple__9;
-static PyObject *__pyx_tuple__11;
-static PyObject *__pyx_codeobj__8;
-static PyObject *__pyx_codeobj__10;
-static PyObject *__pyx_codeobj__12;
+static PyObject *__pyx_tuple__8;
+static PyObject *__pyx_tuple__10;
+static PyObject *__pyx_tuple__12;
+static PyObject *__pyx_codeobj__9;
+static PyObject *__pyx_codeobj__11;
+static PyObject *__pyx_codeobj__13;
 
 /* "influxgraph/classes/ext/tree.pyx":27
  * 
  * 
- * cdef bytes _encode_bytes(unicode _str):             # <<<<<<<<<<<<<<
+ * cdef bytes _encode_bytes(_str):             # <<<<<<<<<<<<<<
  *     if not isinstance(b'', str):
  *         return _str.encode('utf-8')
  */
@@ -1411,7 +1414,7 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(PyObjec
 
   /* "influxgraph/classes/ext/tree.pyx":28
  * 
- * cdef bytes _encode_bytes(unicode _str):
+ * cdef bytes _encode_bytes(_str):
  *     if not isinstance(b'', str):             # <<<<<<<<<<<<<<
  *         return _str.encode('utf-8')
  *     return bytes(_str)
@@ -1421,27 +1424,26 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(PyObjec
   if (__pyx_t_2) {
 
     /* "influxgraph/classes/ext/tree.pyx":29
- * cdef bytes _encode_bytes(unicode _str):
+ * cdef bytes _encode_bytes(_str):
  *     if not isinstance(b'', str):
  *         return _str.encode('utf-8')             # <<<<<<<<<<<<<<
  *     return bytes(_str)
  * 
  */
     __Pyx_XDECREF(__pyx_r);
-    if (unlikely(__pyx_v__str == Py_None)) {
-      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "encode");
-      __PYX_ERR(0, 29, __pyx_L1_error)
-    }
-    __pyx_t_3 = PyUnicode_AsUTF8String(__pyx_v__str); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_GetAttrStr(__pyx_v__str, __pyx_n_s_encode); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    if (!(likely(PyBytes_CheckExact(__pyx_t_3))||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 29, __pyx_L1_error)
-    __pyx_r = ((PyObject*)__pyx_t_3);
-    __pyx_t_3 = 0;
+    __pyx_t_4 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_tuple__2, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 29, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_4);
+    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+    if (!(likely(PyBytes_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "bytes", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 29, __pyx_L1_error)
+    __pyx_r = ((PyObject*)__pyx_t_4);
+    __pyx_t_4 = 0;
     goto __pyx_L0;
 
     /* "influxgraph/classes/ext/tree.pyx":28
  * 
- * cdef bytes _encode_bytes(unicode _str):
+ * cdef bytes _encode_bytes(_str):
  *     if not isinstance(b'', str):             # <<<<<<<<<<<<<<
  *         return _str.encode('utf-8')
  *     return bytes(_str)
@@ -1456,22 +1458,22 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(PyObjec
  * cdef _decode_str(bytes _str):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_3);
+  __pyx_t_4 = PyTuple_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_4);
   __Pyx_INCREF(__pyx_v__str);
   __Pyx_GIVEREF(__pyx_v__str);
-  PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v__str);
-  __pyx_t_4 = __Pyx_PyObject_Call(((PyObject *)(&PyBytes_Type)), __pyx_t_3, NULL); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 30, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_4);
-  __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-  __pyx_r = ((PyObject*)__pyx_t_4);
-  __pyx_t_4 = 0;
+  PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_v__str);
+  __pyx_t_3 = __Pyx_PyObject_Call(((PyObject *)(&PyBytes_Type)), __pyx_t_4, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_3);
+  __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  __pyx_r = ((PyObject*)__pyx_t_3);
+  __pyx_t_3 = 0;
   goto __pyx_L0;
 
   /* "influxgraph/classes/ext/tree.pyx":27
  * 
  * 
- * cdef bytes _encode_bytes(unicode _str):             # <<<<<<<<<<<<<<
+ * cdef bytes _encode_bytes(_str):             # <<<<<<<<<<<<<<
  *     if not isinstance(b'', str):
  *         return _str.encode('utf-8')
  */
@@ -2887,8 +2889,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_4Node_6from_array(Py
  *         return metric
  * 
  */
-    if (!(likely(PyUnicode_CheckExact(__pyx_v_child_name))||((__pyx_v_child_name) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_v_child_name)->tp_name), 0))) __PYX_ERR(0, 88, __pyx_L1_error)
-    __pyx_t_6 = __pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(((PyObject*)__pyx_v_child_name)); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 88, __pyx_L1_error)
+    __pyx_t_6 = __pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(__pyx_v_child_name); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     __pyx_t_8 = PyTuple_New(2); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 88, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
@@ -3146,7 +3147,7 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_inser
     PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "split");
     __PYX_ERR(0, 102, __pyx_L1_error)
   }
-  __pyx_t_2 = PyUnicode_Split(__pyx_v_metric_path, __pyx_kp_s__2, -1L); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
+  __pyx_t_2 = PyUnicode_Split(__pyx_v_metric_path, __pyx_kp_s__3, -1L); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = __pyx_t_2; __Pyx_INCREF(__pyx_t_3); __pyx_t_6 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -3160,8 +3161,7 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_inser
     #endif
     __Pyx_XDECREF_SET(__pyx_v_s, __pyx_t_2);
     __pyx_t_2 = 0;
-    if (!(likely(PyUnicode_CheckExact(__pyx_v_s))||((__pyx_v_s) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_v_s)->tp_name), 0))) __PYX_ERR(0, 102, __pyx_L1_error)
-    __pyx_t_2 = __pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(((PyObject*)__pyx_v_s)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
+    __pyx_t_2 = __pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(__pyx_v_s); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 102, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_2))) __PYX_ERR(0, 102, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -3354,8 +3354,7 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_inser
     #endif
     __Pyx_XDECREF_SET(__pyx_v_s, __pyx_t_3);
     __pyx_t_3 = 0;
-    if (!(likely(PyUnicode_CheckExact(__pyx_v_s))||((__pyx_v_s) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_v_s)->tp_name), 0))) __PYX_ERR(0, 107, __pyx_L1_error)
-    __pyx_t_3 = __pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(((PyObject*)__pyx_v_s)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 107, __pyx_L1_error)
+    __pyx_t_3 = __pyx_f_11influxgraph_7classes_3ext_4tree__encode_bytes(__pyx_v_s); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 107, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_3))) __PYX_ERR(0, 107, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -3491,7 +3490,7 @@ static PyObject *__pyx_f_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_clear
  *         """Clear tree index"""
  *         self.index.clear()             # <<<<<<<<<<<<<<
  * 
- *     def query(self, str query):
+ *     def query(self, query):
  */
   ((struct __pyx_vtabstruct_11influxgraph_7classes_3ext_4tree_Node *)__pyx_v_self->index->__pyx_vtab)->clear(__pyx_v_self->index);
 
@@ -3559,7 +3558,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_6cle
 /* "influxgraph/classes/ext/tree.pyx":113
  *         self.index.clear()
  * 
- *     def query(self, str query):             # <<<<<<<<<<<<<<
+ *     def query(self, query):             # <<<<<<<<<<<<<<
  *         """Return nodes matching Graphite glob pattern query"""
  *         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
  */
@@ -3571,14 +3570,9 @@ static PyObject *__pyx_pw_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_9que
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("query (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_query), (&PyString_Type), 1, "query", 1))) __PYX_ERR(0, 113, __pyx_L1_error)
-  __pyx_r = __pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_8query(((struct __pyx_obj_11influxgraph_7classes_3ext_4tree_NodeTreeIndex *)__pyx_v_self), ((PyObject*)__pyx_v_query));
+  __pyx_r = __pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_8query(((struct __pyx_obj_11influxgraph_7classes_3ext_4tree_NodeTreeIndex *)__pyx_v_self), ((PyObject *)__pyx_v_query));
 
   /* function exit code */
-  goto __pyx_L0;
-  __pyx_L1_error:;
-  __pyx_r = NULL;
-  __pyx_L0:;
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
@@ -3737,7 +3731,7 @@ static PyObject *__pyx_gb_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_5que
  */
     __pyx_t_3 = PyDict_New(); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 116, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = __Pyx_PyString_Join(__pyx_kp_s__2, __pyx_cur_scope->__pyx_v_path); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 116, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyString_Join(__pyx_kp_s__3, __pyx_cur_scope->__pyx_v_path); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 116, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_metric, __pyx_t_5) < 0) __PYX_ERR(0, 116, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
@@ -3820,7 +3814,7 @@ static PyObject *__pyx_gb_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_5que
 /* "influxgraph/classes/ext/tree.pyx":113
  *         self.index.clear()
  * 
- *     def query(self, str query):             # <<<<<<<<<<<<<<
+ *     def query(self, query):             # <<<<<<<<<<<<<<
  *         """Return nodes matching Graphite glob pattern query"""
  *         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
  */
@@ -3849,7 +3843,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_8que
   }
 
   /* "influxgraph/classes/ext/tree.pyx":115
- *     def query(self, str query):
+ *     def query(self, query):
  *         """Return nodes matching Graphite glob pattern query"""
  *         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))             # <<<<<<<<<<<<<<
  *         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
@@ -3859,7 +3853,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_8que
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_v_query, __pyx_n_s_split); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 115, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_tuple__4, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 115, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_t_4 = PyList_New(0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
@@ -3943,7 +3937,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_8que
   /* "influxgraph/classes/ext/tree.pyx":113
  *         self.index.clear()
  * 
- *     def query(self, str query):             # <<<<<<<<<<<<<<
+ *     def query(self, query):             # <<<<<<<<<<<<<<
  *         """Return nodes matching Graphite glob pattern query"""
  *         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
  */
@@ -5056,7 +5050,7 @@ static PyObject *__pyx_gb_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_12ge
  *             child_path.extend([child_name])
  *             child_query = split_query[1:]
  */
-    __pyx_t_2 = __Pyx_PyObject_GetSlice(__pyx_cur_scope->__pyx_v_split_path, 0, 0, NULL, NULL, &__pyx_slice__4, 0, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 136, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_GetSlice(__pyx_cur_scope->__pyx_v_split_path, 0, 0, NULL, NULL, &__pyx_slice__5, 0, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 136, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_child_path);
     __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_child_path, __pyx_t_2);
@@ -5132,7 +5126,7 @@ static PyObject *__pyx_gb_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_12ge
  *             if len(child_query):
  *                 for sub in self.search(child_node, child_query, child_path):
  */
-    __pyx_t_2 = __Pyx_PyObject_GetSlice(__pyx_cur_scope->__pyx_v_split_query, 1, 0, NULL, NULL, &__pyx_slice__5, 1, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 138, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_GetSlice(__pyx_cur_scope->__pyx_v_split_query, 1, 0, NULL, NULL, &__pyx_slice__6, 1, 0, 1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 138, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_XGOTREF(__pyx_cur_scope->__pyx_v_child_query);
     __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_child_query, __pyx_t_2);
@@ -5986,7 +5980,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_13NodeTreeIndex_17fr
     __pyx_t_4 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_decode); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 165, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_tuple__6, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 165, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_tuple__7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 165, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __pyx_t_1 = __pyx_t_3;
@@ -7151,7 +7145,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_b_, __pyx_k_, sizeof(__pyx_k_), 0, 0, 0, 0},
   {&__pyx_n_s_AttributeError, __pyx_k_AttributeError, sizeof(__pyx_k_AttributeError), 0, 0, 1, 1},
   {&__pyx_n_s_NodeTreeIndex_search, __pyx_k_NodeTreeIndex_search, sizeof(__pyx_k_NodeTreeIndex_search), 0, 0, 1, 1},
-  {&__pyx_kp_s__2, __pyx_k__2, sizeof(__pyx_k__2), 0, 0, 1, 0},
+  {&__pyx_kp_s__3, __pyx_k__3, sizeof(__pyx_k__3), 0, 0, 1, 0},
   {&__pyx_n_s_append, __pyx_k_append, sizeof(__pyx_k_append), 0, 0, 1, 1},
   {&__pyx_n_s_args, __pyx_k_args, sizeof(__pyx_k_args), 0, 0, 1, 1},
   {&__pyx_n_s_array, __pyx_k_array, sizeof(__pyx_k_array), 0, 0, 1, 1},
@@ -7164,6 +7158,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_data, __pyx_k_data, sizeof(__pyx_k_data), 0, 0, 1, 1},
   {&__pyx_n_s_decode, __pyx_k_decode, sizeof(__pyx_k_decode), 0, 0, 1, 1},
   {&__pyx_n_s_dumps, __pyx_k_dumps, sizeof(__pyx_k_dumps), 0, 0, 1, 1},
+  {&__pyx_n_s_encode, __pyx_k_encode, sizeof(__pyx_k_encode), 0, 0, 1, 1},
   {&__pyx_n_s_extend, __pyx_k_extend, sizeof(__pyx_k_extend), 0, 0, 1, 1},
   {&__pyx_n_s_file_h, __pyx_k_file_h, sizeof(__pyx_k_file_h), 0, 0, 1, 1},
   {&__pyx_n_s_from_array, __pyx_k_from_array, sizeof(__pyx_k_from_array), 0, 0, 1, 1},
@@ -7171,7 +7166,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_genexpr, __pyx_k_genexpr, sizeof(__pyx_k_genexpr), 0, 0, 1, 1},
   {&__pyx_n_s_graphite_api_finders, __pyx_k_graphite_api_finders, sizeof(__pyx_k_graphite_api_finders), 0, 0, 1, 1},
   {&__pyx_n_s_graphite_api_utils, __pyx_k_graphite_api_utils, sizeof(__pyx_k_graphite_api_utils), 0, 0, 1, 1},
-  {&__pyx_kp_s_home_zefrer_Projects_influxgrap, __pyx_k_home_zefrer_Projects_influxgrap, sizeof(__pyx_k_home_zefrer_Projects_influxgrap), 0, 0, 1, 0},
+  {&__pyx_kp_s_home_panos_influxgraph_influxgr, __pyx_k_home_panos_influxgraph_influxgr, sizeof(__pyx_k_home_panos_influxgraph_influxgr), 0, 0, 1, 0},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_index, __pyx_k_index, sizeof(__pyx_k_index), 0, 0, 1, 1},
   {&__pyx_n_s_influxgraph_classes_ext_tree, __pyx_k_influxgraph_classes_ext_tree, sizeof(__pyx_k_influxgraph_classes_ext_tree), 0, 0, 1, 1},
@@ -7218,16 +7213,27 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
+  /* "influxgraph/classes/ext/tree.pyx":29
+ * cdef bytes _encode_bytes(_str):
+ *     if not isinstance(b'', str):
+ *         return _str.encode('utf-8')             # <<<<<<<<<<<<<<
+ *     return bytes(_str)
+ * 
+ */
+  __pyx_tuple__2 = PyTuple_Pack(1, __pyx_kp_s_utf_8); if (unlikely(!__pyx_tuple__2)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__2);
+  __Pyx_GIVEREF(__pyx_tuple__2);
+
   /* "influxgraph/classes/ext/tree.pyx":115
- *     def query(self, str query):
+ *     def query(self, query):
  *         """Return nodes matching Graphite glob pattern query"""
  *         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))             # <<<<<<<<<<<<<<
  *         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
  *                 for path, node in nodes)
  */
-  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s__2); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 115, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__3);
-  __Pyx_GIVEREF(__pyx_tuple__3);
+  __pyx_tuple__4 = PyTuple_Pack(1, __pyx_kp_s__3); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 115, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__4);
+  __Pyx_GIVEREF(__pyx_tuple__4);
 
   /* "influxgraph/classes/ext/tree.pyx":136
  *                                and sub_query in keys else []
@@ -7236,9 +7242,9 @@ static int __Pyx_InitCachedConstants(void) {
  *             child_path.extend([child_name])
  *             child_query = split_query[1:]
  */
-  __pyx_slice__4 = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice__4)) __PYX_ERR(0, 136, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_slice__4);
-  __Pyx_GIVEREF(__pyx_slice__4);
+  __pyx_slice__5 = PySlice_New(Py_None, Py_None, Py_None); if (unlikely(!__pyx_slice__5)) __PYX_ERR(0, 136, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_slice__5);
+  __Pyx_GIVEREF(__pyx_slice__5);
 
   /* "influxgraph/classes/ext/tree.pyx":138
  *             child_path = split_path[:]
@@ -7247,9 +7253,9 @@ static int __Pyx_InitCachedConstants(void) {
  *             if len(child_query):
  *                 for sub in self.search(child_node, child_query, child_path):
  */
-  __pyx_slice__5 = PySlice_New(__pyx_int_1, Py_None, Py_None); if (unlikely(!__pyx_slice__5)) __PYX_ERR(0, 138, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_slice__5);
-  __Pyx_GIVEREF(__pyx_slice__5);
+  __pyx_slice__6 = PySlice_New(__pyx_int_1, Py_None, Py_None); if (unlikely(!__pyx_slice__6)) __PYX_ERR(0, 138, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_slice__6);
+  __Pyx_GIVEREF(__pyx_slice__6);
 
   /* "influxgraph/classes/ext/tree.pyx":165
  *     def from_file(file_h):
@@ -7258,9 +7264,9 @@ static int __Pyx_InitCachedConstants(void) {
  *           if not isinstance(b'', str) else file_h.read()
  *         index = NodeTreeIndex.from_array(json.loads(data))
  */
-  __pyx_tuple__6 = PyTuple_Pack(1, __pyx_kp_s_utf_8); if (unlikely(!__pyx_tuple__6)) __PYX_ERR(0, 165, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__6);
-  __Pyx_GIVEREF(__pyx_tuple__6);
+  __pyx_tuple__7 = PyTuple_Pack(1, __pyx_kp_s_utf_8); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 165, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__7);
+  __Pyx_GIVEREF(__pyx_tuple__7);
 
   /* "influxgraph/classes/ext/tree.pyx":80
  * 
@@ -7269,10 +7275,10 @@ static int __Pyx_InitCachedConstants(void) {
  *         """Load given parent node's children from array"""
  *         metric = Node()
  */
-  __pyx_tuple__7 = PyTuple_Pack(5, __pyx_n_s_array, __pyx_n_s_metric, __pyx_n_s_child_name, __pyx_n_s_child_array, __pyx_n_s_child); if (unlikely(!__pyx_tuple__7)) __PYX_ERR(0, 80, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__7);
-  __Pyx_GIVEREF(__pyx_tuple__7);
-  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(1, 0, 5, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_zefrer_Projects_influxgrap, __pyx_n_s_from_array, 80, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __pyx_tuple__8 = PyTuple_Pack(5, __pyx_n_s_array, __pyx_n_s_metric, __pyx_n_s_child_name, __pyx_n_s_child_array, __pyx_n_s_child); if (unlikely(!__pyx_tuple__8)) __PYX_ERR(0, 80, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__8);
+  __Pyx_GIVEREF(__pyx_tuple__8);
+  __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(1, 0, 5, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__8, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_panos_influxgraph_influxgr, __pyx_n_s_from_array, 80, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 80, __pyx_L1_error)
 
   /* "influxgraph/classes/ext/tree.pyx":156
  * 
@@ -7281,10 +7287,10 @@ static int __Pyx_InitCachedConstants(void) {
  *         """Load tree index from array"""
  *         metric_index = NodeTreeIndex()
  */
-  __pyx_tuple__9 = PyTuple_Pack(2, __pyx_n_s_model, __pyx_n_s_metric_index); if (unlikely(!__pyx_tuple__9)) __PYX_ERR(0, 156, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__9);
-  __Pyx_GIVEREF(__pyx_tuple__9);
-  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_zefrer_Projects_influxgrap, __pyx_n_s_from_array, 156, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) __PYX_ERR(0, 156, __pyx_L1_error)
+  __pyx_tuple__10 = PyTuple_Pack(2, __pyx_n_s_model, __pyx_n_s_metric_index); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 156, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__10);
+  __Pyx_GIVEREF(__pyx_tuple__10);
+  __pyx_codeobj__11 = (PyObject*)__Pyx_PyCode_New(1, 0, 2, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_panos_influxgraph_influxgr, __pyx_n_s_from_array, 156, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__11)) __PYX_ERR(0, 156, __pyx_L1_error)
 
   /* "influxgraph/classes/ext/tree.pyx":163
  * 
@@ -7293,10 +7299,10 @@ static int __Pyx_InitCachedConstants(void) {
  *         """Load tree index from file handle"""
  *         data = file_h.read().decode('utf-8') \
  */
-  __pyx_tuple__11 = PyTuple_Pack(3, __pyx_n_s_file_h, __pyx_n_s_data, __pyx_n_s_index); if (unlikely(!__pyx_tuple__11)) __PYX_ERR(0, 163, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_tuple__11);
-  __Pyx_GIVEREF(__pyx_tuple__11);
-  __pyx_codeobj__12 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__11, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_zefrer_Projects_influxgrap, __pyx_n_s_from_file, 163, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__12)) __PYX_ERR(0, 163, __pyx_L1_error)
+  __pyx_tuple__12 = PyTuple_Pack(3, __pyx_n_s_file_h, __pyx_n_s_data, __pyx_n_s_index); if (unlikely(!__pyx_tuple__12)) __PYX_ERR(0, 163, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_tuple__12);
+  __Pyx_GIVEREF(__pyx_tuple__12);
+  __pyx_codeobj__13 = (PyObject*)__Pyx_PyCode_New(1, 0, 3, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__12, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_panos_influxgraph_influxgr, __pyx_n_s_from_file, 163, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__13)) __PYX_ERR(0, 163, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;

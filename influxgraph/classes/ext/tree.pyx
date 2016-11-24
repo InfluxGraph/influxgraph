@@ -24,7 +24,7 @@ from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 
 
-cdef bytes _encode_bytes(unicode _str):
+cdef bytes _encode_bytes(_str):
     if not isinstance(b'', str):
         return _str.encode('utf-8')
     return bytes(_str)
@@ -110,7 +110,7 @@ cdef class NodeTreeIndex:
         """Clear tree index"""
         self.index.clear()
 
-    def query(self, str query):
+    def query(self, query):
         """Return nodes matching Graphite glob pattern query"""
         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
