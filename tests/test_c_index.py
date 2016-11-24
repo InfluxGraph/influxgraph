@@ -1,5 +1,9 @@
+import sys
 import unittest
-from influxgraph.classes.ext.tree import NodeTreeIndex
+try:
+    from influxgraph.classes.ext.tree import NodeTreeIndex
+except ImportError:
+    sys.exit(0)
 from influxgraph.utils import Query
 import datetime
 
