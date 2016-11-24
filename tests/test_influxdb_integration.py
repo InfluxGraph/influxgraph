@@ -771,9 +771,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         os.chmod(bad_index_path, mask)
         config = { 'influxdb': { 'host' : 'localhost',
                                  'port' : 8086,
-                                 'memcache' : {'host': 'localhost',
-                                               
-                                               },
+                                 'memcache' : {'host': 'localhost',},
                                  'user' : 'root',
                                  'pass' : 'root',
                                  'db' : self.db_name,
@@ -799,15 +797,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             os.unlink('index')
         except OSError:
             pass
-        config['search_index'] = 'index'
+        del config['search_index']
         finder = influxgraph.InfluxDBFinder(config)
-        # Delete object which has the effect of joining
-        # the index save thread
-        del finder
-        finder = influxgraph.InfluxDBFinder(config)
+        finder.index_path = 'index'
+        finder.save_index()
         self.assertTrue(os.path.isfile('index'))
         # Reload index from file
-        index_fh = GzipFile(config['search_index'], 'r')
+        index_fh = GzipFile(finder.index_path, 'r')
         try:
             index = NodeTreeIndex.from_file(index_fh)
         finally:
