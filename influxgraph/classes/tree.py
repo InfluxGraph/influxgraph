@@ -30,11 +30,10 @@ def _encode_bytes(_str):
     return bytes(_str)
 
 def _decode_str(_str):
-    if not isinstance(b'', str):
-        try:
-            return _str.decode('utf-8')
-        except AttributeError:
-            pass
+    try:
+        return _str.decode('utf-8')
+    except AttributeError:
+        pass
     return _str
 
 class Node(object):
@@ -80,7 +79,7 @@ class Node(object):
         for child_name, child_array in array:
             child = Node.from_array(child_array)
             metric.children = []
-            metric.children.append((child_name, child))
+            metric.children.append((_encode_bytes(child_name), child))
         return metric
 
 class NodeTreeIndex(object):

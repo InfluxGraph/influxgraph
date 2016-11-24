@@ -29,7 +29,6 @@ import datetime
 import logging
 from logging.handlers import WatchedFileHandler
 import itertools
-import gc
 import gzip
 from collections import deque
 
@@ -466,8 +465,6 @@ class InfluxDBFinder(object):
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-            collected = gc.collect()
-            logger.debug("GC'd %s objects after index re-build", collected)
 
     def build_index(self, data=None, separator='.'):
         """Build new node tree index

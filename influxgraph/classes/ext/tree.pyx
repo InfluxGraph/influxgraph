@@ -30,9 +30,10 @@ cdef bytes _encode_bytes(unicode _str):
     return bytes(_str)
 
 cdef _decode_str(bytes _str):
-    if not isinstance(b'', str):
+    try:
         return _str.decode('utf-8')
-    return _str
+    except AttributeError:
+        return _str
 
 cdef class Node:
     """Node class of a graphite metric"""
@@ -84,7 +85,7 @@ cdef class Node:
         for child_name, child_array in array:
             child = Node.from_array(child_array)
             metric.children = []
-            metric.children.append((child_name, child))
+            metric.children.append((_encode_bytes(child_name), child))
         return metric
 
 cdef class NodeTreeIndex:
