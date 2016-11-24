@@ -3,7 +3,7 @@ import unittest
 try:
     from influxgraph.classes.ext.tree import NodeTreeIndex
 except ImportError:
-    sys.exit(0)
+    from influxgraph.classes.tree import NodeTreeIndex
 from influxgraph.utils import Query
 import datetime
 
