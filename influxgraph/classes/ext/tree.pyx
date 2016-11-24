@@ -84,8 +84,8 @@ cdef class Node:
             return metric
         for child_name, child_array in array:
             child = Node.from_array(child_array)
-            metric.children = []
-            metric.children.append((_encode_bytes(child_name), child))
+            metric.children = ()
+            metric.children += ((_encode_bytes(child_name), child),)
         return metric
 
 cdef class NodeTreeIndex:

@@ -1035,29 +1035,6 @@ static int __Pyx_ParseOptionalKeywords(PyObject *kwds, PyObject **argnames[],\
     PyObject *kwds2, PyObject *values[], Py_ssize_t num_pos_args,\
     const char* function_name);
 
-/* ListAppend.proto */
-#if CYTHON_USE_PYLIST_INTERNALS && CYTHON_ASSUME_SAFE_MACROS
-static CYTHON_INLINE int __Pyx_PyList_Append(PyObject* list, PyObject* x) {
-    PyListObject* L = (PyListObject*) list;
-    Py_ssize_t len = Py_SIZE(list);
-    if (likely(L->allocated > len) & likely(len > (L->allocated >> 1))) {
-        Py_INCREF(x);
-        PyList_SET_ITEM(list, len, x);
-        Py_SIZE(list) = len+1;
-        return 0;
-    }
-    return PyList_Append(list, x);
-}
-#else
-#define __Pyx_PyList_Append(L,x) PyList_Append(L,x)
-#endif
-
-/* PyObjectCallMethod1.proto */
-static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg);
-
-/* append.proto */
-static CYTHON_INLINE int __Pyx_PyObject_Append(PyObject* L, PyObject* x);
-
 /* PyObjectCallNoArg.proto */
 #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func);
@@ -1170,6 +1147,9 @@ static CYTHON_INLINE void __Pyx__ExceptionSwap(PyThreadState *tstate, PyObject *
 static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value, PyObject **tb);
 #endif
 
+/* PyObjectCallMethod1.proto */
+static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg);
+
 /* CoroutineBase.proto */
 typedef PyObject *(*__pyx_coroutine_body_t)(PyObject *, PyObject *);
 typedef struct {
@@ -1267,7 +1247,6 @@ static const char __pyx_k_split[] = "split";
 static const char __pyx_k_throw[] = "throw";
 static const char __pyx_k_utf_8[] = "utf-8";
 static const char __pyx_k_write[] = "write";
-static const char __pyx_k_append[] = "append";
 static const char __pyx_k_decode[] = "decode";
 static const char __pyx_k_encode[] = "encode";
 static const char __pyx_k_extend[] = "extend";
@@ -1304,7 +1283,6 @@ static PyObject *__pyx_kp_b_;
 static PyObject *__pyx_n_s_AttributeError;
 static PyObject *__pyx_n_s_NodeTreeIndex_search;
 static PyObject *__pyx_kp_s__3;
-static PyObject *__pyx_n_s_append;
 static PyObject *__pyx_n_s_args;
 static PyObject *__pyx_n_s_array;
 static PyObject *__pyx_n_s_child;
@@ -2664,7 +2642,6 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_4Node_6from_array(Py
   PyObject *__pyx_t_8 = NULL;
   PyObject *__pyx_t_9 = NULL;
   PyObject *(*__pyx_t_10)(PyObject *);
-  int __pyx_t_11;
   __Pyx_RefNannySetupContext("from_array", 0);
 
   /* "influxgraph/classes/ext/tree.pyx":82
@@ -2716,7 +2693,7 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_4Node_6from_array(Py
  *             return metric
  *         for child_name, child_array in array:             # <<<<<<<<<<<<<<
  *             child = Node.from_array(child_array)
- *             metric.children = []
+ *             metric.children = ()
  */
   if (likely(PyList_CheckExact(__pyx_v_array)) || PyTuple_CheckExact(__pyx_v_array)) {
     __pyx_t_1 = __pyx_v_array; __Pyx_INCREF(__pyx_t_1); __pyx_t_4 = 0;
@@ -2816,8 +2793,8 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_4Node_6from_array(Py
  *             return metric
  *         for child_name, child_array in array:
  *             child = Node.from_array(child_array)             # <<<<<<<<<<<<<<
- *             metric.children = []
- *             metric.children.append((_encode_bytes(child_name), child))
+ *             metric.children = ()
+ *             metric.children += ((_encode_bytes(child_name), child),)
  */
     __pyx_t_8 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_ptype_11influxgraph_7classes_3ext_4tree_Node), __pyx_n_s_from_array); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 86, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
@@ -2870,22 +2847,20 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_4Node_6from_array(Py
     /* "influxgraph/classes/ext/tree.pyx":87
  *         for child_name, child_array in array:
  *             child = Node.from_array(child_array)
- *             metric.children = []             # <<<<<<<<<<<<<<
- *             metric.children.append((_encode_bytes(child_name), child))
+ *             metric.children = ()             # <<<<<<<<<<<<<<
+ *             metric.children += ((_encode_bytes(child_name), child),)
  *         return metric
  */
-    __pyx_t_6 = PyList_New(0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 87, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_GIVEREF(__pyx_t_6);
+    __Pyx_INCREF(__pyx_empty_tuple);
+    __Pyx_GIVEREF(__pyx_empty_tuple);
     __Pyx_GOTREF(__pyx_v_metric->children);
     __Pyx_DECREF(__pyx_v_metric->children);
-    __pyx_v_metric->children = __pyx_t_6;
-    __pyx_t_6 = 0;
+    __pyx_v_metric->children = __pyx_empty_tuple;
 
     /* "influxgraph/classes/ext/tree.pyx":88
  *             child = Node.from_array(child_array)
- *             metric.children = []
- *             metric.children.append((_encode_bytes(child_name), child))             # <<<<<<<<<<<<<<
+ *             metric.children = ()
+ *             metric.children += ((_encode_bytes(child_name), child),)             # <<<<<<<<<<<<<<
  *         return metric
  * 
  */
@@ -2899,22 +2874,33 @@ static PyObject *__pyx_pf_11influxgraph_7classes_3ext_4tree_4Node_6from_array(Py
     __Pyx_GIVEREF(__pyx_v_child);
     PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_v_child);
     __pyx_t_6 = 0;
-    __pyx_t_11 = __Pyx_PyObject_Append(__pyx_v_metric->children, __pyx_t_8); if (unlikely(__pyx_t_11 == -1)) __PYX_ERR(0, 88, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __pyx_t_6 = PyTuple_New(1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 88, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_6);
+    __Pyx_GIVEREF(__pyx_t_8);
+    PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_8);
+    __pyx_t_8 = 0;
+    __pyx_t_8 = PyNumber_InPlaceAdd(__pyx_v_metric->children, __pyx_t_6); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 88, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_8);
+    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+    __Pyx_GIVEREF(__pyx_t_8);
+    __Pyx_GOTREF(__pyx_v_metric->children);
+    __Pyx_DECREF(__pyx_v_metric->children);
+    __pyx_v_metric->children = __pyx_t_8;
+    __pyx_t_8 = 0;
 
     /* "influxgraph/classes/ext/tree.pyx":85
  *         if array is None:
  *             return metric
  *         for child_name, child_array in array:             # <<<<<<<<<<<<<<
  *             child = Node.from_array(child_array)
- *             metric.children = []
+ *             metric.children = ()
  */
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
   /* "influxgraph/classes/ext/tree.pyx":89
- *             metric.children = []
- *             metric.children.append((_encode_bytes(child_name), child))
+ *             metric.children = ()
+ *             metric.children += ((_encode_bytes(child_name), child),)
  *         return metric             # <<<<<<<<<<<<<<
  * 
  * cdef class NodeTreeIndex:
@@ -7146,7 +7132,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_AttributeError, __pyx_k_AttributeError, sizeof(__pyx_k_AttributeError), 0, 0, 1, 1},
   {&__pyx_n_s_NodeTreeIndex_search, __pyx_k_NodeTreeIndex_search, sizeof(__pyx_k_NodeTreeIndex_search), 0, 0, 1, 1},
   {&__pyx_kp_s__3, __pyx_k__3, sizeof(__pyx_k__3), 0, 0, 1, 0},
-  {&__pyx_n_s_append, __pyx_k_append, sizeof(__pyx_k_append), 0, 0, 1, 1},
   {&__pyx_n_s_args, __pyx_k_args, sizeof(__pyx_k_args), 0, 0, 1, 1},
   {&__pyx_n_s_array, __pyx_k_array, sizeof(__pyx_k_array), 0, 0, 1, 1},
   {&__pyx_n_s_child, __pyx_k_child, sizeof(__pyx_k_child), 0, 0, 1, 1},
@@ -8537,65 +8522,6 @@ bad:
     return -1;
 }
 
-/* PyObjectCallMethod1 */
-    static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg) {
-    PyObject *method, *result = NULL;
-    method = __Pyx_PyObject_GetAttrStr(obj, method_name);
-    if (unlikely(!method)) goto done;
-#if CYTHON_UNPACK_METHODS
-    if (likely(PyMethod_Check(method))) {
-        PyObject *self = PyMethod_GET_SELF(method);
-        if (likely(self)) {
-            PyObject *args;
-            PyObject *function = PyMethod_GET_FUNCTION(method);
-            #if CYTHON_FAST_PYCALL
-            if (PyFunction_Check(function)) {
-                PyObject *args[2] = {self, arg};
-                result = __Pyx_PyFunction_FastCall(function, args, 2);
-                goto done;
-            }
-            #endif
-            #if CYTHON_FAST_PYCCALL
-            if (__Pyx_PyFastCFunction_Check(function)) {
-                PyObject *args[2] = {self, arg};
-                result = __Pyx_PyCFunction_FastCall(function, args, 2);
-                goto done;
-            }
-            #endif
-            args = PyTuple_New(2);
-            if (unlikely(!args)) goto done;
-            Py_INCREF(self);
-            PyTuple_SET_ITEM(args, 0, self);
-            Py_INCREF(arg);
-            PyTuple_SET_ITEM(args, 1, arg);
-            Py_INCREF(function);
-            Py_DECREF(method); method = NULL;
-            result = __Pyx_PyObject_Call(function, args, NULL);
-            Py_DECREF(args);
-            Py_DECREF(function);
-            return result;
-        }
-    }
-#endif
-    result = __Pyx_PyObject_CallOneArg(method, arg);
-done:
-    Py_XDECREF(method);
-    return result;
-}
-
-/* append */
-    static CYTHON_INLINE int __Pyx_PyObject_Append(PyObject* L, PyObject* x) {
-    if (likely(PyList_CheckExact(L))) {
-        if (unlikely(__Pyx_PyList_Append(L, x) < 0)) return -1;
-    } else {
-        PyObject* retval = __Pyx_PyObject_CallMethod1(L, __pyx_n_s_append, x);
-        if (unlikely(!retval))
-            return -1;
-        Py_DECREF(retval);
-    }
-    return 0;
-}
-
 /* PyObjectCallNoArg */
     #if CYTHON_COMPILING_IN_CPYTHON
 static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func) {
@@ -9701,6 +9627,52 @@ static CYTHON_INLINE void __Pyx_ExceptionSwap(PyObject **type, PyObject **value,
     *tb = tmp_tb;
 }
 #endif
+
+/* PyObjectCallMethod1 */
+          static PyObject* __Pyx_PyObject_CallMethod1(PyObject* obj, PyObject* method_name, PyObject* arg) {
+    PyObject *method, *result = NULL;
+    method = __Pyx_PyObject_GetAttrStr(obj, method_name);
+    if (unlikely(!method)) goto done;
+#if CYTHON_UNPACK_METHODS
+    if (likely(PyMethod_Check(method))) {
+        PyObject *self = PyMethod_GET_SELF(method);
+        if (likely(self)) {
+            PyObject *args;
+            PyObject *function = PyMethod_GET_FUNCTION(method);
+            #if CYTHON_FAST_PYCALL
+            if (PyFunction_Check(function)) {
+                PyObject *args[2] = {self, arg};
+                result = __Pyx_PyFunction_FastCall(function, args, 2);
+                goto done;
+            }
+            #endif
+            #if CYTHON_FAST_PYCCALL
+            if (__Pyx_PyFastCFunction_Check(function)) {
+                PyObject *args[2] = {self, arg};
+                result = __Pyx_PyCFunction_FastCall(function, args, 2);
+                goto done;
+            }
+            #endif
+            args = PyTuple_New(2);
+            if (unlikely(!args)) goto done;
+            Py_INCREF(self);
+            PyTuple_SET_ITEM(args, 0, self);
+            Py_INCREF(arg);
+            PyTuple_SET_ITEM(args, 1, arg);
+            Py_INCREF(function);
+            Py_DECREF(method); method = NULL;
+            result = __Pyx_PyObject_Call(function, args, NULL);
+            Py_DECREF(args);
+            Py_DECREF(function);
+            return result;
+        }
+    }
+#endif
+    result = __Pyx_PyObject_CallOneArg(method, arg);
+done:
+    Py_XDECREF(method);
+    return result;
+}
 
 /* CoroutineBase */
           #include <structmember.h>

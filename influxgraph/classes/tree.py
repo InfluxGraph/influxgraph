@@ -67,7 +67,7 @@ class Node(object):
 
     def to_array(self):
         """Return list of (name, children) items for this node's children"""
-        return [(_decode_str(name), node.to_array()) for (name, node,) in self.children] \
+        return [(_decode_str(name), node.to_array(),) for (name, node,) in self.children] \
           if self.children is not None else None
 
     @staticmethod
@@ -77,9 +77,10 @@ class Node(object):
         if array is None:
             return metric
         for child_name, child_array in array:
+            import ipdb; ipdb.set_trace()
             child = Node.from_array(child_array)
-            metric.children = []
-            metric.children.append((_encode_bytes(child_name), child))
+            metric.children = ()
+            metric.children += ((_encode_bytes(child_name), child),)
         return metric
 
 class NodeTreeIndex(object):
