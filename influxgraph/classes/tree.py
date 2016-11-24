@@ -129,9 +129,9 @@ class NodeTreeIndex(object):
                                and sub_query in keys else []
         for child_name, child_node in matched_children:
             child_path = split_path[:]
-            child_path.extend([child_name])
+            child_path.append(child_name)
             child_query = split_query[1:]
-            if len(child_query):
+            if len(child_query) > 0:
                 for sub in self.search(child_node, child_query, child_path):
                     yield sub
             else:
