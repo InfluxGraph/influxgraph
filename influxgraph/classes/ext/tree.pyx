@@ -114,30 +114,36 @@ cdef class NodeTreeIndex:
     def query(self, query):
         """Return nodes matching Graphite glob pattern query"""
         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
+        cdef Node node
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
-    def search(self, node, split_query, split_path):
+    def search(self, Node node, list split_query, list split_path):
         """Return matching children for each query part in split query starting
         from given node"""
-        sub_query = split_query[0]
-        keys = [_decode_str(key) for (key, _) in node.children] \
+        cdef str sub_query = split_query[0]
+        cdef list keys = [_decode_str(key) for (key, _) in node.children] \
           if node.children is not None else []
-        matched_paths = match_entries(keys, sub_query)
+        cdef list matched_paths = match_entries(keys, sub_query)
+        cdef Node _node
         matched_children = (
             (_decode_str(path), _node)
             for (path, _node) in node.children
             if _decode_str(path) in matched_paths) \
             if node.children is not None and is_pattern(sub_query) \
             else [(sub_query, [n for (k, n) in node.children
-                               if _decode_str(k) == sub_query][0])] \
-                               if node.children is not None \
-                               and sub_query in keys else []
+                    if _decode_str(k) == sub_query][0])] \
+                    if node.children is not None \
+                    and sub_query in keys else []
+        # cdef unicode child_name
+        cdef Node child_node
+        cdef list child_path
+        cdef list child_query
         for child_name, child_node in matched_children:
             child_path = split_path[:]
-            child_path.extend([child_name])
+            child_path.append(child_name)
             child_query = split_query[1:]
-            if len(child_query):
+            if len(child_query) > 0:
                 for sub in self.search(child_node, child_query, child_path):
                     yield sub
             else:
@@ -152,7 +158,7 @@ cdef class NodeTreeIndex:
     cpdef list to_array(self):
         """Return array representation of tree index"""
         return self.index.to_array()
-    
+
     @staticmethod
     def from_array(model):
         """Load tree index from array"""
