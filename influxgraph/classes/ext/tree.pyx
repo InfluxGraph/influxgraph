@@ -69,11 +69,11 @@ cdef class Node:
     cdef void clear(self):
         self.children = None
 
-    cdef list to_array(self):
+    cpdef list to_array(self):
         """Return list of (name, children) items for this node's children"""
         cdef bytes name
         cdef Node node
-        return [(_decode_str(name), node.to_array()) for (name, node,) in self.children] \
+        return [(_decode_str(name), node.to_array(),) for (name, node,) in self.children] \
           if self.children is not None else None
 
     @staticmethod
@@ -82,9 +82,10 @@ cdef class Node:
         metric = Node()
         if array is None:
             return metric
+        else:
+            metric.children = ()
         for child_name, child_array in array:
             child = Node.from_array(child_array)
-            metric.children = ()
             metric.children += ((_encode_bytes(child_name), child),)
         return metric
 
@@ -148,7 +149,7 @@ cdef class NodeTreeIndex:
           if not isinstance(b'', str) else json.dumps(self.to_array())
         file_h.write(data)
 
-    cdef list to_array(self):
+    cpdef list to_array(self):
         """Return array representation of tree index"""
         return self.index.to_array()
     

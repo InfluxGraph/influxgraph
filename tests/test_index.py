@@ -1,7 +1,6 @@
 import unittest
 from influxgraph.classes.tree import NodeTreeIndex
 from influxgraph.utils import Query
-import datetime
 
 class IndexTreeTestCase(unittest.TestCase):
 
@@ -56,3 +55,8 @@ class IndexTreeTestCase(unittest.TestCase):
         self.assertTrue(result[0]['metric'] == 'b1.b1.b1.b1.leaf1')
         result = list(self.index.query('fakey*'))
         self.assertFalse(result)
+
+    def test_to_from_array(self):
+        index2 = NodeTreeIndex.from_array(self.index.to_array())
+        self.assertEqual(index2.to_array(), self.index.to_array())
+        self.assertEqual(list(self.index.query('*')), list(index2.query('*')))

@@ -76,10 +76,10 @@ class Node(object):
         metric = Node()
         if array is None:
             return metric
-        for child_name, child_array in array:
-            import ipdb; ipdb.set_trace()
-            child = Node.from_array(child_array)
+        else:
             metric.children = ()
+        for child_name, child_array in array:
+            child = Node.from_array(child_array)
             metric.children += ((_encode_bytes(child_name), child),)
         return metric
 

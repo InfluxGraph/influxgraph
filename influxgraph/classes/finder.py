@@ -459,12 +459,17 @@ class InfluxDBFinder(object):
         return (d for k in data for d in k if d)
 
     def _reindex(self, interval=900):
+        save_thread = threading.Thread(target=self.save_index)
+        save_thread.start()
         while True:
             time.sleep(interval)
             try:
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
+            save_thread.join()
+            save_thread = threading.Thread(target=self.save_index)
+            save_thread.start()
 
     def build_index(self, data=None, separator='.'):
         """Build new node tree index
@@ -507,12 +512,12 @@ class InfluxDBFinder(object):
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
         self.index_lock.release()
-        threading.Thread(target=self.save_index).start()
 
     def save_index(self):
         """Save index to file"""
         if not self.index_path:
             return
+        logger.info("Saving index to file %s", self.index_path,)
         try:
             index_fh = gzip.GzipFile(self.index_path, 'w')
             self.index.to_file(index_fh)
