@@ -78,7 +78,7 @@ class InfluxDBFinder(object):
                                      influxdb_config.get('passw', 'root'),
                                      influxdb_config.get('db', 'graphite'),
                                      influxdb_config.get('ssl', 'false'),)
-        self._setup_logger(influxdb_config.get('log_level', 'info'),
+        self._setup_logger(influxdb_config.get('log_level', None),
                            influxdb_config.get('log_file', None))
         try:
             self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
@@ -169,6 +169,8 @@ class InfluxDBFinder(object):
 
     def _setup_logger(self, level, log_file):
         """Setup log level and log file if set"""
+        if not level:
+            return
         if logger.handlers:
             return
         formatter = logging.Formatter(

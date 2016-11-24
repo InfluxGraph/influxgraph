@@ -47,7 +47,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             'user': 'root',
             'pass': 'root',
             'db': self.db_name,
-            'log_level': 'debug',
             'templates': [
                 self.template,
                 ],

@@ -55,7 +55,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                        'user' : 'root',
                                        'pass' : 'root',
                                        'db' : self.db_name,
-                                       'log_level' : 'debug',
                                        # 'series_loader_interval': 1,
                                        },
                         'statsd': { 'host': 'localhost' },
@@ -90,7 +89,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                  'user' : 'root',
                                  'pass' : 'root',
                                  'db' : self.db_name,
-                                 'log_level' : 'debug',
             # Set data interval to 1 second for queries
             # of one hour or less
             'deltas' : {3600: 1},},
@@ -420,7 +418,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
-                                  'log_level' : 'debug',
                                   'series_loader_interval': _loader_interval,
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
@@ -458,7 +455,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
-                                  'log_level' : 'debug',
                                   'reindex_interval': _reindex_interval,
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
@@ -490,7 +486,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
-                                  'log_level' : 'debug',
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
                                                  'max_value' : 20},
@@ -577,7 +572,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
-                                  'log_level' : 'debug',
                                   'memcache' : { 'host': 'localhost'},
                                   },}
         finder = influxgraph.InfluxDBFinder(config)
@@ -628,7 +622,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
-                                  'log_level' : 'debug',
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
                                                  'max_value' : 20},
@@ -697,7 +690,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'user' : 'root',
                                   'pass' : 'root',
                                   'db' : self.db_name,
-                                  'log_level' : 'debug',
                                   'deltas' : {
                                       1800: 600,
                                       3600: 1800,
@@ -775,7 +767,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                  'user' : 'root',
                                  'pass' : 'root',
                                  'db' : self.db_name,
-                                 'log_level' : 'debug',
                                  },
                         'statsd': {'host': 'localhost' },
                         'search_index': bad_index_path,
