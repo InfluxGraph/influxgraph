@@ -20,7 +20,7 @@ class CIndexTreeTestCase(unittest.TestCase):
         self.index = NodeTreeIndex()
         for serie in all_series:
             self.index.insert(serie)
-    
+
     def test_root_wildcard(self):
         result = list(self.index.query('*'))
         self.assertTrue(len(result) == 1)

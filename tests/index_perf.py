@@ -6,7 +6,7 @@ from pprint import pprint
 
 class IndexTreePerfTestCase(unittest.TestCase):
     series = """series = [u'.'.join([u''.join([choice(ascii_letters) for _ in range(127)])
-                                     for _ in range(randint(450, 500))])
+                                     for _ in range(500)])
                           for _ in range(5, 1000)]"""
     timeit_setup = """from string import ascii_letters
 from random import randint, choice
@@ -17,7 +17,7 @@ index = NodeTreeIndex()"""
 for serie in series:
     index.insert(serie)"""
     timeit_query_stmt = """
-for query in ['.'.join(['*' for _ in range(randint(1,10))]) for _ in range(randint(10,20))]:
+for query in ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]:
     index.query(query)
     """
 
@@ -41,7 +41,7 @@ for query in ['.'.join(['*' for _ in range(randint(1,10))]) for _ in range(randi
         pprint("Python index load time is %s" % (load_time,))
         pprint("Python index re-load time is %s" % (reload_time,))
         pprint("Python index query time is %s" % (query_time,))
-        
+
     def test_cython_index(self):
         index_import = """from influxgraph.classes.ext.tree import NodeTreeIndex"""
         load_time, reload_time, query_time = self.time_index(index_import)
