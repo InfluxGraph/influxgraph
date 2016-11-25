@@ -2,7 +2,7 @@ import sys
 import unittest
 
 try:
-    from influxgraph.classes.ext.tree import NodeTreeIndex
+    from influxgraph.ext.classes.tree import NodeTreeIndex
 except ImportError:
     from influxgraph.classes.tree import NodeTreeIndex
 from influxgraph.utils import Query

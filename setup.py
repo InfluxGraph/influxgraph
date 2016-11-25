@@ -20,8 +20,10 @@ else:
 
 ext = 'pyx' if USING_CYTHON else 'c'
 
-extensions = [Extension("influxgraph.classes.ext.tree",
-                        ["influxgraph/classes/ext/tree.%s" % (ext,)])]
+extensions = [Extension("influxgraph.ext.classes.tree",
+                        ["influxgraph/ext/classes/tree.%s" % (ext,)]),
+              Extension("influxgraph.ext.templates",
+                        ["influxgraph/ext/templates.%s" % (ext,)]),]
 
 if USING_CYTHON:
     extensions = cythonize(extensions)

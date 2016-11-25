@@ -19,7 +19,9 @@
 from __future__ import absolute_import, print_function
 import re
 import logging
+from collections import deque
 
+from .utils import heapsort
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
 
 logger = logging.getLogger('influxgraph')
@@ -120,3 +122,66 @@ def _generate_template_tag_index(template):
             tag = None
         tags[i] = tag
     return tags
+
+def _get_series_with_tags(serie, all_fields, graphite_templates,
+                               separator='.'):
+    paths = serie.split(',')
+    if not graphite_templates:
+        return [paths[0:1]]
+    series = deque()
+    split_path, template = _split_series_with_tags(paths, graphite_templates)
+    if not split_path:
+        # No template match
+        return series
+    if 'field' in template.values() or 'field*' in template.values():
+        _add_fields_to_paths(
+            all_fields[paths[0]], split_path, series, separator=separator)
+    else:
+        series.append(split_path)
+    return series
+
+def _split_series_with_tags(paths, graphite_templates):
+    split_path, template = deque(), None
+    tags_values = [p.split('=') for p in paths[1:]]
+    for (_, template, _, separator) in graphite_templates:
+        _make_path_from_template(
+            split_path, paths[0], template, tags_values)
+        # Split path should be at least as large as number of wanted
+        # template tags taking into account measurement and number of fields
+        # in template
+        field_inds = len([v for v in template.values()
+                          if v and 'field' in v])
+        if (len(split_path) + field_inds) >= len(
+                [k for k, v in template.items() if v]):
+            break
+        # Reset path if template does not match
+        else:
+            split_path = []
+    path = [p[1] for p in heapsort(split_path)] if split_path \
+           else split_path
+    return path, template
+
+def _make_path_from_template(split_path, measurement, template, tags_values,
+                             separator='.'):
+    measurement_found = False
+    if not tags_values and separator in measurement and \
+       'measurement*' == [t for t in template.values() if t][0]:
+        for i, measurement in enumerate(measurement.split(separator)):
+            split_path.append((i, measurement))
+        return
+    for (tag_key, tag_val) in tags_values:
+        for i, tmpl_tag_key in template.items():
+            if not tmpl_tag_key:
+                continue
+            if tag_key == tmpl_tag_key:
+                split_path.append((i, tag_val))
+            elif 'measurement' in tmpl_tag_key and not measurement_found:
+                measurement_found = True
+                split_path.append((i, measurement))
+
+def _add_fields_to_paths(fields, split_path, series,
+                         separator='.'):
+    for field_key in fields:
+        field_keys = [f for f in field_key.split(separator)
+                      if f != 'value']
+        series.append(split_path + field_keys)
