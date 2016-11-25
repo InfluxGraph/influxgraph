@@ -43,7 +43,7 @@ for query in ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]:
         pprint("Python index query time is %s" % (query_time,))
 
     def test_cython_index(self):
-        index_import = """from influxgraph.classes.ext.tree import NodeTreeIndex"""
+        index_import = """from influxgraph.ext.classes.tree import NodeTreeIndex"""
         load_time, reload_time, query_time = self.time_index(index_import)
         pprint("Cython index load time is %s" % (load_time,))
         pprint("Cython index re-load time is %s" % (reload_time,))
