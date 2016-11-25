@@ -1,4 +1,11 @@
-from ..utils import heapsort
+from heapq import heappush, heappop
+
+# Function as per Python official documentation
+cdef list heapsort(list iterable):
+    cdef list h = []
+    for value in iterable:
+        heappush(h, value)
+    return [heappop(h) for _ in range(len(h))]
 
 cpdef list _get_series_with_tags(unicode serie, dict all_fields,
                                  list graphite_templates,
@@ -9,26 +16,27 @@ cpdef list _get_series_with_tags(unicode serie, dict all_fields,
     cdef list series = []
     cdef list split_path
     cdef dict template
-    split_path, template = _split_series_with_tags(paths, graphite_templates)
+    split_path, template = _split_series_with_tags(paths, graphite_templates,
+                                                   separator)
     if not split_path:
         # No template match
         return series
     if 'field' in template.values() or 'field*' in template.values():
         _add_fields_to_paths(
-            all_fields[paths[0]], split_path, series, separator=separator)
+            all_fields[paths[0]], split_path, series, separator)
     else:
         series.append(split_path)
     return series
 
-cpdef public _split_series_with_tags(list paths, list graphite_templates):
-    cdef str separator
+cdef tuple _split_series_with_tags(list paths, list graphite_templates,
+                                   str separator):
     cdef list split_path = []
     cdef dict template = None
     cdef list tags_values = [p.split('=') for p in paths[1:]]
     cdef int field_inds
     for (_, template, _, separator) in graphite_templates:
         _make_path_from_template(
-            split_path, paths[0], template, tags_values)
+            split_path, paths[0], template, tags_values, separator)
         # Split path should be at least as large as number of wanted
         # template tags taking into account measurement and number of fields
         # in template
@@ -44,8 +52,8 @@ cpdef public _split_series_with_tags(list paths, list graphite_templates):
            else split_path
     return path, template
 
-cpdef void _make_path_from_template(list split_path, str measurement, dict template, list tags_values,
-                             str separator='.'):
+cdef void _make_path_from_template(list split_path, str measurement, dict template, list tags_values,
+                                   str separator):
     cdef int measurement_found = 0
     cdef int i
     if not tags_values and separator in measurement and \
@@ -65,8 +73,8 @@ cpdef void _make_path_from_template(list split_path, str measurement, dict templ
                 measurement_found = 1
                 split_path.append((i, measurement))
 
-cpdef void _add_fields_to_paths(list fields, list split_path, list series,
-                              str separator='.'):
+cdef void _add_fields_to_paths(list fields, list split_path, list series,
+                               str separator):
     cdef str field_key
     cdef list field_keys
     cdef str f
