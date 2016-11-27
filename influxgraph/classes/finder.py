@@ -50,10 +50,10 @@ from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 try:
     from ..ext.classes.tree import NodeTreeIndex
-    from ..ext.templates import _get_series_with_tags
+    from ..ext.templates import parse_series
 except ImportError:
     from .tree import NodeTreeIndex
-    from ..templates import _get_series_with_tags
+    from ..templates import parse_series
 
 _SERIES_LOADER_LOCK = processLock()
 
@@ -492,23 +492,7 @@ class InfluxDBFinder(object):
           else None
         logger.info("Building index..")
         start_time = datetime.datetime.now()
-        index = NodeTreeIndex()
-        for serie in data:
-            # If we have metrics with tags in them split them out and
-            # pre-generate a correctly ordered split path for that metric
-            # to be inserted into index
-            if self.graphite_templates:
-                for split_path in _get_series_with_tags(
-                        serie, all_fields, self.graphite_templates,
-                        separator=separator):
-                    index.insert_split_path(split_path)
-            # Series with tags and no templates,
-            # add only measurement to index
-            elif ',' in serie:
-                index.insert(serie.split(',')[0])
-            # No tags, no template
-            else:
-                index.insert(serie)
+        index = parse_series(data, all_fields, self.graphite_templates)
         self.index_lock.acquire()
         if self.index:
             self.index.clear()

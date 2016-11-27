@@ -38,7 +38,6 @@ cdef _decode_str(bytes _str):
 cdef class Node:
     """Node class of a graphite metric"""
     __slots__ = ('children')
-    cdef readonly children
 
     def __cinit__(self):
         self.children = None
@@ -93,7 +92,6 @@ cdef class NodeTreeIndex:
     """Node tree index class with graphite glob searches per sub-part of a
     query
     """
-    cdef public Node index
 
     def __cinit__(self):
         self.index = Node()

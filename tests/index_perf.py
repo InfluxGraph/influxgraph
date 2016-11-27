@@ -1,6 +1,4 @@
 import unittest
-from influxgraph.utils import Query
-import datetime
 from timeit import timeit
 from pprint import pprint
 

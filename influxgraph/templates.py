@@ -23,6 +23,7 @@ from collections import deque
 
 from .utils import heapsort
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
+from .classes.tree import NodeTreeIndex
 
 logger = logging.getLogger('influxgraph')
 
@@ -31,6 +32,26 @@ class InvalidTemplateError(Exception):
     """Raised on Graphite template configuration validation errors"""
     pass
 
+def parse_series(series, all_fields, graphite_templates,
+                 separator='.'):
+    index = NodeTreeIndex()
+    for serie in series:
+        # If we have metrics with tags in them split them out and
+        # pre-generate a correctly ordered split path for that metric
+        # to be inserted into index
+        if graphite_templates:
+            for split_path in _get_series_with_tags(
+                    serie, all_fields, graphite_templates,
+                    separator=separator):
+                index.insert_split_path(split_path)
+        # Series with tags and no templates,
+        # add only measurement to index
+        elif ',' in serie:
+            index.insert(serie.split(',')[0])
+        # No tags, no template
+        else:
+            index.insert(serie)
+    return index
 
 def _parse_influxdb_graphite_templates(templates, separator='.'):
     # Logic converted to Python from InfluxDB's Golang Graphite template parsing

@@ -1,8 +1,40 @@
 from heapq import heappush, heappop
+from .classes.tree cimport NodeTreeIndex
 
-# Function as per Python official documentation
+# py_byte_string = 'a'
+# from cpython cimport array
+# import array
+# cdef array.array ar = array.array('c', [py_byte_string])
+# cdef unsigned char[:] ca = ar
+# print(chr(ca[0]))
+# chr(ord(u'a'.encode('utf-8'))).decode('utf-8')
+
+cpdef parse_series(list series, dict all_fields, list graphite_templates,
+                   str separator='.'):
+    cdef NodeTreeIndex index = NodeTreeIndex()
+    cdef unicode serie
+    cdef list split_path
+    for serie in series:
+        # If we have metrics with tags in them split them out and
+        # pre-generate a correctly ordered split path for that metric
+        # to be inserted into index
+        if graphite_templates:
+            for split_path in _get_series_with_tags(
+                    serie, all_fields, graphite_templates,
+                    separator=separator):
+                index.insert_split_path(split_path)
+        # Series with tags and no templates,
+        # add only measurement to index
+        elif ',' in serie:
+            index.insert(serie.split(',')[0])
+        # No tags, no template
+        else:
+            index.insert(serie)
+    return index
+
 cdef list heapsort(list iterable):
     cdef list h = []
+    cdef tuple value
     for value in iterable:
         heappush(h, value)
     return [heappop(h) for _ in range(len(h))]
@@ -21,7 +53,8 @@ cpdef list _get_series_with_tags(unicode serie, dict all_fields,
     if not split_path:
         # No template match
         return series
-    if 'field' in template.values() or 'field*' in template.values():
+    cdef list values = list()
+    if 'field' in values or 'field*' in values:
         _add_fields_to_paths(
             all_fields[paths[0]], split_path, series, separator)
     else:
@@ -34,6 +67,7 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
     cdef dict template = None
     cdef list tags_values = [p.split('=') for p in paths[1:]]
     cdef int field_inds
+    cdef list path
     for (_, template, _, separator) in graphite_templates:
         _make_path_from_template(
             split_path, paths[0], template, tags_values, separator)
@@ -52,7 +86,8 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
            else split_path
     return path, template
 
-cdef void _make_path_from_template(list split_path, str measurement, dict template, list tags_values,
+cdef void _make_path_from_template(list split_path, str measurement,
+                                   dict template, list tags_values,
                                    str separator):
     cdef int measurement_found = 0
     cdef int i
