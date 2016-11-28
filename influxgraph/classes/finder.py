@@ -459,7 +459,7 @@ class InfluxDBFinder(object):
 
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
-        return (d for k in data for d in k if d)
+        return [d for k in data for d in k if d]
 
     def _reindex(self, interval=900):
         save_thread = threading.Thread(target=self.save_index)

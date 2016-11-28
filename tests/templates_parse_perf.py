@@ -8,8 +8,8 @@ class IndexTreePerfTestCase(unittest.TestCase):
 from random import choice
 from influxgraph.templates import _parse_influxdb_graphite_templates
 measurements = [u''.join([choice(ascii_letters) for _ in range(10)]) for _ in range(500)]
-series = ['%s,a=1,b=2,c=3,d=4,e=6,f=7,g=8,m=9,n=10,j=11' % (m,) for m in measurements]
-fields = {m: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10'] for m in measurements}
+series = [u'%s,a=1,b=2,c=3,d=4,e=6,f=7,g=8,m=9,n=10,j=11' % (m,) for m in measurements]
+fields = {m: [u'f1', u'f2', u'f3', u'f4', u'f5', u'f6', u'f7', u'f8', u'f9', u'f10'] for m in measurements}
 templates = _parse_influxdb_graphite_templates(["a.b.c.d.e.f.g.m.n.j.measurement.field* env=int,region=the_west"])
     """
     

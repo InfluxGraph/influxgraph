@@ -53,7 +53,7 @@ cpdef list _get_series_with_tags(unicode serie, dict all_fields,
     if not split_path:
         # No template match
         return series
-    cdef list values = list()
+    cdef list values = list(template.values())
     if 'field' in values or 'field*' in values:
         _add_fields_to_paths(
             all_fields[paths[0]], split_path, series, separator)
@@ -86,7 +86,7 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
            else split_path
     return path, template
 
-cdef void _make_path_from_template(list split_path, str measurement,
+cdef void _make_path_from_template(list split_path, unicode measurement,
                                    dict template, list tags_values,
                                    str separator):
     cdef int measurement_found = 0
@@ -96,8 +96,8 @@ cdef void _make_path_from_template(list split_path, str measurement,
         for i, measurement in enumerate(measurement.split(separator)):
             split_path.append((i, measurement))
         return
-    cdef str tag_key
-    cdef str tag_val
+    cdef unicode tag_key
+    cdef unicode tag_val
     for (tag_key, tag_val) in tags_values:
         for i, tmpl_tag_key in template.items():
             if not tmpl_tag_key:
@@ -109,10 +109,10 @@ cdef void _make_path_from_template(list split_path, str measurement,
                 split_path.append((i, measurement))
 
 cdef void _add_fields_to_paths(list fields, list split_path, list series,
-                               str separator):
-    cdef str field_key
+                          str separator):
+    cdef unicode field_key
     cdef list field_keys
-    cdef str f
+    cdef unicode f
     for field_key in fields:
         field_keys = [f for f in field_key.split(separator)
                       if f != 'value']
