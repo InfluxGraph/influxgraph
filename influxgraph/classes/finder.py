@@ -157,13 +157,16 @@ class InfluxDBFinder(object):
         loader.start()
 
     def _start_reindexer(self, reindex_interval):
+        new_index = False
         if not self.index:
             self.load_index()
         if not self.index:
             self.build_index()
+            new_index = True
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
         reindexer = threading.Thread(target=self._reindex,
-                                     kwargs={'interval': reindex_interval})
+                                     kwargs={'interval': reindex_interval,
+                                             'new_index': new_index})
         reindexer.daemon = True
         reindexer.start()
 
@@ -460,9 +463,10 @@ class InfluxDBFinder(object):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return [d for k in data for d in k if d]
 
-    def _reindex(self, interval=900):
+    def _reindex(self, new_index=False, interval=900):
         save_thread = threading.Thread(target=self.save_index)
-        save_thread.start()
+        if new_index:
+            save_thread.start()
         while True:
             time.sleep(interval)
             try:
