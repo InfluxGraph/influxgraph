@@ -788,20 +788,24 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             os.unlink('index')
         except OSError:
             pass
+        del finder
         del config['search_index']
         finder = influxgraph.InfluxDBFinder(config)
         finder.index_path = 'index'
         finder.save_index()
+        index_path = finder.index_path
+        finder_index = finder.index
+        del finder
         self.assertTrue(os.path.isfile('index'))
         # Reload index from file
-        index_fh = GzipFile(finder.index_path, 'r')
+        index_fh = GzipFile(index_path, 'r')
         try:
             index = NodeTreeIndex.from_file(index_fh)
         finally:
             index_fh.close()
         self.assertTrue(index is not None)
         for query in ['*', '*.*', '*.*.*', '*.*.*.*']:
-            self.assertEqual(list(index.query(query)), list(finder.index.query(query)))
+            self.assertEqual(list(index.query(query)), list(finder_index.query(query)))
 
     def test_index_load_from_file(self):
         values = [['carbon.relays.host.dispatcher1.wallTime_us'],

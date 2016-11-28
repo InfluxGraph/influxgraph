@@ -1,6 +1,5 @@
 # Copyright (C) [2015-] [Thomson Reuters LLC]
 # Copyright (C) [2015-] [Panos Kittenis]
-# Copyright (C) [2014-2015] [Vimeo, LLC]
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -145,7 +144,7 @@ def _generate_template_tag_index(template):
     return tags
 
 def _get_series_with_tags(serie, all_fields, graphite_templates,
-                               separator='.'):
+                          separator='.'):
     paths = serie.split(',')
     if not graphite_templates:
         return [paths[0:1]]

@@ -1,6 +1,5 @@
 # Copyright (C) [2015-] [Thomson Reuters LLC]
 # Copyright (C) [2015-] [Panos Kittenis]
-# Copyright (C) [2014-2015] [Vimeo, LLC]
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +26,7 @@ cdef class NodeTreeIndex:
 
 cdef class Node:
     """Node class of a graphite metric"""
-    cdef readonly children
+    cdef readonly tuple children
     cpdef insert(self, list paths)
     cdef void clear(self)
     cdef list to_array(self)
