@@ -92,6 +92,10 @@ class NodeTreeIndex(object):
     def __init__(self):
         self.index = Node()
 
+    def insert_series(self, series):
+        for serie in series:
+            self.insert(serie)
+
     def insert(self, metric_path):
         """Insert metric path into tree index"""
         paths = deque([_encode_bytes(s) for s in metric_path.split('.')])

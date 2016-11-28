@@ -68,7 +68,7 @@ cdef class Node:
     cdef void clear(self):
         self.children = None
 
-    cpdef list to_array(self):
+    cdef list to_array(self):
         """Return list of (name, children) items for this node's children"""
         cdef bytes name
         cdef Node node
@@ -96,16 +96,20 @@ cdef class NodeTreeIndex:
     def __cinit__(self):
         self.index = Node()
 
-    cpdef insert(self, unicode metric_path):
+    cpdef void insert_series(self, list series):
+        cdef unicode serie
+        for serie in series:
+            self.insert(serie)
+
+    cdef void insert(self, unicode metric_path):
         """Insert metric path into tree index"""
-        paths = [_encode_bytes(s) for s in metric_path.split('.')]
-        self.index.insert(paths)
+        self.index.insert([_encode_bytes(s) for s in metric_path.split('.')])
 
-    cpdef insert_split_path(self, list paths):
+    cdef void insert_split_path(self, list paths):
         """Insert already split path into tree index"""
-        self.index.insert([_encode_bytes(s) for s in  paths])
+        self.index.insert([_encode_bytes(s) for s in paths])
 
-    cpdef clear(self):
+    cpdef void clear(self):
         """Clear tree index"""
         self.index.clear()
 

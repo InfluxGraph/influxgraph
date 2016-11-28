@@ -12,8 +12,7 @@ from random import randint, choice
 %s
 index = NodeTreeIndex()"""
     timeit_insert_stmt = """
-for serie in series:
-    index.insert(serie)"""
+index.insert_series(series)"""
     timeit_query_stmt = """
 for query in ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]:
     index.query(query)
