@@ -23,6 +23,9 @@ class CIndexTreeTestCase(unittest.TestCase):
     def test_root_wildcard(self):
         result = list(self.index.query('*'))
         self.assertTrue(len(result) == 1)
+        # Unicode query test
+        result = list(self.index.query(u'*'))
+        self.assertTrue(len(result) == 1)
         self.assertTrue(result[0]['metric'] == 'b1')
         result = list(self.index.query('b1'))
         self.assertTrue(result[0]['metric'] == 'b1')

@@ -22,18 +22,24 @@ import json
 
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
+from cpython.version cimport PY_MAJOR_VERSION
 
+cdef unicode _ustring(_str):
+    if PY_MAJOR_VERSION > 2 and not isinstance(_str, bytes):
+        # fast path for most common case(s)
+        return <unicode>_str
+    elif PY_MAJOR_VERSION < 3 and isinstance(_str, unicode):
+        return <unicode>_str
+    return _str.decode('utf-8')
 
 cdef bytes _encode_bytes(_str):
-    if not isinstance(b'', str):
-        return _str.encode('utf-8')
+    if type(_str) is bytes:
+        return <bytes>_str
+    elif PY_MAJOR_VERSION < 3 and isinstance(_str, unicode):
+        return (<unicode>_str).encode('utf-8')
+    elif PY_MAJOR_VERSION >= 3 and isinstance(_str, str):
+        return bytes(_str, 'utf-8')
     return bytes(_str)
-
-cdef _decode_str(bytes _str):
-    try:
-        return _str.decode('utf-8')
-    except AttributeError:
-        return _str
 
 cdef class Node:
     """Node class of a graphite metric"""
@@ -72,7 +78,7 @@ cdef class Node:
         """Return list of (name, children) items for this node's children"""
         cdef bytes name
         cdef Node node
-        return [(_decode_str(name), node.to_array(),) for (name, node,) in self.children] \
+        return [(_ustring(name), node.to_array(),) for (name, node,) in self.children] \
           if self.children is not None else None
 
     @staticmethod
@@ -123,21 +129,21 @@ cdef class NodeTreeIndex:
     def search(self, Node node, list split_query, list split_path):
         """Return matching children for each query part in split query starting
         from given node"""
-        cdef str sub_query = split_query[0]
-        cdef list keys = [_decode_str(key) for (key, _) in node.children] \
+        cdef unicode sub_query = _ustring(split_query[0])
+        cdef list keys = [_ustring(key) for (key, _) in node.children] \
           if node.children is not None else []
         cdef list matched_paths = match_entries(keys, sub_query)
         cdef Node _node
         matched_children = (
-            (_decode_str(path), _node)
+            (_ustring(path), _node)
             for (path, _node) in node.children
-            if _decode_str(path) in matched_paths) \
+            if _ustring(path) in matched_paths) \
             if node.children is not None and is_pattern(sub_query) \
             else [(sub_query, [n for (k, n) in node.children
-                    if _decode_str(k) == sub_query][0])] \
+                    if _ustring(k) == sub_query][0])] \
                     if node.children is not None \
                     and sub_query in keys else []
-        # cdef unicode child_name
+        cdef unicode child_name
         cdef Node child_node
         cdef list child_path
         cdef list child_query
