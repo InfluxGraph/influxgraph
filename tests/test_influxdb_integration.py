@@ -748,7 +748,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         msg="Two datapoints in interval in retention policy, got %s from query" % (
                             len(data_points)))
 
-    def test_index_save_load(self):
+    def test_index_save_load_failure(self):
         self.finder.index.clear()
         del self.finder
         bad_index_path = 'bad_index'
@@ -784,12 +784,17 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             os.unlink(bad_index_path)
         except OSError:
             pass
-        try:
-            os.unlink('index')
-        except OSError:
-            pass
-        del finder
-        del config['search_index']
+
+    def test_index_save_load(self):
+        config = { 'influxdb': { 'host' : 'localhost',
+                                 'port' : 8086,
+                                 'memcache' : {'host': 'localhost',},
+                                 'user' : 'root',
+                                 'pass' : 'root',
+                                 'db' : self.db_name,
+                                 },
+                   'statsd': {'host': 'localhost' },
+                   }
         finder = influxgraph.InfluxDBFinder(config)
         finder.index_path = 'index'
         finder.save_index()
