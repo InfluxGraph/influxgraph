@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tree representation of Graphite metrics"""
+"""C Extension of Tree representation of Graphite metrics"""
 
 from __future__ import absolute_import, print_function
 import sys

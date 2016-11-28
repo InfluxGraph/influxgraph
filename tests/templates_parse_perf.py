@@ -2,7 +2,7 @@ import unittest
 from timeit import timeit
 from pprint import pprint
 
-class IndexTreePerfTestCase(unittest.TestCase):
+class TemplatesPerfTestCase(unittest.TestCase):
     template_stmt = """parse_series(series, fields, templates)"""
     timeit_setup = """from string import ascii_letters
 from random import choice
@@ -20,7 +20,7 @@ templates = _parse_influxdb_graphite_templates(["a.b.c.d.e.f.g.m.n.j.measurement
             stmt=self.template_stmt, setup=setup, number=100)
         pprint("Python template parse time is %s" % (parse_time,))
 
-    def test_cython_index(self):
+    def test_cython_template(self):
         setup = '\n'.join(["from influxgraph.ext.templates import parse_series",
                            self.timeit_setup])
         parse_time = timeit(

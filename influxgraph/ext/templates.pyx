@@ -1,3 +1,21 @@
+# Copyright (C) [2015-] [Thomson Reuters LLC]
+# Copyright (C) [2015-] [Panos Kittenis]
+# Copyright (C) [2014-2015] [Vimeo, LLC]
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""C Extension of performance critical templates modules functions"""
+
 from heapq import heappush, heappop
 from .classes.tree cimport NodeTreeIndex
 
@@ -9,8 +27,8 @@ from .classes.tree cimport NodeTreeIndex
 # print(chr(ca[0]))
 # chr(ord(u'a'.encode('utf-8'))).decode('utf-8')
 
-cpdef parse_series(list series, dict all_fields, list graphite_templates,
-                   str separator='.'):
+cpdef NodeTreeIndex parse_series(list series, dict all_fields,
+                                 list graphite_templates, str separator='.'):
     cdef NodeTreeIndex index = NodeTreeIndex()
     cdef unicode serie
     cdef list split_path
@@ -50,7 +68,7 @@ cpdef list _get_series_with_tags(unicode serie, dict all_fields,
     cdef dict template
     split_path, template = _split_series_with_tags(paths, graphite_templates,
                                                    separator)
-    if not split_path:
+    if len(split_path) == 0:
         # No template match
         return series
     cdef list values = list(template.values())
@@ -109,7 +127,7 @@ cdef void _make_path_from_template(list split_path, unicode measurement,
                 split_path.append((i, measurement))
 
 cdef void _add_fields_to_paths(list fields, list split_path, list series,
-                          str separator):
+                               str separator):
     cdef unicode field_key
     cdef list field_keys
     cdef unicode f
