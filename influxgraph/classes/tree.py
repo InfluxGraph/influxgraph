@@ -140,12 +140,6 @@ class NodeTreeIndex(object):
             else:
                 yield (child_path, child_node)
 
-    def to_file(self, file_h):
-        """Dump tree contents to file handle"""
-        data = bytes(json.dumps(self.to_array()), 'utf-8') \
-          if not isinstance(b'', str) else json.dumps(self.to_array())
-        file_h.write(data)
-
     def to_array(self):
         """Return array representation of tree index"""
         return self.index.to_array()

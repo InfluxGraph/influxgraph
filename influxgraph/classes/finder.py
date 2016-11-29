@@ -156,11 +156,11 @@ class InfluxDBFinder(object):
 
     def _start_reindexer(self, reindex_interval):
         new_index = False
-        # if not self.index:
-        #     self.load_index()
-        # if not self.index:
-        #     self.build_index()
-        #     new_index = True
+        if not self.index:
+            self.load_index()
+        if not self.index:
+            self.build_index()
+            new_index = True
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
         reindexer = threading.Thread(target=self._reindex,
                                      kwargs={'interval': reindex_interval,
@@ -462,19 +462,24 @@ class InfluxDBFinder(object):
         return [d for k in data for d in k if d]
 
     def _reindex(self, new_index=False, interval=900):
-        # save_thread = threading.Thread(target=self.save_index)
-        # if new_index:
-        #     save_thread.start()
+        save_thread = threading.Thread(target=self.save_index)
+        if new_index:
+            save_thread.start()
+        del new_index
         while True:
-            # time.sleep(interval)
+            time.sleep(interval)
+            try:
+                save_thread.join()
+            except RuntimeError:
+                pass
+            finally:
+                del save_thread
             try:
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-            time.sleep(interval)
-            # save_thread.join()
-            # save_thread = threading.Thread(target=self.save_index)
-            # save_thread.start()
+            save_thread = threading.Thread(target=self.save_index)
+            save_thread.start()
 
     def build_index(self, data=None, separator='.'):
         """Build new node tree index
@@ -504,6 +509,12 @@ class InfluxDBFinder(object):
                     datetime.datetime.now() - start_time)
         self.index_lock.release()
 
+    def _save_index_file(self, file_h):
+        """Dump tree contents to file handle"""
+        data = bytes(json.dumps(self.index.to_array()), 'utf-8') \
+          if not isinstance(b'', str) else json.dumps(self.index.to_array())
+        file_h.write(data)
+
     def save_index(self):
         """Save index to file"""
         if not self.index_path:
@@ -511,7 +522,7 @@ class InfluxDBFinder(object):
         logger.info("Saving index to file %s", self.index_path,)
         try:
             index_fh = gzip.GzipFile(self.index_path, 'w')
-            self.index.to_file(index_fh)
+            self._save_index_file(index_fh)
         except IOError as ex:
             logger.error("Error writing to index file %s - %s",
                          self.index_path, ex)
