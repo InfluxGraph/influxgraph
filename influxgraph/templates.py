@@ -19,8 +19,8 @@ from __future__ import absolute_import, print_function
 import re
 import logging
 from collections import deque
+from heapq import heappush, heappop
 
-from .utils import heapsort
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
 from .classes.tree import NodeTreeIndex
 
@@ -31,6 +31,13 @@ class InvalidTemplateError(Exception):
     """Raised on Graphite template configuration validation errors"""
     pass
 
+
+# Function as per Python official documentation
+def heapsort(iterable):
+    h = []
+    for value in iterable:
+        heappush(h, value)
+    return [heappop(h) for _ in range(len(h))]
 
 def parse_influxdb_graphite_templates(templates, separator='.'):
     """Parse InfluxDB template configuration and return parsed templates

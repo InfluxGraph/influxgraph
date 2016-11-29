@@ -20,14 +20,13 @@ import datetime
 import sys
 import re
 import hashlib
-from heapq import heappush, heappop
 
 from .constants import INFLUXDB_AGGREGATIONS
 try:
     from .ext.classes.tree import NodeTreeIndex
     from .ext.templates import get_series_with_tags
 except ImportError:
-    from .tree import NodeTreeIndex
+    from .classes.tree import NodeTreeIndex
     from .templates import get_series_with_tags
 
 def calculate_interval(start_time, end_time, deltas=None):
@@ -195,13 +194,6 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
-
-# Function as per Python official documentation
-def heapsort(iterable):
-    h = []
-    for value in iterable:
-        heappush(h, value)
-    return [heappop(h) for _ in range(len(h))]
 
 def parse_series(series, fields, graphite_templates, separator='.'):
     """Parses series and fields with/without graphite templates
