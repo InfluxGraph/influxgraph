@@ -23,7 +23,12 @@ import hashlib
 from heapq import heappush, heappop
 
 from .constants import INFLUXDB_AGGREGATIONS
-
+try:
+    from .ext.classes.tree import NodeTreeIndex
+    from .ext.templates import get_series_with_tags
+except ImportError:
+    from .tree import NodeTreeIndex
+    from .templates import get_series_with_tags
 
 def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
@@ -197,3 +202,37 @@ def heapsort(iterable):
     for value in iterable:
         heappush(h, value)
     return [heappop(h) for _ in range(len(h))]
+
+def parse_series(series, fields, graphite_templates, separator='.'):
+    """Parses series and fields with/without graphite templates
+    and returns built Index
+
+    :param series: Series to load
+    :type series: list(unicode str)
+    :param fields: Per measurement field keys from InfluxDB. May be None
+    :type fields: dict(measurement: [field1, field2, ..])
+    :param graphite_templates: Graphite templates to use to parse series
+    and fields.
+    :type graphite_templates: tuple as returned by \
+    :mod:`influxgraph.templates.parse_influxdb_graphite_templates`
+
+    :rtype: :mod:`influxgraph.classes.tree.NodeTreeIndex`
+    """
+    index = NodeTreeIndex()
+    for serie in series:
+        # If we have metrics with tags in them split them out and
+        # pre-generate a correctly ordered split path for that metric
+        # to be inserted into index
+        if graphite_templates:
+            for split_path in get_series_with_tags(
+                    serie, fields, graphite_templates,
+                    separator=separator):
+                index.insert_split_path(split_path)
+                # Series with tags and no templates,
+                # add only measurement to index
+        elif ',' in serie:
+            index.insert(serie.split(',')[0])
+            # No tags, no template
+        else:
+            index.insert(serie)
+    return index

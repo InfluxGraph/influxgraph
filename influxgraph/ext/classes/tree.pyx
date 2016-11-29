@@ -102,16 +102,11 @@ cdef class NodeTreeIndex:
     def __cinit__(self):
         self.index = Node()
 
-    cpdef void insert_series(self, list series):
-        cdef unicode serie
-        for serie in series:
-            self.insert(serie)
-
-    cdef void insert(self, unicode metric_path):
+    cpdef void insert(self, unicode metric_path):
         """Insert metric path into tree index"""
         self.index.insert([_encode_bytes(s) for s in metric_path.split('.')])
 
-    cdef void insert_split_path(self, list paths):
+    cpdef void insert_split_path(self, list paths):
         """Insert already split path into tree index"""
         self.index.insert([_encode_bytes(s) for s in paths])
 

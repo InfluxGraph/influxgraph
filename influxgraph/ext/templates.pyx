@@ -16,7 +16,7 @@
 """C Extension of performance critical templates modules functions"""
 
 from heapq import heappush, heappop
-from .classes.tree cimport NodeTreeIndex
+# from .classes.tree cimport NodeTreeIndex
 
 # py_byte_string = 'a'
 # from cpython cimport array
@@ -26,29 +26,6 @@ from .classes.tree cimport NodeTreeIndex
 # print(chr(ca[0]))
 # chr(ord(u'a'.encode('utf-8'))).decode('utf-8')
 
-cpdef NodeTreeIndex parse_series(list series, dict all_fields,
-                                 list graphite_templates, str separator='.'):
-    cdef NodeTreeIndex index = NodeTreeIndex()
-    cdef unicode serie
-    cdef list split_path
-    for serie in series:
-        # If we have metrics with tags in them split them out and
-        # pre-generate a correctly ordered split path for that metric
-        # to be inserted into index
-        if graphite_templates:
-            for split_path in _get_series_with_tags(
-                    serie, all_fields, graphite_templates,
-                    separator=separator):
-                index.insert_split_path(split_path)
-        # Series with tags and no templates,
-        # add only measurement to index
-        elif ',' in serie:
-            index.insert(serie.split(',')[0])
-        # No tags, no template
-        else:
-            index.insert(serie)
-    return index
-
 cdef list heapsort(list iterable):
     cdef list h = []
     cdef tuple value
@@ -56,9 +33,9 @@ cdef list heapsort(list iterable):
         heappush(h, value)
     return [heappop(h) for _ in range(len(h))]
 
-cpdef list _get_series_with_tags(unicode serie, dict all_fields,
-                                 list graphite_templates,
-                                 str separator = '.'):
+cpdef list get_series_with_tags(unicode serie, dict all_fields,
+                                list graphite_templates,
+                                str separator = '.'):
     cdef list paths = serie.split(',')
     if not graphite_templates:
         return [paths[0:1]]

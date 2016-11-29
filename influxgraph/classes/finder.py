@@ -43,16 +43,14 @@ from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     Query, get_retention_policy, _compile_aggregation_patterns
-from ..templates import _parse_influxdb_graphite_templates, apply_template
+     Query, get_retention_policy, _compile_aggregation_patterns, parse_series
+from ..templates import parse_influxdb_graphite_templates, apply_template
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 try:
     from ..ext.classes.tree import NodeTreeIndex
-    from ..ext.templates import parse_series
 except ImportError:
     from .tree import NodeTreeIndex
-    from ..templates import parse_series
 
 _SERIES_LOADER_LOCK = processLock()
 
@@ -107,7 +105,7 @@ class InfluxDBFinder(object):
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         templates = influxdb_config.get('templates')
-        self.graphite_templates = _parse_influxdb_graphite_templates(templates) \
+        self.graphite_templates = parse_influxdb_graphite_templates(templates) \
             if templates else None
         self._start_loader(series_loader_interval)
         self.index = None
@@ -158,11 +156,11 @@ class InfluxDBFinder(object):
 
     def _start_reindexer(self, reindex_interval):
         new_index = False
-        if not self.index:
-            self.load_index()
-        if not self.index:
-            self.build_index()
-            new_index = True
+        # if not self.index:
+        #     self.load_index()
+        # if not self.index:
+        #     self.build_index()
+        #     new_index = True
         logger.debug("Starting reindexer thread with interval %s", reindex_interval)
         reindexer = threading.Thread(target=self._reindex,
                                      kwargs={'interval': reindex_interval,
@@ -464,18 +462,19 @@ class InfluxDBFinder(object):
         return [d for k in data for d in k if d]
 
     def _reindex(self, new_index=False, interval=900):
-        save_thread = threading.Thread(target=self.save_index)
-        if new_index:
-            save_thread.start()
+        # save_thread = threading.Thread(target=self.save_index)
+        # if new_index:
+        #     save_thread.start()
         while True:
-            time.sleep(interval)
+            # time.sleep(interval)
             try:
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-            save_thread.join()
-            save_thread = threading.Thread(target=self.save_index)
-            save_thread.start()
+            time.sleep(interval)
+            # save_thread.join()
+            # save_thread = threading.Thread(target=self.save_index)
+            # save_thread.start()
 
     def build_index(self, data=None, separator='.'):
         """Build new node tree index
@@ -495,7 +494,8 @@ class InfluxDBFinder(object):
           else None
         logger.info("Building index..")
         start_time = datetime.datetime.now()
-        index = parse_series(data, all_fields, self.graphite_templates)
+        index = parse_series(data, all_fields, self.graphite_templates,
+                             separator=separator)
         self.index_lock.acquire()
         if self.index:
             self.index.clear()

@@ -31,28 +31,19 @@ class InvalidTemplateError(Exception):
     """Raised on Graphite template configuration validation errors"""
     pass
 
-def parse_series(series, all_fields, graphite_templates,
-                 separator='.'):
-    index = NodeTreeIndex()
-    for serie in series:
-        # If we have metrics with tags in them split them out and
-        # pre-generate a correctly ordered split path for that metric
-        # to be inserted into index
-        if graphite_templates:
-            for split_path in _get_series_with_tags(
-                    serie, all_fields, graphite_templates,
-                    separator=separator):
-                index.insert_split_path(split_path)
-        # Series with tags and no templates,
-        # add only measurement to index
-        elif ',' in serie:
-            index.insert(serie.split(',')[0])
-        # No tags, no template
-        else:
-            index.insert(serie)
-    return index
 
-def _parse_influxdb_graphite_templates(templates, separator='.'):
+def parse_influxdb_graphite_templates(templates, separator='.'):
+    """Parse InfluxDB template configuration and return parsed templates
+
+    :param templates: Template patterns to parse. \
+    Format is [filter] <template> [tag1=value1,tag2=value2]
+    :type templates: list(str)
+    :param separator: (Optional) Separator to use when storing greedy matched columns
+    :type separator: str
+
+    :raises: :mod:`InvalidTemplateError` on invalid template format used in any
+    template pattern
+    """
     # Logic converted to Python from InfluxDB's Golang Graphite template parsing
     # Format is [filter] <template> [tag1=value1,tag2=value2]
     parsed_templates = []
@@ -143,8 +134,8 @@ def _generate_template_tag_index(template):
         tags[i] = tag
     return tags
 
-def _get_series_with_tags(serie, all_fields, graphite_templates,
-                          separator='.'):
+def get_series_with_tags(serie, all_fields, graphite_templates,
+                         separator='.'):
     paths = serie.split(',')
     if not graphite_templates:
         return [paths[0:1]]

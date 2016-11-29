@@ -18,9 +18,8 @@ cdef class NodeTreeIndex:
     query
     """
     cdef Node index
-    cpdef void insert_series(self, list series)
-    cdef void insert(self, unicode metric_path)
-    cdef void insert_split_path(self, list paths)
+    cpdef void insert(self, unicode metric_path)
+    cpdef void insert_split_path(self, list paths)
     cpdef void clear(self)
     cpdef list to_array(self)
 

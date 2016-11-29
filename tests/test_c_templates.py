@@ -1,11 +1,8 @@
 import unittest
-try:
-    from influxgraph.ext.templates import parse_series
-except ImportError:
-    from influxgraph.templates import parse_series
 from string import ascii_letters
 from random import choice
-from influxgraph.templates import _parse_influxdb_graphite_templates
+from influxgraph.templates import parse_influxdb_graphite_templates
+from influxgraph.utils import parse_series
 
 class TemplatesCExtTestCase(unittest.TestCase):
 
@@ -27,7 +24,7 @@ class TemplatesCExtTestCase(unittest.TestCase):
             }
         template = "%s %s.measurement.field* env=int,region=the_west" % (
             self.metric_prefix, ".".join([p for p in self.paths]))
-        self.templates = _parse_influxdb_graphite_templates([template])
+        self.templates = parse_influxdb_graphite_templates([template])
         self.series = [u'%s,test_type=%s,host=%s,env=%s,region=%s' % (
             m, self.tags[self.paths[0]], self.tags[self.paths[1]],
             self.tags['env'], self.tags['region'],) for m in self.measurements]
@@ -41,7 +38,7 @@ class TemplatesCExtTestCase(unittest.TestCase):
         fields = {}
         for m in measurements:
             fields[m] = [u'f1', u'f2', u'f3', u'f4', u'f5', u'f6', u'f7', u'f8', u'f9', u'f10']
-        templates = _parse_influxdb_graphite_templates(
+        templates = parse_influxdb_graphite_templates(
             ["a.b.c.d.e.f.g.m.n.j.measurement.field* env=int,region=the_west"])
         index = parse_series(series, fields, templates)
         self.assertTrue(index is not None)

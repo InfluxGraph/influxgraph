@@ -18,7 +18,8 @@ class CIndexTreeTestCase(unittest.TestCase):
                       u'b1.b1.b2.b2.leaf2'
                       ]
         self.index = NodeTreeIndex()
-        self.index.insert_series(all_series)
+        for serie in all_series:
+            self.index.insert(serie)
 
     def test_root_wildcard(self):
         result = list(self.index.query('*'))
