@@ -1,6 +1,17 @@
 language: python
 cache: pip
 sudo: required
+matrix:
+  include:
+    - sudo: required
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+    - sudo: required
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
+           PRE_CMD=linux32
 python:
   - 2.6
   - 2.7
@@ -15,6 +26,7 @@ before_install:
   - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
   - sudo /etc/init.d/influxdb start
 install:
+  - docker pull $DOCKER_IMAGE
   - pip install -r requirements.txt
   - pip install coverage coveralls
   - python setup.py build_ext --inplace
@@ -42,9 +54,11 @@ deploy:
   password:
     secure: JOX5bxlVltM05qNAT4HkbLsGaRj2C7g1i9p0ITAp23mvR6veyLCdBsoFD1FQ2AKR2sjGZWZCgLHW5yThJ9RdBe5s5x6E37937VtzXi03BhfbzExxcWei/x7O2DH9Fg1qhPvM9GHlSz6H/r4q9wnnL1LfRqWovbLrppEdKYvs5faB6pT1Ymrum5krTe1SRxfbjnShuqFXvr+SP78PKrzD8FciHHhxo4x4fmaO4/N6bMQeqWOrp3xg9a9x7xlqoCQZbSI2ClGeoKWHX0uYgHHC0FfC5PcSVvJhfSoZMW4MmsDvN3S7rYand3cmV0DE4njPWIYi9czwxVd1HuQQBzXpnwvs3faAIoXs9WepYLoPycWjiXHWxcfaJdCyJYaZouUHugKIDNuYS6Zdz03KXcatH0kOVWKiA3sGTz+20bZYNcfxWQtd1IC2lKKcVkXwNAZreII1nTg8rscxjCMSSV3JQFCzd/1dUKevL512ksQdyCSATQQZ7ZY9aIN+6SXgPsxGiyCPk+VL/pvkqQX2rHWU1wrgjmCwcKmGyon4aamyQb0Exe2KuyVFJ+ArHo7w2ZGV8GLPPG6z50rjavgljOqBDlUGipFO/CaweHIcqg2OxZHm3wAryr5LtJot8Sn+sb5LMB91mICM/AwisxghTLyCqvBSIPvuC/h9n0UW6NdKtjo=
 after_success:
+  - coveralls
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
       docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
       cd docker &&
       docker build -t ikuosu/influxgraph . &&
       docker push ikuosu/influxgraph;
     fi
+  - docker run --rm -v `pwd`:/io $DOCKER_IMAGE $PRE_CMD /io/travis/build-wheels.sh
