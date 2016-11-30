@@ -1,7 +1,7 @@
 InfluxGraph
 =================
 
-An `InfluxDB`_ 0.9.2 or higher storage plugin for `Graphite-API`_.
+An `InfluxDB`_ storage plugin for `Graphite-API`_. Graphite with InfluxDB data store from any kind of schema(s) used in the DB.
 
 .. image:: https://img.shields.io/pypi/v/influxgraph.svg
   :target: https://pypi.python.org/pypi/influxgraph
@@ -53,33 +53,34 @@ Docker Image
 
 There will now be a Graphite-API running on ``localhost:8000`` from the container with a default InfluxDB configuration and memcache enabled. Finder expects InfluxDB to be running on ``localhost:8086`` by default.
 
-To use a modified Graphite-API config either build a new image from ``ikuosu/influxgraph`` with a ``graphite-api.yaml`` in the directory where ``docker build`` is called or edit the file on the container and kill gunicorn processes to make them restart.
+The image will use a supplied ``graphite-api.yaml`` on build, when ``docker build`` is called on an InfluxGraph image.
 
 Main features
 ==============
 
-* InfluxDB Graphite template support - allows for exposure of InfluxDB tagged data as Graphite metrics
-* Dynamically calculated group by intervals based on query date/time range
+* InfluxDB Graphite template support - expose InfluxDB tagged data as Graphite metrics with configurable metric paths
+* Dynamically calculated group by intervals based on query date/time range - fast queries regardless of the date/time they span
 * Configurable per-query aggregation functions by regular expression pattern
-* Configurable per-query retention policies by query date/time range. Use pre-calculated downsampled data in a retention policy for historical data automatically
-* In-memory index for metric path queries
+* Configurable per-query retention policies by query date/time range. Automatically use pre-calculated downsampled data in a retention policy for historical data
+* In-memory index for Graphite metric path queries
 * Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
 * Multi-query support - runs multiple queries in one statement to InfluxDB for metrics in more than one series
 * Memcached integration
 * Python 3 and PyPy compatibility
+* Good performance even with very large number of measurements in the DB - generated queries are guaranteed to be have O(1) performance characteristics
 
 Goals
 ======
 
 * Backwards compatibility with existing Graphite API clients like Grafana and Graphite installations migrated to InfluxDB backends using Graphite input service *with or without* Graphite template configuration
-* Forwards compatibility with native InfluxDB API input data exposed via Graphite API
+* Forwards compatibility with native InfluxDB API input data to be exposed via Graphite API
 * Clean, readable code with complete documentation for public endpoints
 * Complete code coverage with both unit and integration testing. Code has `>90%` test coverage and is integration tested against a real InfluxDB service
 
 The two top points provide both
 
 - A backwards compatible migration path for existing Graphite installations to use InfluxDB as a drop-in storage back-end replacement with no API client side changes required, meaning existing Grafana or other dashboards continue to work as-is.
-- A forwards compatible migration path for native InfluxDB collection agents to expose their data via the *Graphite API* which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, multi-series plotting and function support et al.
+- A way for native InfluxDB collection agents to expose their data via the *Graphite API* which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, multi-series plotting and function support et al.
 
 As of this time of writing, no alternatives exist with similar functionality and compatibility.
 
@@ -100,9 +101,9 @@ InfluxDB Graphite metric templates
 
 Even data written to InfluxDB by native InfluxDB API clients can be exposed as Graphite metrics, allowing transparent to clients use of the Graphite API with InfluxDB acting as its storage back-end.
 
-To make use of tagged InfluxDB data, the plugin needs to know how to parse a Graphite metric path into the tags used by InfluxDB.
+To make use of tagged InfluxDB data, the finder needs to know how to generate a Graphite metric path from the tags used by InfluxDB.
 
-The easiest way to do this is to use the Graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration, see `Full Configuration Example`_ section for details. This presumes existing metrics collection agents are using the Graphite line protocol to write to InfluxDB via its Graphite input service.
+The easiest way to do this is to use the Graphite plugin in InfluxDB with a configured template which can be used as-is in `InfluxGraph`_ configuration - see `Full Configuration Example`_ section for details. This presumes existing collection agents are using the Graphite line protocol to write to InfluxDB via its Graphite input service.
 
 If, on the other hand, native `InfluxDB`_ metrics collection agents like `Telegraf <https://www.influxdata.com/time-series-platform/telegraf/>`_ are used, that data can too be exposed as Graphite metrics by writing appropriate template(s) in Graphite-API configuration alone.
 
@@ -327,9 +328,9 @@ Full Configuration Example
 Aggregation function configuration
 -----------------------------------
 
-The graphite-influxdb finder now supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
+The graphite-influxdb finder supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
 
-Default aggregation function used is ``mean``, meaning ``average``.
+Default aggregation function used is ``mean``.
 
 Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
 
@@ -347,22 +348,24 @@ Known InfluxDB aggregation functions are defined at ``influxgraph.constants.INFL
 
 .. note::
 
-   Please note that when querying multiple series InfluxDB allows only *one* aggregation function to be used for all series in the query.
+   Please note that when querying identical fields from multiple measurements InfluxDB allows only *one* aggregation function to be used for all identical fields in the query.
    
-   In other words, client needs to make sure all series in a wildcard query, for example ``my_host.cpu.cpu*`` have the same aggregation function configured.
+   In other words, make sure all identical InfluxDB fields matched by a Graphite query pattern, for example ``my_host.cpu.*`` have the same aggregation function configured.
+
+   When using neither tagged data nor template configuration, the InfluxDB field to be queried is always ``value``. This is the case where this limitation is most relevant.
 
    ``InfluxGraph`` will use the first aggregation function configured and log a warning message to that effect if a wildcard query resolves to multiple aggregation functions.
 
-Memcache caching InfluxDB data
-------------------------------
+Memcached InfluxDB
+------------------------
 
-Memcache can be used to cache InfluxDB data so the `Graphite-API` webapp can avoid querying the DB if it does not have to.
+Memcached can be used to cache InfluxDB data so the `Graphite-API` webapp can avoid querying the DB if it does not have to.
 
 TTL configuration for memcache shown above is only for `/metrics/find` endpoint with `/render` endpoint TTL being set to the data interval used.
 
 For example, for a query spanning 24hrs, a data interval of 1 min is used by default. TTL for memcache is set to 1 min for that data.
 
-For a query spanning 1 month, a 15min interval is used. TTL is also set to 15min for that data.
+For a query spanning 1 month, a 15min interval is used by default. TTL is also set to 15min for that data.
 
 
 Calculated intervals
@@ -414,10 +417,12 @@ A different HTTP caching service will similarly work just as well.
 Known Limitations
 ==================
 
-- In memory index can use *a lot* of memory in InfluxDB installations with a large number of unique metrics (> 1M). `Pypy <http://pypy.org>`_ is recommended in that case which allows for a much lower memory footprint compared to the CPython intepreter.
+- Index memory usage will be a factor of about 10 higher than the size of the uncompressed on disk index. For example a 100MB uncompressed on-disk index will use ~1GB of memory. This is already as low as it can be, is a hard limit imposed by Python interpreter implementation details and not likely to get any better without changes to use memory mapped file rather than loading the whole index in memory, which is AFAIK only supported on Py3 and in the index's C extension.
+- On CPython interpreters, API requests while an index re-build is happening will be quite slow (a few seconds, no more than ten). PyPy does not have this problem and is recommended.
 
-The docker container in this document uses PyPy.
+The docker image provided uses PyPy.
 
+Contributions are most welcome to resolve any of these limitations and for anything else.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
