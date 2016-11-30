@@ -16,7 +16,6 @@
 """C Extension of performance critical templates modules functions"""
 
 from heapq import heappush, heappop
-# from .classes.tree cimport NodeTreeIndex
 
 # py_byte_string = 'a'
 # from cpython cimport array
@@ -33,10 +32,9 @@ cdef list heapsort(list iterable):
         heappush(h, value)
     return [heappop(h) for _ in range(len(h))]
 
-cpdef list get_series_with_tags(unicode serie, dict all_fields,
+cpdef list get_series_with_tags(list paths, dict all_fields,
                                 list graphite_templates,
                                 str separator = '.'):
-    cdef list paths = serie.split(',')
     if not graphite_templates:
         return [paths[0:1]]
     cdef list series = []

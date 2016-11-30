@@ -1,4 +1,3 @@
-# cython: linetrace=True
 # Copyright (C) [2015-] [Thomson Reuters LLC]
 # Copyright (C) [2015-] [Panos Kittenis]
 
@@ -124,7 +123,7 @@ cdef class NodeTreeIndex:
     def search(self, Node node, list split_query, list split_path):
         """Return matching children for each query part in split query starting
         from given node"""
-        cdef unicode sub_query = _ustring(split_query[0])
+        sub_query = split_query[0]
         cdef list keys = [_ustring(key) for (key, _) in node.children] \
           if node.children is not None else []
         cdef list matched_paths = match_entries(keys, sub_query)
@@ -138,7 +137,6 @@ cdef class NodeTreeIndex:
                     if _ustring(k) == sub_query][0])] \
                     if node.children is not None \
                     and sub_query in keys else []
-        cdef unicode child_name
         cdef Node child_node
         cdef list child_path
         cdef list child_query

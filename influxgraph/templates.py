@@ -22,7 +22,6 @@ from collections import deque
 from heapq import heappush, heappop
 
 from .constants import GRAPHITE_PATH_REGEX_PATTERN
-from .classes.tree import NodeTreeIndex
 
 logger = logging.getLogger('influxgraph')
 
@@ -141,9 +140,8 @@ def _generate_template_tag_index(template):
         tags[i] = tag
     return tags
 
-def get_series_with_tags(serie, all_fields, graphite_templates,
+def get_series_with_tags(paths, all_fields, graphite_templates,
                          separator='.'):
-    paths = serie.split(',')
     if not graphite_templates:
         return [paths[0:1]]
     series = deque()

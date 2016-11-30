@@ -215,16 +215,18 @@ def parse_series(series, fields, graphite_templates, separator='.'):
         # If we have metrics with tags in them split them out and
         # pre-generate a correctly ordered split path for that metric
         # to be inserted into index
-        if graphite_templates:
-            for split_path in get_series_with_tags(
-                    serie, fields, graphite_templates,
-                    separator=separator):
-                index.insert_split_path(split_path)
-                # Series with tags and no templates,
-                # add only measurement to index
-        elif ',' in serie:
-            index.insert(serie.split(',')[0])
-            # No tags, no template
+        if graphite_templates or ',' in serie:
+            serie_with_tags = serie.split(',')
+            if graphite_templates:
+                for split_path in get_series_with_tags(
+                        serie_with_tags, fields, graphite_templates,
+                        separator=separator):
+                    index.insert_split_path(split_path)
+            # Series with tags and no templates,
+            # add only measurement to index
+            else:
+                index.insert(serie_with_tags[0])
+        # No tags, no template
         else:
             index.insert(serie)
     return index

@@ -10,12 +10,14 @@ class IndexTreePerfTestCase(unittest.TestCase):
 from random import randint, choice
 %s
 %s
-index = NodeTreeIndex()"""
+index = NodeTreeIndex()
+queries = ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]"""
     timeit_insert_stmt = """
 for serie in series:
-    index.insert(serie)"""
+    index.insert(serie)
+    """
     timeit_query_stmt = """
-for query in ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]:
+for query in queries:
     index.query(query)
     """
 
