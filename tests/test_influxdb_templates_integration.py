@@ -247,7 +247,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         del self.finder
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
-        templates = ["*.*.memory host.filter.measurement",
+        templates = ["*.*.memory. host.filter.measurement",
                      "*.*.interface host.filter.measurement",
                      "*.*.trailing.* host.filter.measurement",
                      "*.stats host.prefix.filter.measurement",

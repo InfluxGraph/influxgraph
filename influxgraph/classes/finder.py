@@ -361,8 +361,8 @@ class InfluxDBFinder(object):
                     field = 'value'
                 if not field in _fields:
                     _fields.append(field)
-            # if _measurements:
-            #     break
+                if _measurements:
+                    break
         return _measurements, _tags, _fields
 
     def _gen_query_values_from_templates(self, paths, retention):
