@@ -27,7 +27,7 @@ class TemplateFilter(object):
     """Filter metric paths on Graphite glob pattern"""
 
     def __init__(self, pattern):
-        self.pattern = pattern.split('.')
+        self.pattern = [p for p in pattern.split('.') if p]
 
     def match(self, path):
         path = path.split('.')
@@ -38,12 +38,11 @@ class TemplateFilter(object):
             if pat == '*':
                 continue
             try:
-                if pat == split_path[i]:
-                    return True
+                if not pat == split_path[i]:
+                    return False
             except IndexError:
                 return False
-        return False
-
+        return True
 
 class InvalidTemplateError(Exception):
     """Raised on Graphite template configuration validation errors"""
