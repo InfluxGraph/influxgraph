@@ -162,12 +162,12 @@ def read_influxdb_values(influxdb_data, paths, fields):
     _data = {}
     if not isinstance(influxdb_data, list):
         influxdb_data = [influxdb_data]
-    for infl_data in influxdb_data:
-        for i in range(len(infl_data.keys())):
+    for path_ind, infl_data in enumerate(influxdb_data):
+        for infl_keys in infl_data.keys():
             for field in fields:
-                infl_key = infl_data.keys()[i][0]
+                infl_key = infl_keys[0]
                 if field == 'value':
-                    metric = paths[i]
+                    metric = paths[path_ind]
                 else:
                     try:
                         metric = [p for p in paths

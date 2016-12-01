@@ -346,8 +346,8 @@ class InfluxDBFinder(object):
         _measurements = deque()
         _tags = {}
         _fields = deque()
-        for (_filter, template, default_tags, separator) in self.graphite_templates:
-            for path in paths:
+        for path in paths:
+            for (_filter, template, default_tags, separator) in self.graphite_templates:
                 if _filter and not _filter.match(path):
                     continue
                 measurement, tags, field = apply_template(
@@ -361,8 +361,8 @@ class InfluxDBFinder(object):
                     field = 'value'
                 if not field in _fields:
                     _fields.append(field)
-            if _measurements:
-                break
+            # if _measurements:
+            #     break
         return _measurements, _tags, _fields
 
     def _gen_query_values_from_templates(self, paths, retention):
