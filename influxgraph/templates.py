@@ -16,14 +16,33 @@
 """Graphite template parsing functions per InfluxDB's Graphite service template syntax"""
 
 from __future__ import absolute_import, print_function
-import re
 import logging
 from collections import deque
 from heapq import heappush, heappop
 
-from .constants import GRAPHITE_PATH_REGEX_PATTERN
-
 logger = logging.getLogger('influxgraph')
+
+
+class TemplateFilter(object):
+    """Filter metric paths on Graphite glob pattern"""
+
+    def __init__(self, pattern):
+        self.pattern = pattern.split('.')
+
+    def match(self, path):
+        path = path.split('.')
+        return self.match_split_path(path)
+
+    def match_split_path(self, split_path):
+        for i, pat in enumerate(self.pattern):
+            if pat == '*':
+                continue
+            try:
+                if pat == split_path[i]:
+                    return True
+            except IndexError:
+                return False
+        return False
 
 
 class InvalidTemplateError(Exception):
@@ -72,7 +91,8 @@ def parse_influxdb_graphite_templates(templates, separator='.'):
             for tag in tags:
                 tag_items = [d.strip() for d in tag.split('=')]
                 default_tags[tag_items[0]] = tag_items[1]
-        parsed_templates.append((generate_filter_regex(_filter),
+        filter_parser = TemplateFilter(_filter) if _filter else None
+        parsed_templates.append((filter_parser,
                                  _generate_template_tag_index(template),
                                  default_tags, separator))
     for (_, template, _, _) in parsed_templates:
@@ -124,13 +144,6 @@ def apply_template(metric_path_parts, template, default_tags, separator='.'):
         tags.update(default_tags)
     return separator.join(measurement), tags, field
 
-def generate_filter_regex(_filter):
-    """Generate compiled regex pattern from filter string"""
-    if not _filter:
-        return
-    return re.compile("^%s" % (_filter.replace('.', r'\.').replace('*', '%s+' % (
-        GRAPHITE_PATH_REGEX_PATTERN,))))
-
 def _generate_template_tag_index(template):
     _tags = template.split('.')
     tags = {}
@@ -171,7 +184,7 @@ def _split_series_with_tags(paths, graphite_templates):
                 [k for k, v in template.items() if v]):
             path = [p[1] for p in heapsort(split_path)]
             if _filter:
-                if _filter.match(separator.join(path)):
+                if _filter.match_split_path(path):
                     return path, template
             else:
                 return path, template
