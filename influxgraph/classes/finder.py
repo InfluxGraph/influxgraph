@@ -374,8 +374,8 @@ class InfluxDBFinder(object):
                      for tag_val in _tags[tag]]
                      for tag in _tags] \
                      if _tags else None
-        tag_pairs = itertools.product(*tag_sets)
-        tags = [" AND ".join(t) for t in tag_pairs]
+        tag_pairs = itertools.product(*tag_sets) if tag_sets else None
+        tags = [" AND ".join(t) for t in tag_pairs] if tag_pairs else None
         fields = _fields if _fields else ['value']
         return measurements, tags, fields
 

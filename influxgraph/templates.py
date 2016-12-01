@@ -159,7 +159,7 @@ def get_series_with_tags(paths, all_fields, graphite_templates,
 def _split_series_with_tags(paths, graphite_templates):
     split_path, template = deque(), None
     tags_values = [p.split('=') for p in paths[1:]]
-    for (_, template, _, separator) in graphite_templates:
+    for (_filter, template, _, separator) in graphite_templates:
         _make_path_from_template(
             split_path, paths[0], template, tags_values)
         # Split path should be at least as large as number of wanted
@@ -169,12 +169,14 @@ def _split_series_with_tags(paths, graphite_templates):
                           if v and 'field' in v])
         if (len(split_path) + field_inds) >= len(
                 [k for k, v in template.items() if v]):
-            break
+            path = [p[1] for p in heapsort(split_path)]
+            if _filter.match(separator.join(path)):
+                return path, template
+            split_path = []
+            continue
         # Reset path if template does not match
         else:
             split_path = []
-    path = [p[1] for p in heapsort(split_path)] if split_path \
-           else split_path
     return path, template
 
 def _make_path_from_template(split_path, measurement, template, tags_values,

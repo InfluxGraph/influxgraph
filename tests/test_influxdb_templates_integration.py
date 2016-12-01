@@ -233,6 +233,51 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                                 msg="Expected %s datapoints for %s - got %s" % (
                                     self.num_datapoints, metric, len(datapoints),))
 
+    def test_template_multi_tag_no_field(self):
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        templates = ["*.memory.* host.measurement.metric",
+                     "*.interface.* host.measurement.device.metric",
+                     ]
+        mem_measurement = 'memory'
+        tags = {'host': 'my_host',
+                'metric': 'some_metric',
+                }
+        fields = {'value': 1,
+                  }
+        self.write_data([mem_measurement], tags, fields)
+        int_measurement = 'interface'
+        tags = {'host': 'my_host',
+                'device': 'dev',
+                'metric': 'some_metric',
+                }
+        fields = {'value': 1,
+                  }
+        self.write_data([int_measurement], tags, fields)
+        self.config['influxdb']['templates'] = templates
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        ##
+        query = Query('%s.%s.*' % (
+            tags['host'], mem_measurement,))
+        nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in nodes]), [tags['metric']])
+        time_info, data = self.finder.fetch_multi(
+            nodes, int(self.start_time.strftime("%s")),
+            int(self.end_time.strftime("%s")))
+        datapoints = [v for v in data[nodes[0].path] if v]
+        self.assertTrue(len(datapoints) == self.num_datapoints,
+                        msg="Expected %s datapoints for %s - got %s" % (
+                            self.num_datapoints, nodes[0].path, len(datapoints),))
+        ##
+        query = Query('%s.%s.*' % (
+            tags['host'], int_measurement,))
+        nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in nodes]), [tags['device']])
+        query = Query('%s.%s.*.*' % (
+            tags['host'], int_measurement,))
+        nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in nodes]), [tags['metric']])
+
     def test_template_multiple_tags(self):
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
