@@ -72,7 +72,7 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
                 [k for k, v in template.items() if v]):
             path = [p[1] for p in heapsort(split_path)]
             if _filter:
-                if _filter.match(separator.join(path)):
+                if _filter.match_split_path(path):
                     return path, template
             else:
                 return path, template

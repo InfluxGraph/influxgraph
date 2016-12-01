@@ -912,24 +912,6 @@ static int __Pyx_IternextUnpackEndCheck(PyObject *retval, Py_ssize_t expected);
 /* py_dict_items.proto */
 static CYTHON_INLINE PyObject* __Pyx_PyDict_Items(PyObject* d);
 
-/* StringJoin.proto */
-#if PY_MAJOR_VERSION < 3
-#define __Pyx_PyString_Join __Pyx_PyBytes_Join
-#define __Pyx_PyBaseString_Join(s, v) (PyUnicode_CheckExact(s) ? PyUnicode_Join(s, v) : __Pyx_PyBytes_Join(s, v))
-#else
-#define __Pyx_PyString_Join PyUnicode_Join
-#define __Pyx_PyBaseString_Join PyUnicode_Join
-#endif
-#if CYTHON_COMPILING_IN_CPYTHON
-    #if PY_MAJOR_VERSION < 3
-    #define __Pyx_PyBytes_Join _PyString_Join
-    #else
-    #define __Pyx_PyBytes_Join _PyBytes_Join
-    #endif
-#else
-static CYTHON_INLINE PyObject* __Pyx_PyBytes_Join(PyObject* sep, PyObject* values);
-#endif
-
 /* PyUnicodeContains.proto */
 static CYTHON_INLINE int __Pyx_PyUnicode_ContainsTF(PyObject* substring, PyObject* text, int eq) {
     int result = PyUnicode_Contains(text, substring);
@@ -1039,13 +1021,11 @@ static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_enumerate;
 static const char __pyx_k_[] = ".";
 static const char __pyx_k__2[] = "=";
-static const char __pyx_k_join[] = "join";
 static const char __pyx_k_main[] = "__main__";
 static const char __pyx_k_test[] = "__test__";
 static const char __pyx_k_field[] = "field";
 static const char __pyx_k_heapq[] = "heapq";
 static const char __pyx_k_items[] = "items";
-static const char __pyx_k_match[] = "match";
 static const char __pyx_k_paths[] = "paths";
 static const char __pyx_k_range[] = "range";
 static const char __pyx_k_split[] = "split";
@@ -1060,6 +1040,7 @@ static const char __pyx_k_separator[] = "separator";
 static const char __pyx_k_all_fields[] = "all_fields";
 static const char __pyx_k_measurement[] = "measurement*";
 static const char __pyx_k_measurement_2[] = "measurement";
+static const char __pyx_k_match_split_path[] = "match_split_path";
 static const char __pyx_k_graphite_templates[] = "graphite_templates";
 static const char __pyx_k_C_Extension_of_performance_criti[] = "C Extension of performance critical templates modules functions";
 static PyObject *__pyx_kp_s_;
@@ -1074,9 +1055,8 @@ static PyObject *__pyx_n_s_heappush;
 static PyObject *__pyx_n_s_heapq;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_items;
-static PyObject *__pyx_n_s_join;
 static PyObject *__pyx_n_s_main;
-static PyObject *__pyx_n_s_match;
+static PyObject *__pyx_n_s_match_split_path;
 static PyObject *__pyx_kp_s_measurement;
 static PyObject *__pyx_n_s_measurement_2;
 static PyObject *__pyx_n_s_paths;
@@ -2185,7 +2165,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  *                 [k for k, v in template.items() if v]):
  *             path = [p[1] for p in heapsort(split_path)]             # <<<<<<<<<<<<<<
  *             if _filter:
- *                 if _filter.match(separator.join(path)):
+ *                 if _filter.match_split_path(path):
  */
       __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 73, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
@@ -2220,7 +2200,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  *                 [k for k, v in template.items() if v]):
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:             # <<<<<<<<<<<<<<
- *                 if _filter.match(separator.join(path)):
+ *                 if _filter.match_split_path(path):
  *                     return path, template
  */
       __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_v__filter); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 74, __pyx_L1_error)
@@ -2229,61 +2209,52 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         /* "influxgraph/ext/templates.pyx":75
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:
- *                 if _filter.match(separator.join(path)):             # <<<<<<<<<<<<<<
+ *                 if _filter.match_split_path(path):             # <<<<<<<<<<<<<<
  *                     return path, template
  *             else:
  */
-        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v__filter, __pyx_n_s_match); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 75, __pyx_L1_error)
+        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v__filter, __pyx_n_s_match_split_path); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 75, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_6);
-        if (unlikely(__pyx_v_separator == Py_None)) {
-          PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "join");
-          __PYX_ERR(0, 75, __pyx_L1_error)
-        }
-        __pyx_t_7 = __Pyx_PyString_Join(__pyx_v_separator, __pyx_v_path); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 75, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_7);
-        __pyx_t_5 = NULL;
+        __pyx_t_7 = NULL;
         if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
-          __pyx_t_5 = PyMethod_GET_SELF(__pyx_t_6);
-          if (likely(__pyx_t_5)) {
+          __pyx_t_7 = PyMethod_GET_SELF(__pyx_t_6);
+          if (likely(__pyx_t_7)) {
             PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_6);
-            __Pyx_INCREF(__pyx_t_5);
+            __Pyx_INCREF(__pyx_t_7);
             __Pyx_INCREF(function);
             __Pyx_DECREF_SET(__pyx_t_6, function);
           }
         }
-        if (!__pyx_t_5) {
-          __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_t_7); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
-          __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
+        if (!__pyx_t_7) {
+          __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_v_path); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_3);
         } else {
           #if CYTHON_FAST_PYCALL
           if (PyFunction_Check(__pyx_t_6)) {
-            PyObject *__pyx_temp[2] = {__pyx_t_5, __pyx_t_7};
+            PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_v_path};
             __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_6, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
-            __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+            __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
             __Pyx_GOTREF(__pyx_t_3);
-            __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
           } else
           #endif
           #if CYTHON_FAST_PYCCALL
           if (__Pyx_PyFastCFunction_Check(__pyx_t_6)) {
-            PyObject *__pyx_temp[2] = {__pyx_t_5, __pyx_t_7};
+            PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_v_path};
             __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_6, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
-            __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+            __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
             __Pyx_GOTREF(__pyx_t_3);
-            __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
           } else
           #endif
           {
-            __pyx_t_2 = PyTuple_New(1+1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 75, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_2);
-            __Pyx_GIVEREF(__pyx_t_5); PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_5); __pyx_t_5 = NULL;
-            __Pyx_GIVEREF(__pyx_t_7);
-            PyTuple_SET_ITEM(__pyx_t_2, 0+1, __pyx_t_7);
-            __pyx_t_7 = 0;
-            __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_2, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
+            __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 75, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_5);
+            __Pyx_GIVEREF(__pyx_t_7); PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_7); __pyx_t_7 = NULL;
+            __Pyx_INCREF(__pyx_v_path);
+            __Pyx_GIVEREF(__pyx_v_path);
+            PyTuple_SET_ITEM(__pyx_t_5, 0+1, __pyx_v_path);
+            __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 75, __pyx_L1_error)
             __Pyx_GOTREF(__pyx_t_3);
-            __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+            __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
           }
         }
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
@@ -2293,7 +2264,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
 
           /* "influxgraph/ext/templates.pyx":76
  *             if _filter:
- *                 if _filter.match(separator.join(path)):
+ *                 if _filter.match_split_path(path):
  *                     return path, template             # <<<<<<<<<<<<<<
  *             else:
  *                 return path, template
@@ -2315,7 +2286,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
           /* "influxgraph/ext/templates.pyx":75
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:
- *                 if _filter.match(separator.join(path)):             # <<<<<<<<<<<<<<
+ *                 if _filter.match_split_path(path):             # <<<<<<<<<<<<<<
  *                     return path, template
  *             else:
  */
@@ -2325,7 +2296,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  *                 [k for k, v in template.items() if v]):
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:             # <<<<<<<<<<<<<<
- *                 if _filter.match(separator.join(path)):
+ *                 if _filter.match_split_path(path):
  *                     return path, template
  */
         goto __pyx_L22;
@@ -3266,9 +3237,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_heapq, __pyx_k_heapq, sizeof(__pyx_k_heapq), 0, 0, 1, 1},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_items, __pyx_k_items, sizeof(__pyx_k_items), 0, 0, 1, 1},
-  {&__pyx_n_s_join, __pyx_k_join, sizeof(__pyx_k_join), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
-  {&__pyx_n_s_match, __pyx_k_match, sizeof(__pyx_k_match), 0, 0, 1, 1},
+  {&__pyx_n_s_match_split_path, __pyx_k_match_split_path, sizeof(__pyx_k_match_split_path), 0, 0, 1, 1},
   {&__pyx_kp_s_measurement, __pyx_k_measurement, sizeof(__pyx_k_measurement), 0, 0, 1, 0},
   {&__pyx_n_s_measurement_2, __pyx_k_measurement_2, sizeof(__pyx_k_measurement_2), 0, 0, 1, 1},
   {&__pyx_n_s_paths, __pyx_k_paths, sizeof(__pyx_k_paths), 0, 0, 1, 1},
@@ -4174,13 +4144,6 @@ static CYTHON_INLINE int __Pyx_ArgTypeTest(PyObject *obj, PyTypeObject *type, in
     else
         return PyDict_Items(d);
 }
-
-/* StringJoin */
-    #if !CYTHON_COMPILING_IN_CPYTHON
-static CYTHON_INLINE PyObject* __Pyx_PyBytes_Join(PyObject* sep, PyObject* values) {
-    return PyObject_CallMethodObjArgs(sep, __pyx_n_s_join, values, NULL);
-}
-#endif
 
 /* BytesEquals */
     static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
