@@ -60,7 +60,7 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
     cdef list tags_values = [p.split('=') for p in paths[1:]]
     cdef int field_inds
     cdef list path
-    for (_, template, _, separator) in graphite_templates:
+    for (_filter, template, _, separator) in graphite_templates:
         _make_path_from_template(
             split_path, paths[0], template, tags_values, separator)
         # Split path should be at least as large as number of wanted
@@ -70,13 +70,18 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
                           if v and 'field' in v])
         if (len(split_path) + field_inds) >= len(
                 [k for k, v in template.items() if v]):
-            break
+            path = [p[1] for p in heapsort(split_path)]
+            if _filter:
+                if _filter.match(separator.join(path)):
+                    return path, template
+            else:
+                return path, template
+            split_path = []
+            continue
         # Reset path if template does not match
         else:
             split_path = []
-    path = [p[1] for p in heapsort(split_path)] if split_path \
-           else split_path
-    return path, template
+    return [], template
 
 cdef void _make_path_from_template(list split_path, unicode measurement,
                                    dict template, list tags_values,

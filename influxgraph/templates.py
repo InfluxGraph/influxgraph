@@ -161,7 +161,7 @@ def _split_series_with_tags(paths, graphite_templates):
     tags_values = [p.split('=') for p in paths[1:]]
     for (_filter, template, _, separator) in graphite_templates:
         _make_path_from_template(
-            split_path, paths[0], template, tags_values)
+            split_path, paths[0], template, tags_values, separator=separator)
         # Split path should be at least as large as number of wanted
         # template tags taking into account measurement and number of fields
         # in template
@@ -170,14 +170,17 @@ def _split_series_with_tags(paths, graphite_templates):
         if (len(split_path) + field_inds) >= len(
                 [k for k, v in template.items() if v]):
             path = [p[1] for p in heapsort(split_path)]
-            if _filter.match(separator.join(path)):
+            if _filter:
+                if _filter.match(separator.join(path)):
+                    return path, template
+            else:
                 return path, template
             split_path = []
             continue
         # Reset path if template does not match
         else:
             split_path = []
-    return path, template
+    return [], template
 
 def _make_path_from_template(split_path, measurement, template, tags_values,
                              separator='.'):
