@@ -290,6 +290,87 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(sorted([n.name for n in nodes]), [prefix_measurement])
         self._test_data_in_nodes(nodes)
 
+    def test_template_multi_tags_multi_templ_multi_nodes(self):
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        templates = [
+            "host.measurement.cpu.metric",
+            "host.measurement.filesystem.field",
+            "host.measurement.field",
+            ]
+        load_measurement = 'load'
+        tags = {'host': 'my_host',
+                }
+        load_fields = {'longterm': 1,
+                  'shortterm': 1,
+                  'midterm': 1,
+                  }
+        self.write_data([load_measurement], tags, load_fields)
+        df_measurement = 'df'
+        df_fields = {'free': 1,
+                     'reserved': 2,
+                     'used': 1,
+                     }
+        fs_tags = ['root', 'tmp']
+        for _tag in fs_tags:
+            _tags = tags.copy()
+            _tags['filesystem'] = _tag
+            self.write_data([df_measurement], _tags, df_fields)
+        cpu_measurement = 'cpu'
+        cpu_tags = tags.copy()
+        cpu_tags.update({'metric': 'user',
+                         'cpu': 'cpu-0',})
+        cpu_fields = {'value': 1}
+        self.write_data([cpu_measurement], cpu_tags, cpu_fields)
+        self.config['influxdb']['templates'] = templates
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        ##
+        query = Query('%s.%s.*' % (
+            tags['host'], load_measurement, ))
+        load_nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in load_nodes]), sorted(load_fields.keys()))
+        self._test_data_in_nodes(load_nodes)
+        ##
+        query = Query('%s.%s.*.*' % (
+            tags['host'], df_measurement, ))
+        df_nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in df_nodes]), sorted(df_fields.keys() + df_fields.keys()))
+        self._test_data_in_nodes(df_nodes)
+        ##
+        query = Query('%s.%s.%s.*' % (
+            cpu_tags['host'], cpu_measurement, cpu_tags['cpu'], ))
+        cpu_nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in cpu_nodes]), sorted([cpu_tags['metric']]))
+        self._test_data_in_nodes(cpu_nodes)
+        all_nodes = load_nodes + cpu_nodes + df_nodes
+        self._test_data_in_nodes(all_nodes)
+
+    # def test_multi_tag_value_template_parse(self):
+    #     del self.finder
+    #     self.client.drop_database(self.db_name)
+    #     self.client.create_database(self.db_name)
+    #     templates = ["environment_class.region.building_id.application_short_name.metric_group.hostname.measurement.field*"]
+    #     measurement = 'os'
+    #     tags = {'environment_class': 'env',
+    #             'region': 'reg',
+    #             'building_id': '1',
+    #             'application_short_name': 'a',
+    #             'metric_group': 'met_group',
+    #             'hostname': 'my_host',
+    #             }
+    #     fields = {'cpu.cpuusage': 1,
+    #               'cpu.cpuidle': 2,
+    #               }
+    #     self.write_data([measurement], tags, fields)
+    #     tags['building_id'] = '2'
+    #     self.write_data([measurement], tags, fields)
+    #     self.config['influxdb']['templates'] = templates
+    #     self.finder = influxgraph.InfluxDBFinder(self.config)
+    #     query = Query('%s.%s.*' % (
+    #         tags['environment_class'], tags['region'], ))
+    #     nodes = list(self.finder.find_nodes(query))
+    #     self.assertEqual(sorted([n.name for n in nodes]), ['1', '2'])
+
     def test_template_multi_tag_no_field(self):
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
