@@ -294,8 +294,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         templates = [
-            "host.measurement.cpu.metric",
-            "host.measurement.filesystem.field",
+            "*.cpu.* host.measurement.cpu.metric",
+            "*.df host.measurement.filesystem.field",
             "host.measurement.field",
             ]
         load_measurement = 'load'
@@ -344,32 +344,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self._test_data_in_nodes(cpu_nodes)
         all_nodes = load_nodes + cpu_nodes + df_nodes
         self._test_data_in_nodes(all_nodes)
-
-    # def test_multi_tag_value_template_parse(self):
-    #     del self.finder
-    #     self.client.drop_database(self.db_name)
-    #     self.client.create_database(self.db_name)
-    #     templates = ["environment_class.region.building_id.application_short_name.metric_group.hostname.measurement.field*"]
-    #     measurement = 'os'
-    #     tags = {'environment_class': 'env',
-    #             'region': 'reg',
-    #             'building_id': '1',
-    #             'application_short_name': 'a',
-    #             'metric_group': 'met_group',
-    #             'hostname': 'my_host',
-    #             }
-    #     fields = {'cpu.cpuusage': 1,
-    #               'cpu.cpuidle': 2,
-    #               }
-    #     self.write_data([measurement], tags, fields)
-    #     tags['building_id'] = '2'
-    #     self.write_data([measurement], tags, fields)
-    #     self.config['influxdb']['templates'] = templates
-    #     self.finder = influxgraph.InfluxDBFinder(self.config)
-    #     query = Query('%s.%s.*' % (
-    #         tags['environment_class'], tags['region'], ))
-    #     nodes = list(self.finder.find_nodes(query))
-    #     self.assertEqual(sorted([n.name for n in nodes]), ['1', '2'])
 
     def test_template_multi_tag_no_field(self):
         self.client.drop_database(self.db_name)
