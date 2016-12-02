@@ -183,6 +183,12 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
             measurement = infl_keys[0]
             # metric = paths[path_ind + key_ind] if field == 'value' \
             #   else _get_metric_path_from_field(infl_key, paths, field)
+            if not path_measurements:
+                # import ipdb; ipdb.set_trace()
+                metric = paths[path_ind + key_ind]
+                _data[metric] = [d['value']
+                                 for d in infl_data.get_points(measurement)]
+                continue
             for metric in path_measurements[measurement]['paths']:
                 for field in path_measurements[measurement]['fields']:
                     _data[metric] = [d[field]

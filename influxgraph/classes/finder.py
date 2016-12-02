@@ -427,9 +427,10 @@ class InfluxDBFinder(object):
                     _query += group_by
                     _queries.append(_query)
                     _query = query
+                queries.append(';'.join(_queries))
             else:
                 query += group_by
-            queries.append(';'.join(_queries))
+                queries.append(query)
         query = ';'.join(queries)
         return query, memcache_key, path_measurements
 
