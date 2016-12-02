@@ -810,7 +810,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         del finder
         self.assertTrue(os.path.isfile('index'))
         # Reload index from file
-        index_fh = GzipFile(index_path, 'r')
+        index_fh = open(index_path, 'rt')
         try:
             index = NodeTreeIndex.from_file(index_fh)
         finally:

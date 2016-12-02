@@ -555,9 +555,7 @@ class InfluxDBFinder(object):
 
     def _save_index_file(self, file_h):
         """Dump tree contents to file handle"""
-        data = bytes(json.dumps(self.index.to_array()), 'utf-8') \
-          if not isinstance(b'', str) else json.dumps(self.index.to_array())
-        file_h.write(data)
+        json.dump(self.index.to_array(), file_h)
 
     def save_index(self):
         """Save index to file"""
@@ -565,7 +563,7 @@ class InfluxDBFinder(object):
             return
         logger.info("Saving index to file %s", self.index_path,)
         try:
-            index_fh = gzip.GzipFile(self.index_path, 'w')
+            index_fh = open(self.index_path, 'wt')
             self._save_index_file(index_fh)
         except IOError as ex:
             logger.error("Error writing to index file %s - %s",
@@ -585,7 +583,7 @@ class InfluxDBFinder(object):
             return
         logger.info("Loading index from file %s", self.index_path,)
         try:
-            index_fh = gzip.GzipFile(self.index_path, 'r')
+            index_fh = open(self.index_path, 'rt')
         except Exception as ex:
             logger.error("Error reading index file %s - %s", self.index_path, ex)
             return

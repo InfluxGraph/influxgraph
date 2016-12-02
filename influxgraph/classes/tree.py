@@ -154,7 +154,5 @@ class NodeTreeIndex(object):
     @staticmethod
     def from_file(file_h):
         """Load tree index from file handle"""
-        data = file_h.read().decode('utf-8') \
-          if not isinstance(b'', str) else file_h.read()
-        index = NodeTreeIndex.from_array(json.loads(data))
+        index = NodeTreeIndex.from_array(json.load(file_h))
         return index
