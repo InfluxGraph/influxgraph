@@ -190,6 +190,8 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
                                  for d in infl_data.get_points(measurement)]
                 continue
             for metric in path_measurements[measurement]['paths']:
+                if not metric in paths:
+                    continue
                 for field in path_measurements[measurement]['fields']:
                     _data[metric] = [d[field]
                                      for d in infl_data.get_points(measurement)]

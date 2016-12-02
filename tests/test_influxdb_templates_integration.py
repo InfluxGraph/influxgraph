@@ -732,11 +732,11 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                    for f in ['wio', 'cpu_number']]
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
-            self.assertTrue(len(datapoints) == self.num_datapoints)
+            self.assertTrue(len(datapoints) == self.num_datapoints)%
         bad_metrics = ['.'.join([tags['env'], tags['host'], measurements[0], f])
                        for f in ['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total']]
         for metric in bad_metrics:
-            datapoints = [v for v in data[metric] if v]
+            datapoints = [v for v in data[metric] if v] if metric in data else []
             self.assertTrue(len(datapoints) == 0)
 
     def test_field_template_with_value_field(self):
