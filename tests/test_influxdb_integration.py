@@ -786,20 +786,26 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             pass
 
     def test_index_save_load(self):
+        self.finder.index.clear()
+        try:
+            os.unlink(self.finder.index_path)
+        except OSError:
+            pass
+        del self.finder
         config = { 'influxdb': { 'host' : 'localhost',
                                  'port' : 8086,
-                                 'memcache' : {'host': 'localhost',},
                                  'user' : 'root',
                                  'pass' : 'root',
                                  'db' : self.db_name,
+                                 'reindex_interval': 1,
                                  },
-                   'statsd': {'host': 'localhost' },
                    }
         finder = influxgraph.InfluxDBFinder(config)
         finder.index_path = 'index'
         finder.save_index()
         index_path = finder.index_path
-        finder_index = finder.index
+        finder_index = NodeTreeIndex.from_array(finder.index.to_array())
+        time.sleep(config['influxdb']['reindex_interval'] + 1)
         del finder
         self.assertTrue(os.path.isfile('index'))
         # Reload index from file
