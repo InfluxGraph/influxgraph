@@ -217,4 +217,5 @@ def _add_fields_to_paths(fields, split_path, series,
     for field_key in fields:
         field_keys = [f for f in field_key.split(separator)
                       if f != 'value']
-        series.append(split_path + field_keys)
+        if len(field_keys) > 0:
+            series.append(split_path + field_keys)

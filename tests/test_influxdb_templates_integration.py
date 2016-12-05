@@ -692,6 +692,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         tags['host'] = 'my_host2'
         tags['env'] = 'my_env2'
         self.write_data(measurements, tags, fields)
+        ##
         template = "env.host.measurement.field*"
         self.config['influxdb']['templates'] = [template]
         self.finder = influxgraph.InfluxDBFinder(self.config)
@@ -719,6 +720,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints)
+        ##
         template = "env.host.measurement.field"
         self.config['influxdb']['templates'] = [template]
         self.finder = influxgraph.InfluxDBFinder(self.config)
@@ -726,6 +728,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         node_names = sorted(dict.fromkeys([n.name for n in nodes]).keys())
         expected = sorted(['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total', 'wio', 'cpu_number'])
         self.assertEqual(node_names, expected)
+        bad_metrics = ['.'.join([tags['env'], tags['host'], measurements[0], f])
+                       for f in ['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total']]
         _, data = self.finder.fetch_multi(nodes, int(self.start_time.strftime("%s")),
                                           int(self.end_time.strftime("%s")))
         metrics = ['.'.join([tags['env'], tags['host'], measurements[0], f])
@@ -733,14 +737,31 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints)
-        bad_metrics = ['.'.join([tags['env'], tags['host'], measurements[0], f])
-                       for f in ['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total']]
         for metric in bad_metrics:
             datapoints = [v for v in data[metric] if v] if metric in data else []
             self.assertTrue(len(datapoints) == 0)
 
-    def test_field_template_with_value_field(self):
+    def test_field_template_with_value_field_failure(self):
         template = "env.host.measurement.field*"
+        # template = "env.host.measurement"
+        del self.finder
+        measurements = ['cpuusage']
+        fields = {'value': 1}
+        tags = {'host': 'my_host1',
+                'env': 'my_env1',
+                }
+        metrics = ['.'.join([tags['env'], tags['host'], m])
+                   for m in measurements]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, tags, fields)
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        cpu_nodes = list(self.finder.find_nodes(Query('my_env1.my_host1.*')))
+        self.assertEqual(cpu_nodes, [])
+
+    def test_measurement_template_with_value_field(self):
+        template = "env.host.measurement"
         del self.finder
         measurements = ['cpuusage']
         fields = {'value': 1}
@@ -791,7 +812,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(keys_list, keys_memcache)
 
     def test_template_measurement_no_tags(self):
-        template = "env.host.measurement.field*"
+        template = "env.host.measurement*"
         del self.finder
         measurements = ['cpuusage']
         fields = {'value': 1}

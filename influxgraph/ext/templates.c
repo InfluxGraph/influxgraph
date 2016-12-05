@@ -3091,7 +3091,7 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)             # <<<<<<<<<<<<<<
  *                       if f != 'value']
- *         series.append(split_path + field_keys)
+ *         if len(field_keys) > 0:
  */
     __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 114, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
@@ -3119,7 +3119,8 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']             # <<<<<<<<<<<<<<
- *         series.append(split_path + field_keys)
+ *         if len(field_keys) > 0:
+ *             series.append(split_path + field_keys)
  */
       __pyx_t_7 = (__Pyx_PyUnicode_Equals(__pyx_v_f, __pyx_n_s_value, Py_NE)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 115, __pyx_L1_error)
       __pyx_t_8 = (__pyx_t_7 != 0);
@@ -3130,7 +3131,7 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)             # <<<<<<<<<<<<<<
  *                       if f != 'value']
- *         series.append(split_path + field_keys)
+ *         if len(field_keys) > 0:
  */
         if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_f))) __PYX_ERR(0, 114, __pyx_L1_error)
 
@@ -3138,7 +3139,8 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']             # <<<<<<<<<<<<<<
- *         series.append(split_path + field_keys)
+ *         if len(field_keys) > 0:
+ *             series.append(split_path + field_keys)
  */
       }
 
@@ -3147,7 +3149,7 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)             # <<<<<<<<<<<<<<
  *                       if f != 'value']
- *         series.append(split_path + field_keys)
+ *         if len(field_keys) > 0:
  */
     }
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
@@ -3157,16 +3159,34 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
     /* "influxgraph/ext/templates.pyx":116
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']
- *         series.append(split_path + field_keys)             # <<<<<<<<<<<<<<
+ *         if len(field_keys) > 0:             # <<<<<<<<<<<<<<
+ *             series.append(split_path + field_keys)
  */
-    if (unlikely(__pyx_v_series == Py_None)) {
-      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
-      __PYX_ERR(0, 116, __pyx_L1_error)
+    __pyx_t_6 = PyList_GET_SIZE(__pyx_v_field_keys); if (unlikely(__pyx_t_6 == -1)) __PYX_ERR(0, 116, __pyx_L1_error)
+    __pyx_t_8 = ((__pyx_t_6 > 0) != 0);
+    if (__pyx_t_8) {
+
+      /* "influxgraph/ext/templates.pyx":117
+ *                       if f != 'value']
+ *         if len(field_keys) > 0:
+ *             series.append(split_path + field_keys)             # <<<<<<<<<<<<<<
+ */
+      if (unlikely(__pyx_v_series == Py_None)) {
+        PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
+        __PYX_ERR(0, 117, __pyx_L1_error)
+      }
+      __pyx_t_3 = PyNumber_Add(__pyx_v_split_path, __pyx_v_field_keys); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 117, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_3);
+      __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_series, __pyx_t_3); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 117, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+
+      /* "influxgraph/ext/templates.pyx":116
+ *         field_keys = [f for f in field_key.split(separator)
+ *                       if f != 'value']
+ *         if len(field_keys) > 0:             # <<<<<<<<<<<<<<
+ *             series.append(split_path + field_keys)
+ */
     }
-    __pyx_t_3 = PyNumber_Add(__pyx_v_split_path, __pyx_v_field_keys); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 116, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_series, __pyx_t_3); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 116, __pyx_L1_error)
-    __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
     /* "influxgraph/ext/templates.pyx":113
  *     cdef list field_keys
