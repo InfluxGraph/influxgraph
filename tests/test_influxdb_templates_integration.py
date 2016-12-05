@@ -837,5 +837,36 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         expected = measurements
         self.assertEqual([n.name for n in cpu_nodes], expected)
 
+    def test_multi_tmpl_part_filter(self):
+        del self.finder
+        templates = ["env.host.measurement.field*",
+                     "my_prefix.* prefix.measurement.field*",
+                     ]
+        measurements = ['cpu']
+        fields = {'usage': 1,
+                  'load': 2}
+        env_tags = {'host': 'my_host1',
+                    'env': 'my_env1',
+                    }
+        prefix_tags = {'prefix': 'my_prefix'}
+        prefix_fields = {'received': 3}
+        prefix_measurement = 'prefix_measure'
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, env_tags, fields)
+        self.write_data([prefix_measurement], prefix_tags, prefix_fields)
+        self.config['influxdb']['templates'] = templates
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        nodes = list(self.finder.find_nodes(Query('*')))
+        expected = sorted([env_tags['env'], prefix_tags['prefix']])
+        self.assertEqual(sorted([n.name for n in nodes]), expected)
+        nodes = list(self.finder.find_nodes(Query('%s.%s.*' % (
+            prefix_tags['prefix'], prefix_measurement,))))
+        self._test_data_in_nodes(nodes)
+        # cpu_nodes = list(self.finder.find_nodes(Query('my_env1.my_host1.*')))
+        # expected = measurements
+        # self.assertEqual([n.name for n in cpu_nodes], expected)
+
+
 if __name__ == '__main__':
     unittest.main()
