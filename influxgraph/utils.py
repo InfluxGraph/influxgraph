@@ -193,8 +193,9 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
                 if not metric in paths:
                     continue
                 for field in path_measurements[measurement]['fields']:
-                    _data[metric] = [d[field]
-                                     for d in infl_data.get_points(measurement)]
+                    if metric.endswith(field) or field == 'value':
+                        _data[metric] = [d[field]
+                                         for d in infl_data.get_points(measurement)]
     return _data
 
 def gen_memcache_pattern_key(pattern):
