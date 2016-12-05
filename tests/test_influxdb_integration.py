@@ -364,7 +364,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             database=self.db_name), path1, influxgraph.utils.NullStatsd())
         reader2 = influxgraph.InfluxdbReader(InfluxDBClient(
             database=self.db_name), path2, influxgraph.utils.NullStatsd())
-        nodes = [reader1, reader2]
+        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(path1, reader1),
+                 influxgraph.classes.leaf.InfluxDBLeafNode(path2, reader2)]
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))

@@ -353,27 +353,27 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                      "*.interface.* host.measurement.device.metric",
                      ]
         mem_measurement = 'memory'
-        tags = {'host': 'my_host',
-                'metric': 'some_metric',
+        mem_tags = {'host': 'my_host',
+                'metric': 'mem_metric',
                 }
         fields = {'value': 1,
                   }
-        self.write_data([mem_measurement], tags, fields)
+        self.write_data([mem_measurement], mem_tags, fields)
         int_measurement = 'interface'
-        tags = {'host': 'my_host',
-                'device': 'dev',
-                'metric': 'some_metric',
-                }
+        int_tags = {'host': 'my_host',
+                    'device': 'dev',
+                    'metric': 'int_metric',
+                    }
         fields = {'value': 1,
                   }
-        self.write_data([int_measurement], tags, fields)
+        self.write_data([int_measurement], int_tags, fields)
         self.config['influxdb']['templates'] = templates
         self.finder = influxgraph.InfluxDBFinder(self.config)
         ##
         query = Query('%s.%s.*' % (
-            tags['host'], mem_measurement,))
+            mem_tags['host'], mem_measurement,))
         nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in nodes]), [tags['metric']])
+        self.assertEqual(sorted([n.name for n in nodes]), [mem_tags['metric']])
         time_info, data = self.finder.fetch_multi(
             nodes, int(self.start_time.strftime("%s")),
             int(self.end_time.strftime("%s")))
@@ -383,29 +383,22 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                             self.num_datapoints, nodes[0].path, len(datapoints),))
         ##
         query = Query('%s.%s.*' % (
-            tags['host'], int_measurement,))
+            int_tags['host'], int_measurement,))
         nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in nodes]), [tags['device']])
+        self.assertEqual(sorted([n.name for n in nodes]), [int_tags['device']])
         time_info, data = self.finder.fetch_multi(
             nodes, int(self.start_time.strftime("%s")),
             int(self.end_time.strftime("%s")))
         for metric in [n.path for n in nodes]:
-            datapoints = [v for v in data[metric] if v]
-            self.assertTrue(len(datapoints) == self.num_datapoints,
-                            msg="Expected %s datapoints for %s - got %s" % (
-                                self.num_datapoints, metric, len(datapoints),))
+            self.assertTrue(len(data[metric]) == 0)
         query = Query('%s.%s.*.*' % (
-            tags['host'], int_measurement,))
+            int_tags['host'], int_measurement,))
         nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in nodes]), [tags['metric']])
+        self.assertEqual(sorted([n.name for n in nodes]), [int_tags['metric']])
         time_info, data = self.finder.fetch_multi(
             nodes, int(self.start_time.strftime("%s")),
             int(self.end_time.strftime("%s")))
-        for metric in [n.path for n in nodes]:
-            datapoints = [v for v in data[metric] if v]
-            self.assertTrue(len(datapoints) == self.num_datapoints,
-                            msg="Expected %s datapoints for %s - got %s" % (
-                                self.num_datapoints, metric, len(datapoints),))
+        self._test_data_in_nodes(nodes)
 
     def test_template_multiple_tags(self):
         self.client.drop_database(self.db_name)
@@ -504,18 +497,19 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
         fields = {'load': 1, 'idle': 1,
                   'usage': 1, 'user': 1,
-                  'user.io': 1, 'idle.io': 1,
-                  'load.io': 1, 'usage.io': 1,
-        }
+                  'io.usr': 1, 'io.swp': 1,
+                  'io.sys': 1,
+                  }
         tags = {'host': 'my_host',
                 'env': 'my_env',
                 }
         cpu_metrics = ['.'.join(['my_host', m, f])
                        for m in measurements
-                       for f in ['load', 'usage', 'user', 'idle']]
+                       for f in ['load', 'usage', 'user', 'idle',
+                                 'io']]
         io_metrics = ['.'.join(['my_host', m, f])
                        for m in measurements
-                       for f in ['user.io', 'idle.io', 'load.io', 'usage.io']]
+                       for f in ['io.usr', 'io.swp', 'io.sys']]
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         self.write_data(measurements, tags, fields)
@@ -530,13 +524,12 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         nodes = list(self.finder.find_nodes(query))
         node_paths = sorted([n.path for n in nodes])
         expected = sorted(cpu_metrics)
-        self.assertEqual(node_paths, expected,
-                         msg="Got query %s result %s - wanted %s" % (
-                             query.pattern, node_paths, expected,))
+        self.assertEqual(node_paths, expected)
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))
-        for metric in cpu_metrics:
+        cpu_leaf_nodes = [m for m in cpu_metrics if not m.endswith('io')]
+        for metric in cpu_leaf_nodes:
             self.assertTrue(metric in data,
                             msg="Did not get data for requested series %s - got data for %s" % (
                                 metric, data.keys(),))
@@ -547,11 +540,15 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         time_info, _data = self.finder.fetch_multi(nodes,
                                                    int(self.start_time.strftime("%s")),
                                                    int(self.end_time.strftime("%s")))
-        for metric in cpu_metrics:
+        for metric in cpu_leaf_nodes:
             datapoints = [v for v in _data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for %s - got %s" % (
                                 self.num_datapoints, metric, len(datapoints),))
+        query = Query('%s.*.*.*' % (tags['host'],))
+        nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.path for n in nodes]), sorted(io_metrics))
+        self._test_data_in_nodes(nodes)
 
     def test_multi_tag_values_multi_measurements(self):
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']

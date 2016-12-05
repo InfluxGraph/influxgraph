@@ -44,7 +44,8 @@ from ..constants import _INFLUXDB_CLIENT_PARAMS, \
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns, parse_series
-from ..templates import parse_influxdb_graphite_templates, apply_template
+from ..templates import parse_influxdb_graphite_templates, apply_template, \
+     TemplateMatchError
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 try:
@@ -356,8 +357,11 @@ class InfluxDBFinder(object):
             for path in paths:
                 if _filter and not _filter.match(path):
                     continue
-                measurement, tags, field = apply_template(
-                    path.split('.'), template, default_tags, separator)
+                try:
+                    measurement, tags, field = apply_template(
+                        path.split('.'), template, default_tags, separator)
+                except TemplateMatchError:
+                    continue
                 if measurement not in _measurements:
                     _measurements.append(measurement)
                 for tag in tags:
@@ -380,6 +384,8 @@ class InfluxDBFinder(object):
 
     def _gen_query_values_from_templates(self, paths, retention):
         _query_data, path_measurements = self._get_all_template_values(paths)
+        if len(_query_data) == 0:
+            return
         query_data = deque()
         for (_measurements, _tags, _fields) in _query_data:
             measurements = ', '.join(
@@ -410,7 +416,10 @@ class InfluxDBFinder(object):
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
         queries = deque()
-        query_data, path_measurements = self._gen_query_values(paths, retention)
+        try:
+            query_data, path_measurements = self._gen_query_values(paths, retention)
+        except TypeError:
+            return
         for (measurement, tags, _fields) in query_data:
             if not _fields:
                 _fields = ['value']
@@ -434,6 +443,12 @@ class InfluxDBFinder(object):
         query = ';'.join(queries)
         return query, memcache_key, path_measurements
 
+    def _make_empty_multi_fetch_result(self, time_info, paths):
+        data = {}
+        for key in paths:
+            data[key] = []
+        return time_info, data
+
     def fetch_multi(self, nodes, start_time, end_time):
         """Fetch datapoints for all series between start and end times
 
@@ -446,9 +461,15 @@ class InfluxDBFinder(object):
         time_info = start_time, end_time, interval
         if not nodes:
             return time_info, {}
-        paths = [n.path for n in nodes]
-        query, memcache_key, path_measurements = self._gen_influxdb_query(
-            start_time, end_time, paths, interval)
+        paths = [n.path for n in nodes if n.is_leaf]
+        if not len(paths) > 0:
+            return self._make_empty_multi_fetch_result(
+                time_info, [n.path for n in nodes])
+        try:
+            query, memcache_key, path_measurements = self._gen_influxdb_query(
+                start_time, end_time, paths, interval)
+        except TypeError:
+            return self._make_empty_multi_fetch_result(time_info, paths)
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
