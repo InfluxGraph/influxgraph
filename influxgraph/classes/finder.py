@@ -442,7 +442,6 @@ class InfluxDBFinder(object):
         :param start_time: Start time of query
         :param end_time: End time of query
         """
-        # import ipdb; ipdb.set_trace()
         interval = calculate_interval(start_time, end_time, deltas=self.deltas)
         time_info = start_time, end_time, interval
         if not nodes:
