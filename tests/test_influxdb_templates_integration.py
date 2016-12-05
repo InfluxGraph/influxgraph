@@ -5,6 +5,7 @@ import os
 import unittest
 import datetime
 import time
+from random import randint
 import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
@@ -289,6 +290,61 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         nodes = list(self.finder.find_nodes(query))
         self.assertEqual(sorted([n.name for n in nodes]), [prefix_measurement])
         self._test_data_in_nodes(nodes)
+
+    def test_template_multi_tags_multi_templ_multi_nodes_no_fields(self):
+        del self.finder
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        templates = [
+            "*.cpu.* host.measurement.cpu.metric",
+            "*.df host.measurement.filesystem.metric",
+            "host.measurement.metric",
+            ]
+        load_measurement = 'load'
+        fields = lambda: {'value': randint(1,100)}
+        load_tags = [{'host': 'my_host',
+                     'metric': 'longterm',},
+                    {'host': 'my_host',
+                     'metric': 'shortterm',},
+                    {'host': 'my_host',
+                     'metric': 'midterm'},
+                    ]
+        for load_tag in load_tags:
+            self.write_data([load_measurement], load_tag, fields())
+        df_measurement = 'df'
+        df_tags = [{'host': 'my_host',
+                    'metric': 'free',},
+                   {'host': 'my_host',
+                    'metric': 'reserved'},
+                   {'host': 'my_host',
+                    'metric': 'used'},
+                   ]
+        fs_tags = ['root', 'tmp']
+        for _tags in df_tags:
+            for fs_tag in fs_tags:
+                _tags.update({'filesystem': fs_tag})
+                self.write_data([df_measurement], _tags, fields())
+        cpu_measurement = 'cpu'
+        cpu_tags = {'host': 'my_host',
+                    'metric': 'usage',
+                    'cpu': 'cpu-0'}
+        self.write_data([cpu_measurement], cpu_tags, fields())
+        self.config['influxdb']['templates'] = templates
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        nodes = list(self.finder.find_nodes(Query('%s.*.*' % (load_tags[0]['host'],))))
+        self.assertEqual(sorted([n.path for n in nodes]), sorted([
+            u'my_host.cpu.cpu-0', u'my_host.df.root', u'my_host.df.tmp',
+            u'my_host.load.longterm', u'my_host.load.midterm',
+            u'my_host.load.shortterm']))
+        cpu_metric_nodes = list(self.finder.find_nodes(Query('%s.%s.%s.*' % (
+            cpu_tags['host'], cpu_measurement, cpu_tags['cpu'],))))
+        self.assertEqual(sorted([n.path for n in cpu_metric_nodes]), ['.'.join([
+            cpu_tags['host'], cpu_measurement, cpu_tags['cpu'], cpu_tags['metric']])])
+        load_nodes = list(self.finder.find_nodes(Query('%s.%s.*' % (
+            load_tags[0]['host'], load_measurement, ))))
+        df_nodes = list(self.finder.find_nodes(Query('%s.%s.%s.*' % (
+            df_tags[0]['host'], df_measurement, df_tags[0]['metric'],))))
+        self._test_data_in_nodes(cpu_metric_nodes + load_nodes + df_nodes)
 
     def test_template_multi_tags_multi_templ_multi_nodes(self):
         self.client.drop_database(self.db_name)
