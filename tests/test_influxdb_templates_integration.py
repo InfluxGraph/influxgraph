@@ -334,7 +334,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         query = Query('%s.%s.*.*' % (
             tags['host'], df_measurement, ))
         df_nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in df_nodes]), sorted(df_fields.keys() + df_fields.keys()))
+        self.assertEqual(sorted([n.name for n in df_nodes]),
+                         sorted(list(df_fields.keys()) + list(df_fields.keys())))
         self._test_data_in_nodes(df_nodes)
         ##
         query = Query('%s.%s.%s.*' % (
