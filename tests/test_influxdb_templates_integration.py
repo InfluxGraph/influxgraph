@@ -284,7 +284,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         nodes = list(self.finder.find_nodes(query))
         # 
         self.assertEqual(sorted([n.name for n in nodes]), sorted(measurements + [tags['filter']]))
-        # import ipdb; ipdb.set_trace()
         self._test_data_in_nodes([n for n in nodes if n.is_leaf])
         query = Query('%s.*.*.*' % (tags['host'],))
         nodes = list(self.finder.find_nodes(query))
@@ -325,10 +324,15 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 _tags.update({'filesystem': fs_tag})
                 self.write_data([df_measurement], _tags, fields())
         cpu_measurement = 'cpu'
+        cpu_metric = ['usage', 'idle']
         cpu_tags = {'host': 'my_host',
-                    'metric': 'usage',
+                    'metric': cpu_metric[0],
                     'cpu': 'cpu-0'}
-        self.write_data([cpu_measurement], cpu_tags, fields())
+        usage_data = fields()
+        self.write_data([cpu_measurement], cpu_tags, usage_data)
+        cpu_tags['metric'] = cpu_metric[1]
+        idle_data = fields()
+        self.write_data([cpu_measurement], cpu_tags, idle_data)
         self.config['influxdb']['templates'] = templates
         self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = list(self.finder.find_nodes(Query('%s.*.*' % (load_tags[0]['host'],))))
@@ -338,13 +342,21 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             u'my_host.load.shortterm']))
         cpu_metric_nodes = list(self.finder.find_nodes(Query('%s.%s.%s.*' % (
             cpu_tags['host'], cpu_measurement, cpu_tags['cpu'],))))
-        self.assertEqual(sorted([n.path for n in cpu_metric_nodes]), ['.'.join([
-            cpu_tags['host'], cpu_measurement, cpu_tags['cpu'], cpu_tags['metric']])])
+        expected = ['.'.join([
+            cpu_tags['host'], cpu_measurement, cpu_tags['cpu'], f])
+            for f in cpu_metric]
+        self.assertEqual(sorted([n.path for n in cpu_metric_nodes]),
+                         sorted(expected))
         load_nodes = list(self.finder.find_nodes(Query('%s.%s.*' % (
             load_tags[0]['host'], load_measurement, ))))
         df_nodes = list(self.finder.find_nodes(Query('%s.%s.%s.*' % (
             df_tags[0]['host'], df_measurement, df_tags[0]['metric'],))))
         self._test_data_in_nodes(cpu_metric_nodes + load_nodes + df_nodes)
+        _, data = self.finder.fetch_multi(
+            cpu_metric_nodes, int(self.start_time.strftime("%s")),
+            int(self.end_time.strftime("%s")))
+        self.assertTrue(data[cpu_metric_nodes[0].path][-1] == idle_data['value'],
+                        msg="Got incorrect data from multi-tag query")
 
     def test_template_multi_tags_multi_templ_multi_nodes(self):
         self.client.drop_database(self.db_name)
