@@ -22,6 +22,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
     templates configured on InfluxGraph"""
     
     def setUp(self):
+        self.randval = lambda: randint(1, 100)
         self.metric_prefix = "template_integration_test"
         self.paths = ['test_type', 'host']
         self.tags = {
@@ -109,6 +110,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for %s - got %s" % (
                                 self.num_datapoints, metric, len(datapoints),))
+        return data
 
     def test_templated_index_find(self):
         query = Query('*')
@@ -300,7 +302,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             "host.measurement.metric",
             ]
         load_measurement = 'load'
-        fields = lambda: {'value': randint(1,100)}
+        fields = lambda: {'value': self.randval()}
         load_tags = [{'host': 'my_host',
                      'metric': 'longterm',},
                     {'host': 'my_host',
@@ -369,15 +371,15 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         load_measurement = 'load'
         tags = {'host': 'my_host',
                 }
-        load_fields = {'longterm': 1,
-                  'shortterm': 1,
-                  'midterm': 1,
+        load_fields = {'longterm': self.randval(),
+                  'shortterm': self.randval(),
+                  'midterm': self.randval(),
                   }
         self.write_data([load_measurement], tags, load_fields)
         df_measurement = 'df'
-        df_fields = {'free': 1,
-                     'reserved': 2,
-                     'used': 1,
+        df_fields = {'free': self.randval(),
+                     'reserved': self.randval(),
+                     'used': self.randval(),
                      }
         fs_tags = ['root', 'tmp']
         for _tag in fs_tags:
@@ -388,7 +390,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         cpu_tags = tags.copy()
         cpu_tags.update({'metric': 'user',
                          'cpu': 'cpu-0',})
-        cpu_fields = {'value': 1}
+        cpu_fields = {'value': self.randval()}
         self.write_data([cpu_measurement], cpu_tags, cpu_fields)
         self.config['influxdb']['templates'] = templates
         self.finder = influxgraph.InfluxDBFinder(self.config)
@@ -397,22 +399,38 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             tags['host'], load_measurement, ))
         load_nodes = list(self.finder.find_nodes(query))
         self.assertEqual(sorted([n.name for n in load_nodes]), sorted(load_fields.keys()))
-        self._test_data_in_nodes(load_nodes)
+        load_data = self._test_data_in_nodes(load_nodes)
         ##
         query = Query('%s.%s.*.*' % (
             tags['host'], df_measurement, ))
         df_nodes = list(self.finder.find_nodes(query))
         self.assertEqual(sorted([n.name for n in df_nodes]),
                          sorted(list(df_fields.keys()) + list(df_fields.keys())))
-        self._test_data_in_nodes(df_nodes)
+        df_data = self._test_data_in_nodes(df_nodes)
         ##
         query = Query('%s.%s.%s.*' % (
             cpu_tags['host'], cpu_measurement, cpu_tags['cpu'], ))
         cpu_nodes = list(self.finder.find_nodes(query))
         self.assertEqual(sorted([n.name for n in cpu_nodes]), sorted([cpu_tags['metric']]))
-        self._test_data_in_nodes(cpu_nodes)
+        cpu_data = self._test_data_in_nodes(cpu_nodes)
         all_nodes = load_nodes + cpu_nodes + df_nodes
-        self._test_data_in_nodes(all_nodes)
+        data = self._test_data_in_nodes(all_nodes)
+        for path in [n.path for n in all_nodes]:
+            if path.endswith(load_fields.keys()[0]) \
+              or path.endswith(load_fields.keys()[1]) \
+              or path.endswith(load_fields.keys()[2]):
+                self.assertTrue(data[path][-1] == load_fields[path.split('.')[-1]])
+            elif path.endswith(cpu_tags['metric']):
+                self.assertTrue(data[path][-1] == cpu_fields['value'])
+            elif path.endswith(df_fields.keys()[0]) \
+              or path.endswith(df_fields.keys()[1]) \
+              or path.endswith(df_fields.keys()[2]):
+                self.assertTrue(data[path][-1] == df_fields[path.split('.')[-1]])
+        self.assertTrue(cpu_data[cpu_nodes[0].path][-1] == cpu_fields['value'])
+        for path in [n.path for n in load_nodes]:
+            self.assertTrue(load_data[path][-1] == load_fields[path.split('.')[-1]])
+        for path in [n.path for n in df_nodes]:
+            self.assertTrue(df_data[path][-1] == df_fields[path.split('.')[-1]])
 
     def test_template_multi_tag_no_field(self):
         self.client.drop_database(self.db_name)
@@ -477,8 +495,8 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 'path': '/',
                 'fstype': 'ext4',
                 }
-        fields = {'free': 1,
-                  'used': 1,
+        fields = {'free': self.randval(),
+                  'used': self.randval(),
                   }
         self.write_data([measurement], tags, fields)
         self.config['influxdb']['templates'] = [template]
@@ -563,10 +581,10 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         template = "host.measurement.field*"
         self.config['influxdb']['templates'] = [template]
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
-        fields = {'load': 1, 'idle': 1,
-                  'usage': 1, 'user': 1,
-                  'io.usr': 1, 'io.swp': 1,
-                  'io.sys': 1,
+        fields = {'load': self.randval(), 'idle': self.randval(),
+                  'usage': self.randval(), 'user': self.randval(),
+                  'io.usr': self.randval(), 'io.swp': self.randval(),
+                  'io.sys': self.randval(),
                   }
         tags = {'host': 'my_host',
                 'env': 'my_env',
@@ -613,10 +631,16 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for %s - got %s" % (
                                 self.num_datapoints, metric, len(datapoints),))
+            self.assertTrue(_data[metric][-1] == fields[metric.split('.')[-1]])
         query = Query('%s.*.*.*' % (tags['host'],))
         nodes = list(self.finder.find_nodes(query))
         self.assertEqual(sorted([n.path for n in nodes]), sorted(io_metrics))
-        self._test_data_in_nodes(nodes)
+        data = self._test_data_in_nodes(nodes)
+        for metric in data:
+            if 'io' in metric:
+                self.assertTrue(data[metric][-1] == fields['.'.join(metric.split('.')[-2:])])
+            else:
+                self.assertTrue(_data[metric][-1] == fields[metric.split('.')[-1]])
 
     def test_multi_tag_values_multi_measurements(self):
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
