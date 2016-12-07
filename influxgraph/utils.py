@@ -196,7 +196,8 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
                 for field in point_fields:
                     try:
                         metric = [p for p in measurement_paths
-                                  if p.endswith(field)][0]
+                                  if field in path_measurements[measurement]['fields']
+                                  and field in p][0]
                         del measurement_paths[measurement_paths.index(metric)]
                     except IndexError:
                         continue

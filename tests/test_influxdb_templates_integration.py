@@ -153,7 +153,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_template_drop_path_part(self):
         del self.finder
-        # Filter out first part of metric, keep the remainder as
+        # Filter out first two parts of metric, keep the remainder as
         # measurement name
         template = "..measurement*"
         self.config['influxdb']['templates'] = [self.template,
@@ -415,16 +415,17 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         cpu_data = self._test_data_in_nodes(cpu_nodes)
         all_nodes = load_nodes + cpu_nodes + df_nodes
         data = self._test_data_in_nodes(all_nodes)
+        load_keys, df_keys = list(load_fields.keys()), list(df_fields.keys())
         for path in [n.path for n in all_nodes]:
-            if path.endswith(load_fields.keys()[0]) \
-              or path.endswith(load_fields.keys()[1]) \
-              or path.endswith(load_fields.keys()[2]):
+            if path.endswith([0]) \
+              or path.endswith(load_keys[1]) \
+              or path.endswith(load_keys[2]):
                 self.assertTrue(data[path][-1] == load_fields[path.split('.')[-1]])
             elif path.endswith(cpu_tags['metric']):
                 self.assertTrue(data[path][-1] == cpu_fields['value'])
-            elif path.endswith(df_fields.keys()[0]) \
-              or path.endswith(df_fields.keys()[1]) \
-              or path.endswith(df_fields.keys()[2]):
+            elif path.endswith(df_keys[0]) \
+              or path.endswith(df_keys[1]) \
+              or path.endswith(df_keys[2]):
                 self.assertTrue(data[path][-1] == df_fields[path.split('.')[-1]])
         self.assertTrue(cpu_data[cpu_nodes[0].path][-1] == cpu_fields['value'])
         for path in [n.path for n in load_nodes]:
