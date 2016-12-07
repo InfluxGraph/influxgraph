@@ -417,7 +417,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         data = self._test_data_in_nodes(all_nodes)
         load_keys, df_keys = list(load_fields.keys()), list(df_fields.keys())
         for path in [n.path for n in all_nodes]:
-            if path.endswith([0]) \
+            if path.endswith(load_keys[0]) \
               or path.endswith(load_keys[1]) \
               or path.endswith(load_keys[2]):
                 self.assertTrue(data[path][-1] == load_fields[path.split('.')[-1]])
