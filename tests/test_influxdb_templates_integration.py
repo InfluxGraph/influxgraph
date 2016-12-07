@@ -273,6 +273,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         query = Query('%s.*' % (
             tags['host'],))
         nodes = list(self.finder.find_nodes(query))
+        # import ipdb; ipdb.set_trace()
         self.assertEqual(sorted([n.name for n in nodes]),
                          sorted(measurements + [tags['prefix']]))
         for measurement in measurements:
@@ -926,6 +927,23 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         cpu_nodes = list(self.finder.find_nodes(Query('my_env1.my_host1.*')))
         expected = measurements
         self.assertEqual([n.name for n in cpu_nodes], expected)
+
+    def test_field_non_suffix(self):
+        del self.finder
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        templates = ["host.field.measurement"]
+        self.config['influxdb']['templates'] = templates
+        measurements = ['cpu-0', 'cpu-1', 'cpu-3']
+        tags = {'host': 'my_host'}
+        for measurement in measurements:
+            self.write_data([measurement], tags, {'usage': self.randval()})
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        nodes = list(self.finder.find_nodes(Query('%s.*.*' % (tags['host'],))))
+        expected = ['.'.join([tags['host'], 'usage', m])
+                    for m in measurements]
+        # import ipdb; ipdb.set_trace()
+        self.assertEqual(sorted([n.path for n in nodes]), sorted(expected))
 
     def test_multi_tmpl_part_filter(self):
         del self.finder

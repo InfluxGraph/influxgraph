@@ -171,16 +171,18 @@ def get_series_with_tags(paths, all_fields, graphite_templates,
         # No template match
         return series
     if 'field' in template.values() or 'field*' in template.values():
-        _add_fields_to_paths(
-            all_fields[paths[0]], split_path, series, separator=separator)
+        _add_fields_to_split_path(
+            all_fields[paths[0]], split_path, template, series,
+            separator=separator)
     else:
-        series.append(split_path)
+        series.append([p[1] for p in heapsort(split_path)])
     return series
 
 def _split_series_with_tags(paths, graphite_templates):
     split_path, template = deque(), None
     tags_values = [p.split('=') for p in paths[1:]]
     for (_filter, template, _, separator) in graphite_templates:
+        # import ipdb; ipdb.set_trace()
         _make_path_from_template(
             split_path, paths[0], template, tags_values, separator=separator)
         # Split path should be at least as large as number of wanted
@@ -190,12 +192,15 @@ def _split_series_with_tags(paths, graphite_templates):
                           if v and 'field' in v])
         if (len(split_path) + field_inds) >= len(
                 [k for k, v in template.items() if v]):
-            path = [p[1] for p in heapsort(split_path)]
-            if _filter:
-                if _filter.match_split_path(path):
-                    return path, template
-            else:
-                return path, template
+            return split_path, template
+            # import ipdb; ipdb.set_trace()
+            # self._add_fields_to_paths()
+            # path = [p[1] for p in heapsort(split_path)]
+            # if _filter:
+            #     if _filter.match_split_path(path):
+            #         return path, template
+            # else:
+            #     return path, template
             split_path = []
             continue
         # Reset path if template does not match
@@ -221,8 +226,21 @@ def _make_path_from_template(split_path, measurement, template, tags_values,
                 measurement_found = True
                 split_path.append((i, measurement))
 
-def _add_fields_to_paths(fields, split_path, series,
+def _add_fields_to_split_path(fields, split_path, template, series,
                          separator='.'):
+    # import ipdb; ipdb.set_trace()
+    # Non greedy field that may not be suffix or multiple fields
+    field_keys_ind = 0
+    for (field_ind, _) in [(k, v) for (k, v) in template.items()
+                           if v == 'field']:
+        split_path.append((field_ind, fields[field_keys_ind]))
+        field_keys_ind += 1
+    if field_keys_ind > 0:
+        path = [p[1] for p in heapsort(split_path)]
+        series.append(path)
+        return
+    # Fields are either suffixes or single greedy field suffix
+    split_path = [p[1] for p in heapsort(split_path)]
     for field_key in fields:
         field_keys = [f for f in field_key.split(separator)
                       if f != 'value']
