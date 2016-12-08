@@ -440,52 +440,81 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                      "*.interface.* host.measurement.device.metric",
                      ]
         mem_measurement = 'memory'
-        mem_tags = {'host': 'my_host',
-                'metric': 'mem_metric',
-                }
-        fields = {'value': 1,
-                  }
-        self.write_data([mem_measurement], mem_tags, fields)
+        mem_tags_mem_metric = {'host': 'my_host',
+                               'metric': 'mem_metric',
+                               }
+        mem_tags_free_metric = mem_tags_mem_metric.copy()
+        mem_tags_free_metric['metric'] = 'free'
+        mem_fields_mem_metric = {'value': self.randval(),}
+        mem_fields_free_metric = {'value': self.randval(),}
+        self.write_data([mem_measurement], mem_tags_mem_metric, mem_fields_mem_metric)
+        self.write_data([mem_measurement], mem_tags_free_metric, mem_fields_free_metric)
         int_measurement = 'interface'
-        int_tags = {'host': 'my_host',
-                    'device': 'dev',
-                    'metric': 'int_metric',
-                    }
-        fields = {'value': 1,
-                  }
-        self.write_data([int_measurement], int_tags, fields)
+        int_tags_int_metric = {'host': 'my_host',
+                               'device': 'dev',
+                               'metric': 'int_metric',
+                               }
+        int_tags_bytes_metric = int_tags_int_metric.copy()
+        int_tags_bytes_metric['metric'] = 'bytes'
+        int_fields_int_metric = {'value': self.randval(),}
+        int_fields_bytes_metric = {'value': self.randval(),}
+        self.write_data([int_measurement], int_tags_int_metric, int_fields_int_metric)
+        self.write_data([int_measurement], int_tags_bytes_metric, int_fields_bytes_metric)
         self.config['influxdb']['templates'] = templates
         self.finder = influxgraph.InfluxDBFinder(self.config)
         ##
         query = Query('%s.%s.*' % (
-            mem_tags['host'], mem_measurement,))
-        nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in nodes]), [mem_tags['metric']])
-        time_info, data = self.finder.fetch_multi(
-            nodes, int(self.start_time.strftime("%s")),
-            int(self.end_time.strftime("%s")))
-        datapoints = [v for v in data[nodes[0].path] if v]
-        self.assertTrue(len(datapoints) == self.num_datapoints,
-                        msg="Expected %s datapoints for %s - got %s" % (
-                            self.num_datapoints, nodes[0].path, len(datapoints),))
+            mem_tags_mem_metric['host'], mem_measurement,))
+        mem_nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in mem_nodes]),
+                         sorted([mem_tags_mem_metric['metric'],
+                                 mem_tags_free_metric['metric']]))
+        mem_data = self._test_data_in_nodes(mem_nodes)
         ##
         query = Query('%s.%s.*' % (
-            int_tags['host'], int_measurement,))
-        nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in nodes]), [int_tags['device']])
+            int_tags_bytes_metric['host'], int_measurement,))
+        int_branch_nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in int_branch_nodes]),
+                         [int_tags_bytes_metric['device']])
         time_info, data = self.finder.fetch_multi(
-            nodes, int(self.start_time.strftime("%s")),
+            int_branch_nodes, int(self.start_time.strftime("%s")),
             int(self.end_time.strftime("%s")))
-        for metric in [n.path for n in nodes]:
+        for metric in [n.path for n in int_branch_nodes]:
             self.assertTrue(len(data[metric]) == 0)
         query = Query('%s.%s.*.*' % (
-            int_tags['host'], int_measurement,))
-        nodes = list(self.finder.find_nodes(query))
-        self.assertEqual(sorted([n.name for n in nodes]), [int_tags['metric']])
-        time_info, data = self.finder.fetch_multi(
-            nodes, int(self.start_time.strftime("%s")),
-            int(self.end_time.strftime("%s")))
-        self._test_data_in_nodes(nodes)
+            int_tags_bytes_metric['host'], int_measurement,))
+        int_nodes = list(self.finder.find_nodes(query))
+        self.assertEqual(sorted([n.name for n in int_nodes]),
+                         sorted([int_tags_int_metric['metric'],
+                                 int_tags_bytes_metric['metric']]))
+        int_data = self._test_data_in_nodes(int_nodes)
+        for int_node in int_nodes:
+            if int_node.path.endswith(int_tags_int_metric['metric']):
+                self.assertTrue(int_data[int_node.path][-1] == int_fields_int_metric['value'])
+            elif int_node.path.endswith(int_tags_bytes_metric['metric']):
+                self.assertTrue(int_data[int_node.path][-1] == int_fields_bytes_metric['value'])
+        del int_node
+        for mem_node in mem_nodes:
+            if mem_node.path.endswith(mem_tags_mem_metric['metric']):
+                self.assertTrue(mem_data[mem_node.path][-1] == mem_fields_mem_metric['value'])
+            elif mem_node.path.endswith(mem_tags_free_metric['metric']):
+                self.assertTrue(mem_data[mem_node.path][-1] == mem_fields_free_metric['value'])
+        del mem_node
+        all_nodes = mem_nodes + int_nodes
+        all_data = self._test_data_in_nodes(all_nodes)
+        mem_node_paths = [n.path for n in mem_nodes]
+        int_node_paths  = [n.path for n in int_nodes]
+        for path in [n.path for n in all_nodes]:
+            if path in mem_node_paths:
+                if path.endswith(mem_tags_mem_metric['metric']):
+                    self.assertTrue(all_data[path][-1] == mem_fields_mem_metric['value'])
+                elif path.endswith(mem_tags_free_metric['metric']):
+                    self.assertTrue(all_data[path][-1] == mem_fields_free_metric['value'])
+            elif path in int_node_paths:
+                if path.endswith(int_tags_int_metric['metric']):
+                    self.assertTrue(all_data[path][-1] == int_fields_int_metric['value'])
+                elif path.endswith(int_tags_bytes_metric['metric']):
+                    self.assertTrue(all_data[path][-1] == int_fields_bytes_metric['value'])
 
     def test_template_multiple_tags(self):
         self.client.drop_database(self.db_name)

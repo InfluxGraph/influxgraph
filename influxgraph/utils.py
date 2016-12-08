@@ -157,6 +157,32 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
+def _retrieve_named_field_data(infl_data, path_measurements, measurement, _data):
+    measurement_paths = path_measurements[measurement]['paths'][:]
+    points = list(infl_data.get_points(measurement))
+    for columns in points:
+        point_fields = columns.keys()
+        for field in point_fields:
+            try:
+                metric = [p for p in measurement_paths
+                          if field in path_measurements[measurement]['fields']
+                          and field in p][0]
+                del measurement_paths[measurement_paths.index(metric)]
+            except IndexError:
+                continue
+            _data[metric] = [d[field]
+                             for d in points]
+
+def _retrieve_field_data(infl_data, path_measurements, measurement,
+                         metric, _data):
+    # Retrieve value field data
+    if 'value' in  path_measurements[measurement]['fields']:
+        _data[metric] = [d['value']
+                         for d in infl_data.get_points(measurement)]
+    # Retrieve non value named field data
+    _retrieve_named_field_data(infl_data, path_measurements,
+                                measurement, _data)
+
 def read_influxdb_values(influxdb_data, paths, path_measurements):
     """Return key -> values dict for values from InfluxDB data"""
     _data = {}
@@ -184,25 +210,8 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
             m_path_ind += 1
             if metric not in paths:
                 continue
-            for field in [f for f in path_measurements[measurement]['fields']
-                          if f == 'value']:
-                _data[metric] = [d[field]
-                                 for d in infl_data.get_points(measurement)]
-                continue
-            measurement_paths = path_measurements[measurement]['paths'][:]
-            points = list(infl_data.get_points(measurement))
-            for columns in points:
-                point_fields = columns.keys()
-                for field in point_fields:
-                    try:
-                        metric = [p for p in measurement_paths
-                                  if field in path_measurements[measurement]['fields']
-                                  and field in p][0]
-                        del measurement_paths[measurement_paths.index(metric)]
-                    except IndexError:
-                        continue
-                    _data[metric] = [d[field]
-                                     for d in points]
+            _retrieve_field_data(infl_data, path_measurements,
+                                 measurement, metric, _data)
     return _data
 
 def gen_memcache_pattern_key(pattern):
