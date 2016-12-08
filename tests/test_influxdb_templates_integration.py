@@ -772,30 +772,25 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        # expected = [self.metric_prefix]
         expected = sorted(self.measurements)
         self.assertEqual(nodes, expected,
                          msg="Expected only measurements in index with "
                          "no templates configured, got %s" % (nodes,))
-        # query = Query('%s.*' % (self.metric_prefix,))
-        # nodes = sorted([n.name for n in self.finder.find_nodes(query)])
-        # expected = [self.tags[self.paths[0]]]
-        # self.assertEqual(nodes, expected)
 
     def test_tagged_data_multi_greedy_field(self):
         del self.finder
         measurements = ['cpu']
-        fields = {'cpu0.load': 1, 'cpu0.idle': 1,
-                  'cpu0.usage': 1, 'cpu0.user': 1,
-                  'cpu1.load': 1, 'cpu1.idle': 1,
-                  'cpu1.usage': 1, 'cpu1.user': 1,
-                  'cpu2.load': 1, 'cpu2.idle': 1,
-                  'cpu2.usage': 1, 'cpu2.user': 1,
-                  'cpu3.load': 1, 'cpu3.idle': 1,
-                  'cpu4.usage': 1, 'cpu3.user': 1,
-                  'total.load': 4, 'total.idle': 4,
-                  'total.usage': 4, 'total.user': 4,
-                  'cpu_number': 4, 'wio': 1,
+        fields = {'cpu0.load': self.randval(), 'cpu0.idle': self.randval(),
+                  'cpu0.usage': self.randval(), 'cpu0.user': self.randval(),
+                  'cpu1.load': self.randval(), 'cpu1.idle': self.randval(),
+                  'cpu1.usage': self.randval(), 'cpu1.user': self.randval(),
+                  'cpu2.load': self.randval(), 'cpu2.idle': self.randval(),
+                  'cpu2.usage': self.randval(), 'cpu2.user': self.randval(),
+                  'cpu3.load': self.randval(), 'cpu3.idle': self.randval(),
+                  'cpu4.usage': self.randval(), 'cpu3.user': self.randval(),
+                  'total.load': self.randval(), 'total.idle': self.randval(),
+                  'total.usage': self.randval(), 'total.user': self.randval(),
+                  'cpu_number': self.randval(), 'wio': self.randval(),
         }
         tags = {'host': 'my_host1',
                 'env': 'my_env1',
@@ -830,16 +825,17 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         nodes = sorted(dict.fromkeys([n.name for n in self.finder.find_nodes(Query('*.*.*.*'))]).keys())
         expected = sorted(['cpu0', 'cpu1', 'cpu2', 'cpu3', 'cpu4', 'total', 'wio', 'cpu_number'])
         self.assertEqual(nodes, expected)
-        nodes = list(self.finder.find_nodes(Query('*.*.*.cpu0.*')))
-        node_names = sorted(dict.fromkeys([n.name for n in nodes]).keys())
+        cpu_nodes = list(self.finder.find_nodes(Query('*.*.*.*.*')))
+        node_names = sorted(dict.fromkeys([n.name for n in cpu_nodes]).keys())
         expected = sorted(['load', 'usage', 'idle', 'user'])
         self.assertEqual(node_names, expected)
-        _, data = self.finder.fetch_multi(nodes, int(self.start_time.strftime("%s")),
+        _, data = self.finder.fetch_multi(cpu_nodes, int(self.start_time.strftime("%s")),
                                           int(self.end_time.strftime("%s")))
-        metrics = [n.path for n in nodes]
+        metrics = [n.path for n in cpu_nodes]
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints)
+            self.assertTrue(datapoints[-1] == fields['.'.join(metric.split('.')[-2:])])
         ##
         template = "env.host.measurement.field"
         self.config['influxdb']['templates'] = [template]
@@ -857,6 +853,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
             self.assertTrue(len(datapoints) == self.num_datapoints)
+            self.assertTrue(datapoints[-1] == fields[metric.split('.')[-1]])
         for metric in bad_metrics:
             datapoints = [v for v in data[metric] if v] if metric in data else []
             self.assertTrue(len(datapoints) == 0)
