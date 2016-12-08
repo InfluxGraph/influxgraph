@@ -179,7 +179,7 @@ def _retrieve_field_data(infl_data, path_measurements, measurement,
     if 'value' in  path_measurements[measurement]['fields']:
         _data[metric] = [d['value']
                          for d in infl_data.get_points(measurement)]
-    # Retrieve non value named field data
+    # Retrieve non value named field data with fields from path_measurements
     _retrieve_named_field_data(infl_data, path_measurements,
                                 measurement, _data)
 
@@ -190,18 +190,14 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
         influxdb_data = [influxdb_data]
     m_path_ind = 0
     seen_measurements = ()
-    for path_ind, infl_data in enumerate(influxdb_data):
-        # Where multiple measurements are queried we have multiple keys
-        # per result set - path index should be result set index
-        # plus measurement key index within result set
-        # unless we have a path_measurements index from template
-        # configuration
-        for key_ind, infl_keys in enumerate(infl_data.keys()):
+    for infl_data in influxdb_data:
+        for infl_keys in infl_data.keys():
             measurement = infl_keys[0]
             if not path_measurements:
-                metric = paths[path_ind + key_ind]
-                _data[metric] = [d['value']
-                                 for d in infl_data.get_points(measurement)]
+                if not measurement in paths:
+                    continue
+                _data[measurement] = [d['value']
+                                      for d in infl_data.get_points(measurement)]
                 continue
             if measurement not in seen_measurements:
                 seen_measurements = set(tuple(seen_measurements) + (measurement,))

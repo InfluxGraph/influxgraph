@@ -7,6 +7,7 @@ import datetime
 import time
 import json
 from gzip import GzipFile
+from random import randint
 
 from influxdb import InfluxDBClient
 import influxdb.exceptions
@@ -34,10 +35,10 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             "tags": {},
             "time": _time,
             "fields": {
-                "value": 1,
+                "value": self.series_values[i],
                 }
             }
-            for series in self.series
+            for i, series in enumerate(self.series)
             for _time in [
                 (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -72,6 +73,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                        'integration_test.agg_path.last',
                        'integration_test.agg_path.sum',
                        ]
+        self.series_values = [randint(1,100) for _ in self.series]
         self.setup_db()
         self.finder = influxgraph.InfluxDBFinder(self.config)
 
@@ -107,6 +109,19 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(len(data[self.series1]) == 3601,
                         msg="Expected exactly %s data points - got %s instead" % (
                             3601, len(data[self.series1])))
+
+    def test_multi_series_data(self):
+        reader = influxgraph.InfluxDBReader(InfluxDBClient(
+            database=self.db_name), '', influxgraph.utils.NullStatsd())
+        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(path, reader)
+                 for path in self.series]
+        _, data = self.finder.fetch_multi(nodes,
+                                          int(self.start_time.strftime("%s")),
+                                          int(self.end_time.strftime("%s")))
+        self.assertEqual(len(data), len(self.series))
+        for i, node in enumerate(nodes):
+            self.assertTrue(node.path in data)
+            self.assertTrue(data[node.path][-1] == self.series_values[i])
 
     def test_find_branch(self):
         """Test getting branch of metric path"""
@@ -170,7 +185,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, nodes))
-    
+
     def test_find_series_glob_expansion(self):
         """Test finding metric prefix by glob expansion"""
         query = Query('{%s}' % (self.metric_prefix))
@@ -286,6 +301,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(len(datapoints) == self.num_datapoints,
                         msg="Expected %s datapoints - got %s" % (
                             self.num_datapoints, len(datapoints),))
+        self.assertTrue(datapoints[-1] == self.series_values[0])
 
     def test_single_fetch_data(self):
         """Test single fetch data for a series by name"""
@@ -337,7 +353,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                           int(self.end_time.strftime("%s")),
                          self.step),
                          msg="Time info and step do not match our requested values")
-        for series in [self.series1, self.series2]:
+        for i, series in enumerate([self.series1, self.series2]):
             self.assertTrue(self.steps == len(data[series]),
                             msg="Expected %s datapoints, got %s instead" % (
                                 self.steps, len(data[series]),))
@@ -345,6 +361,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             self.assertTrue(len(datapoints) == self.num_datapoints,
                             msg="Expected %s datapoints for series %s - got %s" % (
                                 self.num_datapoints, series, len(datapoints),))
+            self.assertTrue(datapoints[-1] == self.series_values[i])
 
     def test_get_non_existant_series(self):
         """Test single fetch data for a series by name"""
@@ -395,7 +412,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(nodes[0].path in data,
                         msg="Did not get data for requested series %s - got data for %s" % (
                             nodes[0].path, data.keys(),))
-        for suffix in ['min', 'max', 'last', 'sum']:
+        for i, suffix in enumerate(['min', 'max', 'last', 'sum']):
             series = self.metric_prefix + ".agg_path.%s" % (suffix,)
             nodes = list(self.finder.find_nodes(Query(series)))
             time_info, data = self.finder.fetch_multi(nodes,
@@ -404,6 +421,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             self.assertTrue(series in data,
                             msg="Did not get data for requested series %s - got data for %s" % (
                                 series, data.keys(),))
+            self.assertTrue(data[series][-1] == self.series_values[i-4])
 
     def test_memcache_configuration_off_by_default(self):
         self.assertFalse(self.finder.memcache)
