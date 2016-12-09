@@ -587,7 +587,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         metrics = ['.'.join([tags['host'], m, f])
-                   for f in fields.keys()
+                   for f in list(fields.keys())
                    for m in measurements]
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
@@ -599,7 +599,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         nodes = list(self.finder.find_nodes(query))
         node_paths = sorted([n.path for n in nodes])
         _metrics = ['.'.join([tags['host'], m, f])
-                    for f in fields.keys() if not '.' in f
+                    for f in list(fields.keys()) if not '.' in f
                     for m in measurements ]
         expected = sorted(_metrics)
         self.assertEqual(node_paths, expected,
@@ -645,6 +645,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))
         cpu_leaf_nodes = [m for m in cpu_metrics if not m.endswith('io')]
+        # TODO - use check function and check data values
         for metric in cpu_leaf_nodes:
             self.assertTrue(metric in data,
                             msg="Did not get data for requested series %s - got data for %s" % (
@@ -691,11 +692,11 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                       }
         cpu_metrics = ['.'.join([tags_host1['env'], h, measurements[0], f])
                    for h in [tags_host1['host'], tags_host2['host']]
-                   for f in host_cpu_fields[0].keys()
+                   for f in list(host_cpu_fields[0].keys())
                    ]
         io_metrics = ['.'.join([tags_host1['env'], h, measurements[1], f])
                         for h in [tags_host1['host'], tags_host2['host']]
-                        for f in host_io_fields[0].keys()
+                        for f in list(host_io_fields[0].keys())
                         ]
         metrics = cpu_metrics + io_metrics
         self.client.drop_database(self.db_name)
@@ -712,10 +713,10 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         data = self._test_data_in_nodes(nodes)
         for metric in data:
             if 'cpu' in metric:
-                field = [f for f in host_cpu_fields[0].keys() if metric.endswith(f)][0]
+                field = [f for f in list(host_cpu_fields[0].keys()) if metric.endswith(f)][0]
                 host_fields = host_cpu_fields
             elif 'io' in metric:
-                field = [f for f in host_io_fields[0].keys() if metric.endswith(f)][0]
+                field = [f for f in list(host_io_fields[0].keys()) if metric.endswith(f)][0]
                 host_fields = host_io_fields
             fields = host_fields[0] if tags_host1['host'] in metric \
               else host_fields[1] if tags_host2['host'] in metric \
@@ -760,7 +761,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                                     tags_env2_h1, tags_env2_h2]])
         _metrics = ['.'.join([t, m, f])
                     for t in tag_values
-                    for f in env1_h1_fields.keys() if not '.' in f
+                    for f in list(env1_h1_fields.keys()) if not '.' in f
                     for m in measurements]
         expected = sorted(_metrics)
         self.assertEqual(node_paths, expected,

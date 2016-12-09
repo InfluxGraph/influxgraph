@@ -169,7 +169,7 @@ def _find_metric_name(measurement_paths, tag_sets, field, fields, path_measureme
 def _retrieve_named_field_data(infl_data, path_measurements, measurement, _data):
     measurement_paths = path_measurements[measurement]['paths'][:]
     tag_sets = path_measurements[measurement]['tags'][:]
-    field_keys = infl_data.get_points(measurement).next().keys()
+    field_keys = next(infl_data.get_points(measurement)).keys()
     point_fields = sorted([k for k in field_keys if k != 'time'])
     for field in point_fields:
         metric = _find_metric_name(
