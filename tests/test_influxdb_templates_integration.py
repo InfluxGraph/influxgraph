@@ -724,35 +724,31 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_multi_tag_values_multi_measurements(self):
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
-        fields = {'load': 1, 'idle': 1,
-                  'usage': 1, 'user': 1,
-        }
-        tags = {'host': 'my_host1',
-                'env': 'my_env1',
-                }
-        data = [{
-            "measurement": measurement,
-            "tags": tags,
-            "time": _time,
-            "fields": fields,
-            }
-            for measurement in measurements
-            for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        metrics = ['.'.join([tags['host'], m, f])
-                   for f in fields.keys()
-                   for m in measurements]
+        fields = lambda: {'load': self.randval(), 'idle': self.randval(),
+                          'usage': self.randval(), 'user': self.randval(),
+                          }
+        env1_h1_fields, env1_h2_fields = fields(), fields()
+        tags_env1_h1 = {'host': 'my_host1',
+                        'env': 'my_env1',
+                        }
+        tags_env1_h2 = {'host': 'my_host2',
+                        'env': 'my_env1',
+                        }
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
-        self.assertTrue(self.client.write_points(data))
-        tags_env2 = {'host': 'my_host1',
-                     'env': 'my_env2',
-                     }
-        for d in data:
-            d['tags'] = tags_env2
-        self.assertTrue(self.client.write_points(data))
+        for tags_env1, env1_fields in [(tags_env1_h1, env1_h1_fields),
+                                       (tags_env1_h2, env1_h2_fields)]:
+            self.write_data(measurements, tags_env1, env1_fields)
+        tags_env2_h1 = {'host': 'my_host1',
+                        'env': 'my_env2',
+                        }
+        tags_env2_h2 = {'host': 'my_host2',
+                        'env': 'my_env2',
+                        }
+        env2_h1_fields, env2_h2_fields = fields(), fields()
+        for tags_env2, env2_fields in [(tags_env2_h1, env2_h1_fields),
+                                       (tags_env2_h2, env2_h2_fields)]:
+            self.write_data(measurements, tags_env2, env2_fields)
         template = "env.host.measurement.field*"
         self.config['influxdb']['templates'] = [template]
         self.finder = influxgraph.InfluxDBFinder(self.config)
@@ -760,23 +756,28 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         nodes = list(self.finder.find_nodes(query))
         node_paths = sorted([n.path for n in nodes])
         tag_values = set(['.'.join([t['env'], t['host']])
-                          for t in [tags, tags_env2]])
+                          for t in [tags_env1_h1, tags_env1_h2,
+                                    tags_env2_h1, tags_env2_h2]])
         _metrics = ['.'.join([t, m, f])
                     for t in tag_values
-                    for f in fields.keys() if not '.' in f
+                    for f in env1_h1_fields.keys() if not '.' in f
                     for m in measurements]
         expected = sorted(_metrics)
         self.assertEqual(node_paths, expected,
                          msg="Expected %s nodes - got %s" % (
                              len(expected), len(node_paths)))
-        _, multi_tag_data = self.finder.fetch_multi(nodes,
-                                          int(self.start_time.strftime("%s")),
-                                          int(self.end_time.strftime("%s")))
-        for metric in _metrics:
-            datapoints = [v for v in multi_tag_data[metric] if v]
-            self.assertTrue(len(datapoints) == self.num_datapoints,
-                            msg="Expected %s datapoints for %s - got %s" % (
-                                self.num_datapoints, metric, len(datapoints),))
+        data = self._test_data_in_nodes(nodes)
+        for metric in data:
+            if tags_env1_h1['env'] in metric and tags_env1_h1['host'] in metric:
+                fields = env1_h1_fields
+            elif tags_env1_h2['env'] in metric and tags_env1_h2['host'] in metric:
+                fields = env1_h2_fields
+            elif tags_env2_h1['env'] in metric and tags_env2_h1['host'] in metric:
+                fields = env2_h1_fields
+            elif tags_env2_h2['env'] in metric and tags_env2_h2['host'] in metric:
+                fields = env2_h2_fields
+            field = [f for f in list(fields.keys()) if metric.endswith(f)][0]
+            self.assertTrue(data[metric][-1] == fields[field])
 
     def test_field_data_part_or_no_template_match(self):
         del self.finder

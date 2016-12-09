@@ -202,6 +202,8 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
             if measurement not in seen_measurements:
                 seen_measurements = set(tuple(seen_measurements) + (measurement,))
                 m_path_ind = 0
+            elif m_path_ind >= len(path_measurements[measurement]['paths']):
+                m_path_ind = 0
             metric = path_measurements[measurement]['paths'][m_path_ind]
             m_path_ind += 1
             if metric not in paths:
