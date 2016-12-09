@@ -377,6 +377,8 @@ class InfluxDBFinder(object):
                 path_measurements.setdefault(measurement, {}).setdefault('paths', []).append(path)
                 if not field in path_measurements[measurement].setdefault('fields', []):
                     path_measurements[measurement].setdefault('fields', []).append(field)
+                if _tags:
+                    path_measurements[measurement]['tags'] = list(itertools.product(*_tags.values()))
             if _measurements:
                 # Found template match for path, add query data and
                 # remove matched paths so we do not try to match them again

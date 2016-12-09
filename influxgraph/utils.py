@@ -157,20 +157,28 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
+def _find_metric_name(measurement_paths, tag_sets, field, fields, path_measurements):
+    for tag_set in tag_sets:
+        for path in measurement_paths:
+            if field in fields \
+            and field in path \
+            and len([t for t in tag_set if t in path]) == len(tag_set):
+                del measurement_paths[measurement_paths.index(path)]
+                return path
+
 def _retrieve_named_field_data(infl_data, path_measurements, measurement, _data):
     measurement_paths = path_measurements[measurement]['paths'][:]
+    tag_sets = path_measurements[measurement]['tags'][:]
     field_keys = infl_data.get_points(measurement).next().keys()
     point_fields = sorted([k for k in field_keys if k != 'time'])
     for field in point_fields:
-        try:
-            metric = [p for p in measurement_paths
-                        if field in path_measurements[measurement]['fields']
-                        and field in p][0]
-            del measurement_paths[measurement_paths.index(metric)]
-        except IndexError:
+        metric = _find_metric_name(
+            measurement_paths, tag_sets, field,
+            path_measurements[measurement]['fields'], path_measurements)
+        if not metric:
             continue
         _data[metric] = [d[field]
-                        for d in infl_data.get_points(measurement)]
+                         for d in infl_data.get_points(measurement)]
     path_measurements[measurement]['paths'] = measurement_paths
 
 def _retrieve_field_data(infl_data, path_measurements, measurement,
