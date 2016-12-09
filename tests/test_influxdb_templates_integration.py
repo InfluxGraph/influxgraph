@@ -672,37 +672,51 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             else:
                 self.assertTrue(_data[metric][-1] == fields[metric.split('.')[-1]])
 
-    def test_multi_tag_values_single_measurement(self):
+    def test_multi_tag_values_multi_measurement_single_field(self):
         template = "env.host.measurement.field*"
-        measurements = ['cpu']
-        fields = lambda: {'cpu-0.usage': self.randval(), 'cpu-1.usage': self.randval(),
-                          'cpu-2.usage': self.randval(), 'cpu-3.usage': self.randval(),
-                          }
-        host_fields = [fields(), fields()]
+        measurements = ['cpu', 'io']
+        cpu_fields = lambda: {'cpu-0.usage': self.randval(), 'cpu-1.usage': self.randval(),
+                              'cpu-2.usage': self.randval(), 'cpu-3.usage': self.randval(),
+                              }
+        io_fields = lambda: {'disk.iops': self.randval(),
+                             'disk.writes': self.randval(),
+                             'disk.reads': self.randval(),}
+        host_cpu_fields = [cpu_fields(), cpu_fields()]
+        host_io_fields = [io_fields(), io_fields()]
         tags_host1 = {'host': 'my_host1',
                       'env': 'my_env1',
                       }
         tags_host2 = {'host': 'my_host2',
                       'env': 'my_env1',
                       }
-        metrics = ['.'.join([tags_host1['env'], h, m, f])
+        cpu_metrics = ['.'.join([tags_host1['env'], h, measurements[0], f])
                    for h in [tags_host1['host'], tags_host2['host']]
-                   for f in host_fields[0].keys()
-                   for m in measurements]
+                   for f in host_cpu_fields[0].keys()
+                   ]
+        io_metrics = ['.'.join([tags_host1['env'], h, measurements[1], f])
+                        for h in [tags_host1['host'], tags_host2['host']]
+                        for f in host_io_fields[0].keys()
+                        ]
+        metrics = cpu_metrics + io_metrics
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         for i, tags in enumerate([tags_host1, tags_host2]):
-            self.write_data(measurements, tags, host_fields[i])
+            self.write_data([measurements[0]], tags, host_cpu_fields[i])
+            self.write_data([measurements[1]], tags, host_io_fields[i])
         self.config['influxdb']['templates'] = [template]
         self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*.*.*.*.*')
         nodes = list(self.finder.find_nodes(query))
-        node_paths = sorted([n.path for n in nodes])
         expected = sorted(metrics)
-        self.assertEqual(node_paths, expected)
+        self.assertEqual(sorted([n.path for n in nodes]), sorted(expected))
         data = self._test_data_in_nodes(nodes)
         for metric in data:
-            field = [f for f in host_fields[0].keys() if metric.endswith(f)][0]
+            if 'cpu' in metric:
+                field = [f for f in host_cpu_fields[0].keys() if metric.endswith(f)][0]
+                host_fields = host_cpu_fields
+            elif 'io' in metric:
+                field = [f for f in host_io_fields[0].keys() if metric.endswith(f)][0]
+                host_fields = host_io_fields
             fields = host_fields[0] if tags_host1['host'] in metric \
               else host_fields[1] if tags_host2['host'] in metric \
               else None
