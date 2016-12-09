@@ -159,19 +159,19 @@ def get_aggregation_func(path, aggregation_functions):
 
 def _retrieve_named_field_data(infl_data, path_measurements, measurement, _data):
     measurement_paths = path_measurements[measurement]['paths'][:]
-    points = list(infl_data.get_points(measurement))
-    for columns in points:
-        point_fields = columns.keys()
-        for field in point_fields:
-            try:
-                metric = [p for p in measurement_paths
-                          if field in path_measurements[measurement]['fields']
-                          and field in p][0]
-                del measurement_paths[measurement_paths.index(metric)]
-            except IndexError:
-                continue
-            _data[metric] = [d[field]
-                             for d in points]
+    field_keys = infl_data.get_points(measurement).next().keys()
+    point_fields = sorted([k for k in field_keys if k != 'time'])
+    for field in point_fields:
+        try:
+            metric = [p for p in measurement_paths
+                        if field in path_measurements[measurement]['fields']
+                        and field in p][0]
+            del measurement_paths[measurement_paths.index(metric)]
+        except IndexError:
+            continue
+        _data[metric] = [d[field]
+                        for d in infl_data.get_points(measurement)]
+    path_measurements[measurement]['paths'] = measurement_paths
 
 def _retrieve_field_data(infl_data, path_measurements, measurement,
                          metric, _data):
