@@ -1,0 +1,194 @@
+finders:
+  - influxgraph.InfluxDBFinder
+influxdb:
+  #
+  ## InfluxDB configuration
+  # 
+  # Commented values denote default configuration. Uncomment to override
+  # 
+  # db: graphite
+  # host: localhost
+  # port: 8086
+  # user: root
+  # pass: root
+  
+  ## Logging configuration
+  # 
+  # Log to file (optional). Default is no finder specific logging.
+  log_file: /var/log/influxgraph/influxgraph.log
+  # Log file logging level (optional)
+  # Values are standard logging levels - `info`, `debug`, `warning`, `critical` et al
+  # Default is `info`
+  # log_level: info
+  
+  ## Graphite Template Configuration
+  # 
+  # (Optional) Graphite template configuration
+  # One template per line, syntax identical to InfluxDB Graphite input service template 
+  # configuration.
+  # See https://github.com/influxdata/influxdb/tree/master/services/graphite for template
+  # configuration documentation.
+  # 
+  # Note that care should be taken so that InfluxDB template configuration
+  # results in sane measurement and field names that do not override each other.
+  # 
+  # InfluxGraph will run multiple queries in the same statement where multiple
+  # tag values are requested for the same measurement and/or field(s).
+  # 
+  # For best InfluxDB performance and so that data can be queried correctly 
+  # by InfluxGraph, fewer measurements with multiple fields per 
+  # measurement are preferred.
+  # 
+  # NB - separator for templates is not configurable as of yet - '.' by default
+  # 
+  templates:
+    # 
+    # Template format: [filter] <template> [tag1=value1,tag2=value2]
+    # 
+    ##  Filter, template and extra static tags
+    # 
+    # For a metric path `production.my_host.cpu.cpu0.load` the following template will
+    # filter on metrics starting with `production`,
+    # use tags `environment`, `host` and `resource` with measurement name `cpu0.load`
+    # and extra static tags `region` and `agent` set to `us-east-1` and
+    # `sensu` respectively
+    - production.* environment.host.resource.measurement* region=us-east1,agent=sensu
+    
+    # 
+    ## Template only
+    # The following template does not use filter or extra tags.
+    # For a metric path `my_host.cpu.cpu0.load` it will use tags `host` and `resource` 
+    # with measurement name `cpu0.load`
+    - host.resource.measurement*
+    
+    # 
+    ## Template with tags after measurement
+    # For a metric path `load.my_host.cpu` the following template will use tags
+    # `host` and `resource` for measurement `load`
+    - measurement.host.resource
+    
+    #
+    ## Measurements with multiple fields
+    # 
+    # For metric paths `my_host.cpu-0.cpu-idle`, `my_host.cpu-0.cpu-user`,
+    # `my_host.cpu.total.load` et al, the following template will use tag
+    # `host` with measurement names `cpu-0` and `cpu` and fields
+    # `cpu-idle`, `cpu-user`, `total.load` et al
+    # 
+    - host.measurement.field*
+    
+    # NB - A catch-all template of `measurement*` _should only_ be used -
+    # if it is also used in InfluxDB template configuration _in addition_
+    # to other templates. If it is present by it self, it would have the
+    # same effect as if no templates are configured but will induce
+    # additional overhead for no reason.
+    # 
+    # Metric drop is a No-Op. Eg a template of `..measurement*` is for
+    # the finder equivalent to `measurement*`.
+    # The finder can only see data in the DB so if part of metric name
+    # is dropped and not inserted in DB, the finder will not ever see it
+    # 
+    ## Examples from InfluxDB Graphite service configuration
+    # 
+    ## filter + template
+    # - *.app env.service.resource.measurement
+    
+    ## filter + template + extra tag
+    # - stats.* .host.measurement* region=us-west,agent=sensu
+    
+    # filter + template with field key
+    # - stats.* .host.measurement.field*
+  
+  ## (Optional) Memcache integration
+  # 
+  memcache:
+    host: localhost
+    # TTL for /metrics/find endpoint only in seconds.
+    # Defaults to 900 - 15 minutes
+    # TTL for /render endpoint is dynamic and based on data interval.    
+    # Eg for a 24hr query which would dynamically get a 1min interval, the TTL    
+    # is 1min.
+    # ttl: 900
+    # Memcache (compressed) max value length in MB. The default of 1MB is
+    # the memcached server's default - this value should match server's value.
+    # max_value: 1
+  
+  ## (Optional) Aggregation function configuration
+  # 
+  # Syntax:
+  # <graphite metric path regex>: <InfluxDB aggregation function>
+  # See https://docs.influxdata.com/influxdb/v1.1/query_language/functions
+  aggregation_functions:
+    # The below four aggregation functions are the    
+    # defaults used if 'aggregation_functions'    
+    # configuration is not provided.    
+    # They will need to be re-added if configuration is provided
+    \.min$ : min
+    \.max$ : max
+    \.last$ : last
+    \.sum$ : sum
+  
+  # 
+  ## Deltas configuration
+  # 
+  # (Optional) Time intervals (deltas) to use for query time ranges
+  # Key is time range of query, value is time delta of query, both in seconds
+  # Eg to use a one second query interval for a query spanning
+  # one hour or less use `3600 : 1`
+  # Shown below is the default configuration, change/add/remove
+  # as necessary.
+  deltas:
+    # 1 hour -> 1s
+    # 3600 : 1
+    # 1 day -> 30s
+    # 86400 : 30
+    # 3 days -> 1min
+    259200 : 60
+    # 7 days -> 5min
+    604800 : 300
+    # 14 days -> 10min
+    1209600 : 600
+    # 28 days -> 15min
+    2419200 : 900
+    # 2 months -> 30min
+    4838400 : 1800
+    # 4 months -> 1hour
+    9676800 : 3600
+    # 12 months -> 3hours
+    31536000 : 7200
+    # 4 years -> 12hours
+    126144000 : 43200
+  
+  # 
+  ## Query Retention Policy configuration
+  # 
+  # (Optional) Retention policies to use for associated time intervals.
+  # 
+  # The DB configured default retention policy is used for all queries if no
+  # retention_policies configuration is provided.
+  # 
+  # Key is query group by time interval in seconds, value the retention policy
+  # name a query with the associated group by interval, or above up to next
+  # configured interval, should use.
+  # 
+  # The max configured interval is used for query group by intervals higher
+  # than the max and the min configured interval for query group by intervals
+  # lower than the minimum.
+  # 
+  # For best performance, retention policies should closely match time interval
+  # (deltas) configuration values. For example, where delta configuration makes
+  # queries ranging 28 days and below to use 15 min intervals, retention policies
+  # would ideally have configuration to use a retention policy for
+  # queries with an interval of 15 min or greater.
+  # 
+  # That said, there is no requirement that the settings be the same though 
+  # performance will suffer if InfluxDB has to aggregate over many data points
+  # on the fly for each query.
+  # 
+  # Eg to use a retention policy `30m` for intervals of thirty minutes and
+  # above, `10m` for queries with a time interval between thirty to ten minutes
+  # and `default` for intervals at or below five minutes:
+  retention_policies:
+    1800: 30m
+    600: 10m
+    300: default

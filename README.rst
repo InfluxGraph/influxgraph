@@ -38,7 +38,7 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
     finders:
       - influxgraph.InfluxDBFinder
 
-See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for additional examples.
+See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for details.
 
 .. contents:: Table of Contents
 
@@ -64,25 +64,35 @@ Main features
 * Configurable per-query retention policies by query date/time range. Automatically use pre-calculated downsampled data in a retention policy for historical data
 * In-memory index for Graphite metric path queries
 * Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
-* Multi-query support - runs multiple queries in one statement to InfluxDB for metrics in more than one series
 * Memcached integration
 * Python 3 and PyPy compatibility
-* Good performance even with very large number of measurements in the DB - generated queries are guaranteed to be have O(1) performance characteristics
+* Good performance even with extremely large number of metrics in the DB - generated queries are guaranteed to be have O(1) performance characteristics
+
+Google User's Group
+=====================
+
+There is a `Google user's group for discussion <https://groups.google.com/forum/#!forum/influxgraph>`_ which is open to the public.
 
 Goals
 ======
 
+* InfluxDB as a drop-in replacement data store to the Graphite query API
 * Backwards compatibility with existing Graphite API clients like Grafana and Graphite installations migrated to InfluxDB backends using Graphite input service *with or without* Graphite template configuration
-* Forwards compatibility with native InfluxDB API input data to be exposed via Graphite API
+* Expose native InfluxDB line protocol ingested data via the Graphite API
 * Clean, readable code with complete documentation for public endpoints
 * Complete code coverage with both unit and integration testing. Code has `>90%` test coverage and is integration tested against a real InfluxDB service
 
-The two top points provide both
+The two three points provide both
 
 - A backwards compatible migration path for existing Graphite installations to use InfluxDB as a drop-in storage back-end replacement with no API client side changes required, meaning existing Grafana or other dashboards continue to work as-is.
-- A way for native InfluxDB collection agents to expose their data via the *Graphite API* which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, multi-series plotting and function support et al.
+- A way for native InfluxDB collection agents to expose their data via the *Graphite API* which allows the use of any Graphite API talking tool, the plethora of Graphite API functions, custom functions, functions across series, multi-series plotting and functions via Graphite glob expressions et al.
 
 As of this time of writing, no alternatives exist with similar functionality and compatibility.
+
+Non-Goals
+==========
+
+* Graphite-Web support from the official Graphite project
 
 Dependencies
 =============
@@ -112,25 +122,27 @@ See `Telegraf default configuration template <https://github.com/InfluxGraph/inf
 By default, the storage plugin makes no assumptions that data is tagged, per InfluxDB default Graphite service template configuration as below::
   
   [[graphite]]
-    enabled = true
+    <..>
     # templates = []
 
 
 Retention policy configuration
 ==============================
 
-Pending implementation of a feature request that will allow InfluxDB to select and/or merge results from multiple retention policies as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies. ::
+Pending implementation of a feature request that will allow InfluxDB to select and/or merge results from down-sampled data as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies. ::
 
   retention_policies:
       <time interval of query>: <retention policy name>
 
-For example, to make a query with a time interval of ten and thirty minutes use the retention policies named `10min` and `30min` respectively::
+For example, to make a query with a group by interval of ten minutes or less and thirty minutes or above use the retention policies named `10min` and `30min` respectively::
 
   retention_policies:
       600: 10min
       1800: 30min
 
-While not required, retention policy time interval is best kept close to or identical to ``deltas`` interval.
+While not required, retention policy group by interval is best kept close to or identical to ``deltas`` interval.
+
+See `Full Configuration Example`_ file for additional details.
 
 Configuration
 =======================
@@ -152,185 +164,14 @@ The folowing default Graphite-API configuration is used if not provided::
 Full Configuration Example
 ---------------------------
 
-::
-
-    finders:
-      - influxgraph.InfluxDBFinder
-    influxdb:
-        ## InfluxDB configuration
-	# 
-        db: graphite
-        host: localhost # (optional)
-        port: 8086 # (optional)
-        user: root # (optional)
-        pass: root # (optional)
-	
-	## Logging configuration
-	# 
-        # Log to file (optional). Default is no finder specific logging.
-        log_file: /var/log/influxgraph/influxgraph_finder.log
-        # Log file logging level (optional)
-        # Values are standard logging levels - `info`, `debug`, `warning`, `critical` et al
-        # Default is `info`
-        log_level: info
-	
-	## Graphite Template Configuration
-	# 
-	# (Optional) Graphite template configuration
-	# One template per line, identical to InfluxDB Graphite input service template configuration
-	# See https://github.com/influxdata/influxdb/tree/master/services/graphite for template
-	# configuration documentation.
-	# 
-	# Note that care should be taken so that InfluxDB template configuration
-	# results in sane measurement and field names that do not override each other.
-	# 
-	# InfluxGraph will run multiple queries in the same statement where multiple
-	# tag values are requested for the same measurement and/or field(s).
-	# 
-	# For best InfluxDB performance and so that data can be queried correctly 
-	# by InfluxGraph, fewer measurements with multiple fields per 
-	# measurement are preferred.
-	# 
-	# NB - separator for templates is not configurable as of yet
-	# 
-	templates:
-	  # 
-	  # Template format: [filter] <template> [tag1=value1,tag2=value2]
-	  # 
-	  ##  Filter, template and extra static tags
-	  # 
-	  # For a metric path `production.my_host.cpu.cpu0.load` the following template will
-	  # filter on metrics starting with `production`,
-          # use tags `environment`, `host` and `resource` with measurement name `cpu0.load`
-	  # and extra static tags `region` and `agent` set to `us-east-1` and
-	  # `sensu` respectively
-          - production.* environment.host.resource.measurement* region=us-east1,agent=sensu
-	  
-	  # 
-	  ## Template only
-	  # The following template does not use filter or extra tags.
-          # For a metric path `my_host.cpu.cpu0.load` it will use tags `host` and `resource` 
-	  # with measurement name `cpu0.load`
-	  - host.resource.measurement*
-	  
-	  # 
-	  ## Template with tags after measurement
-	  # For a metric path `load.my_host.cpu` the following template will use tags
-	  # `host` and `resource` for measurement `load`
-	  - measurement.host.resource
-	  
-	  #
-	  ## Measurements with multiple fields
-	  # 
-	  # For metric paths `my_host.cpu-0.cpu-idle`, `my_host.cpu-0.cpu-user`,
-	  # `my_host.cpu.total.load` et al, the following template will use tag
-	  # `host` with measurement names `cpu-0` and `cpu` and fields
-	  # `cpu-idle`, `cpu-user`, `total.load` et al
-	  # 
-	  - host.measurement.field*
-	  
-	  # NB - A catch-all template of `measurement*` _should only_ be used -
-	  # if it is also used in InfluxDB template configuration in addition
-	  # to other templates. If it is present by it self, it would have the
-	  # same effect as if no templates are configured but will induce
-	  # additional overhead for no reason.
-	  # 
-	  # Metric drop is a No-Op. Eg a template of `..measurement*` is for
-	  # the finder equivalent to `measurement*`.
-	  # The finder can only see data in the DB so if part of metric name
-	  # is dropped and not inserted in DB, the finder will not ever see it
-	  # 
-	  ## Examples from InfluxDB Graphite service configuration
-	  # 
-          ## filter + template
-	  # - *.app env.service.resource.measurement
-	  
-	  ## filter + template + extra tag
-	  # - stats.* .host.measurement* region=us-west,agent=sensu
-	  
-	  # filter + template with field key
-	  # - stats.* .host.measurement.field*
-	
-        ## (Optional) Memcache integration
-	# 
-        memcache:
-          host: localhost
-	  # TTL for /metrics/find endpoint only.    
-	  # TTL for /render endpoint is dynamic and based on data interval.    
-	  # Eg for a 24hr query which would dynamically get a 1min interval, the TTL    
-	  # is 1min.    
-	  ttl: 900 # (optional)    
-	  max_value: 1 # (optional) Memcache (compressed) max value length in MB.    
-	
-	## (Optional) Aggregation function configuration
-	# 
-        aggregation_functions:    
- 	  # The below four aggregation functions are the    
-	  # defaults used if 'aggregation_functions'    
-	  # configuration is not provided.    
-	  # They will need to be re-added if configuration is provided
-	  \.min$ : min
-	  \.max$ : max
-	  \.last$ : last
-	  \.sum$ : sum
-          # (Optional) Time intervals to use for query time ranges
- 	  # Key is time range of query, value is time delta of query.
-	  # Eg to use a one second query interval for a query spanning
-	  # one hour or less use `3600 : 1`
-	  # Shown below is the default configuration, change/add/remove
-	  # as necessary.
-          deltas:
-            # 1 hour -> 1s
-            # 3600 : 1
-            # 1 day -> 30s
-            # 86400 : 30
-            # 3 days -> 1min
-            259200 : 60
-            # 7 days -> 5min
-            604800 : 300
-            # 14 days -> 10min
-            1209600 : 600
-            # 28 days -> 15min
-            2419200 : 900
-            # 2 months -> 30min
-            4838400 : 1800
-            # 4 months -> 1hour
-            9676800 : 3600
-            # 12 months -> 3hours
-            31536000 : 7200
-            # 4 years -> 12hours
-            126144000 : 43200
-	  
-	  ## Query Retention Policy configuration
-	  # 
- 	  # (Optional) Retention policies to use for associated time intervals.
- 	  # Key is query time interval in seconds, value the retention policy name a
-	  # query with the associated time interval, or above, should use.
-	  # 
-	  # For best performance, retention policies should closely match time interval
-	  # (delta) configuration values. For example, where delta configuration sets
-	  # queries 28days and below to use 15min intervals, retention policies would
-	  # have configuration to use an appropriate retention policy for queries with
-	  # 15min or above intervals.
-	  # 
-	  # That said, there is no requirement that the settings be the same.
-	  # 
-	  # Eg to use a retention policy called `30m` policy for intervals
-	  # of thirty minutes and above, `10m` for queries with a time
-	  # interval between thirty to ten minutes and `default` for intervals
-	  # between ten to five minutes:
-          retention_policies:
-	    1800: 30m
-	    600: 10m
-	    300: default
-
+See `Graphite-API example configuration file <https://github.com/InfluxGraph/influxgraph/blob/master/graphite-api.yaml.example>`_ for a complete configuration example.
 
 Aggregation function configuration
 -----------------------------------
 
 The graphite-influxdb finder supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
 
-Default aggregation function used is ``mean``.
+Default aggregation function used is ``mean`` if no configuration provided nor matching.
 
 Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
 
@@ -340,7 +181,7 @@ Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-ca
       \.last$ : last
       \.sum$ : sum
 
-Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown in configuration section.
+Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown in configuration example.
 
 An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
 
@@ -348,22 +189,23 @@ Known InfluxDB aggregation functions are defined at ``influxgraph.constants.INFL
 
 .. note::
 
-   Please note that when querying identical fields from multiple measurements InfluxDB allows only *one* aggregation function to be used for all identical fields in the query.
+   When querying identical fields from multiple measurements InfluxDB allows only *one* aggregation function to be used for all identical fields in the query.
    
-   In other words, make sure all identical InfluxDB fields matched by a Graphite query pattern, for example ``my_host.cpu.*`` have the same aggregation function configured.
+   In other words, make sure all identical InfluxDB fields matched by a Graphite query pattern, for example ``my_host.cpu.*.*`` have the same aggregation function configured.
 
-   When using neither tagged data nor template configuration, the InfluxDB field to be queried is always ``value``. This is the case where this limitation is most relevant.
+   When using neither tagged data nor template configuration, the InfluxDB field to be queried is always ``value``. This is the case where this limitation is (most) relevant.
 
-   ``InfluxGraph`` will use the first aggregation function configured and log a warning message to that effect if a wildcard query resolves to multiple aggregation functions.
+   ``InfluxGraph`` will use the first aggregation function configured and log a warning message to that effect if a pattern query resolves to multiple aggregation functions.
+
 
 Memcached InfluxDB
 ------------------------
 
-Memcached can be used to cache InfluxDB data so the `Graphite-API` webapp can avoid querying the DB if it does not have to.
+Memcached can be used to cache InfluxDB data so the `Graphite-API` can avoid querying the DB if it does not have to.
 
-TTL configuration for memcache shown above is only for `/metrics/find` endpoint with `/render` endpoint TTL being set to the data interval used.
+TTL configuration for memcache as shown in `Full Configuration Example`_ is only for `/metrics/find` endpoint with `/render` endpoint TTL being set to the group by interval used.
 
-For example, for a query spanning 24hrs, a data interval of 1 min is used by default. TTL for memcache is set to 1 min for that data.
+For example, for a query spanning 24hrs, a group by interval of 1 min is used by default. TTL for memcache is set to 1 min for that data.
 
 For a query spanning 1 month, a 15min interval is used by default. TTL is also set to 15min for that data.
 
@@ -373,12 +215,11 @@ Calculated intervals
 
 A data `group by` interval is automatically calculated depending on the date/time range of the query. This keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges.
 
-Default configuration mirrors what `Grafana`_ uses when talking directly to InfluxDB.
+Default configuration mirrors what `Grafana`_ uses with the native InfluxDB API.
 
-Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Full Configuration Example`_ section for all supported configuration options.
+Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Full Configuration Example`_ file for all supported configuration options.
 
-Users that wish to retrieve all data points regardless of date/time range are advised to query `InfluxDB`_ directly.
-
+Users that wish to retrieve all, non-aggregated, data points regardless of date/time range are advised to query `InfluxDB`_ directly.
 
 Varnish caching InfluxDB API
 ----------------------------
@@ -407,7 +248,6 @@ Graphite API example configuration ::
   finders:
     - influxgraph.InfluxDBFinder
   influxdb:
-    db: graphite
     port: <varnish port>
 
 Where ``<varnish_port>`` is Varnish's listening port.
