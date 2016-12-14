@@ -157,7 +157,7 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
-def _find_metric_name(measurement_paths, tag_sets, field, fields, path_measurements):
+def _find_metric_name(measurement_paths, tag_sets, field, fields):
     for tag_set in tag_sets:
         for path in measurement_paths:
             if field in fields \
@@ -174,7 +174,7 @@ def _retrieve_named_field_data(infl_data, path_measurements, measurement, _data)
     for field in point_fields:
         metric = _find_metric_name(
             measurement_paths, tag_sets, field,
-            path_measurements[measurement]['fields'], path_measurements)
+            path_measurements[measurement]['fields'])
         if not metric:
             continue
         _data[metric] = [d[field]
@@ -197,7 +197,7 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
     if not isinstance(influxdb_data, list):
         influxdb_data = [influxdb_data]
     m_path_ind = 0
-    seen_measurements = ()
+    seen_measurements = set()
     for infl_data in influxdb_data:
         for infl_keys in infl_data.keys():
             measurement = infl_keys[0]

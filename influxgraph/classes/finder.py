@@ -224,12 +224,7 @@ class InfluxDBFinder(object):
         _query = "SHOW SERIES LIMIT %s OFFSET %s" % (limit, offset,)
         logger.debug("Series loader calling influxdb with query - %s", _query)
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        # >= 0.11 show series API
-        if data.keys() and 'results' in data.keys()[0]:
-            series = [d.get('key') for k in data for d in k
-                      if d]
-        else:
-            series = [key_name for (key_name, _) in data.keys()]
+        series = [d.get('key') for k in data for d in k if d]
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
@@ -369,11 +364,14 @@ class InfluxDBFinder(object):
                 if not field in _fields:
                     _fields.append(field)
                 matched_paths.append(path)
-                path_measurements.setdefault(measurement, {}).setdefault('paths', []).append(path)
-                if not field in path_measurements[measurement].setdefault('fields', []):
-                    path_measurements[measurement].setdefault('fields', []).append(field)
-                if _tags:
-                    path_measurements[measurement]['tags'] = list(itertools.product(*_tags.values()))
+                path_measurements.setdefault(measurement, {}).setdefault(
+                    'paths', []).append(path)
+                if not field in path_measurements[measurement].setdefault(
+                        'fields', []):
+                    path_measurements[measurement].setdefault(
+                        'fields', []).append(field)
+                path_measurements[measurement]['tags'] = list(
+                    itertools.product(*_tags.values()))
             if _measurements:
                 # Found template match for path, add query data and
                 # remove matched paths so we do not try to match them again
@@ -613,4 +611,3 @@ class InfluxDBFinder(object):
                 logger.error("Could not add field key list to memcache - "
                              "likely field list size over max memcache value")
         return field_keys
-

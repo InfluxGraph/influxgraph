@@ -24,16 +24,27 @@ logger = logging.getLogger('influxgraph')
 
 
 class TemplateFilter(object):
-    """Filter metric paths on Graphite glob pattern"""
+    """Filter metric paths on template pattern"""
 
     def __init__(self, pattern):
         self.pattern = [p for p in pattern.split('.') if p]
 
     def match(self, path):
+        """Check if path matches template pattern
+
+        :param path: Graphite path to check
+        :type path: str
+
+        :rtype: bool"""
         path = path.split('.')
         return self.match_split_path(path)
 
     def match_split_path(self, split_path):
+        """Go through split sub-paths and pattern's sub-paths and check
+        if pattern matches all sub-paths
+
+        :param split_path: Graphite metric path split on separator
+        :type split_path: list(str)"""
         for i, pat in enumerate(self.pattern):
             if pat == '*':
                 continue
@@ -56,6 +67,11 @@ class TemplateMatchError(Exception):
 
 # Function as per Python official documentation
 def heapsort(iterable):
+    """Perform heap sort on iterable
+
+    :param iterable: Iterable with (index, value) tuple entries to sort
+    on index value. `index` must be integer, `value` can be anything
+    :type iterable: `tupleiterator`"""
     h = []
     for value in iterable:
         heappush(h, value)
@@ -163,6 +179,11 @@ def _generate_template_tag_index(template):
 
 def get_series_with_tags(paths, all_fields, graphite_templates,
                          separator='.'):
+    """Get list of metric paths from list of InfluxDB series with tags and
+   configured graphite templates if any.
+
+    Without graphite template configuration tags are dropped and only the
+    series name is used."""
     if not graphite_templates:
         return [paths[0:1]]
     series = deque()
@@ -203,14 +224,19 @@ def _split_series_with_tags(paths, graphite_templates):
             split_path = []
     return [], template
 
+def _get_first_not_none_tmpl_val(template):
+    for t in template.values():
+        if t:
+            return t
+
 def _make_path_from_template(split_path, measurement, template, tags_values,
                              separator='.'):
-    measurement_found = False
     if not tags_values and separator in measurement and \
-       'measurement*' == [t for t in template.values() if t][0]:
+      _get_first_not_none_tmpl_val(template) == 'measurement*':
         for i, measurement in enumerate(measurement.split(separator)):
             split_path.append((i, measurement))
         return
+    measurement_found = False
     for (tag_key, tag_val) in tags_values:
         for i, tmpl_tag_key in template.items():
             if not tmpl_tag_key:
