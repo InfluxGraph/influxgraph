@@ -112,9 +112,6 @@ class InfluxDBFinder(object):
         self.index = None
         self.index_lock = threading.Lock()
         self.index_path = config.get('search_index')
-        # If memcache is not enabled build index on startup
-        if not self.memcache:
-            self.build_index()
         self.reader = InfluxDBReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
