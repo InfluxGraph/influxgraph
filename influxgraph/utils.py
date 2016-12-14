@@ -207,6 +207,8 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
                 _data[measurement] = [d['value']
                                       for d in infl_data.get_points(measurement)]
                 continue
+            elif not measurement in path_measurements:
+                continue
             if measurement not in seen_measurements:
                 seen_measurements = set(tuple(seen_measurements) + (measurement,))
                 m_path_ind = 0
