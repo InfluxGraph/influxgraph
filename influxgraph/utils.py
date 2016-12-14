@@ -239,11 +239,11 @@ def parse_series(series, fields, graphite_templates, separator='.'):
 
     :param series: Series to load
     :type series: list(unicode str)
-    :param fields: Per measurement field keys from InfluxDB. May be None
+    :param fields: Per measurement field keys from InfluxDB. May be `None`
     :type fields: dict(measurement: [field1, field2, ..])
     :param graphite_templates: Graphite templates to use to parse series
     and fields.
-    :type graphite_templates: tuple as returned by \
+    :type graphite_templates: list(tuple) as returned by \
     :mod:`influxgraph.templates.parse_influxdb_graphite_templates`
 
     :rtype: :mod:`influxgraph.classes.tree.NodeTreeIndex`
