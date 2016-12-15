@@ -34,7 +34,6 @@ try:
     import statsd
 except ImportError:
     pass
-import memcache
 from influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
@@ -42,7 +41,8 @@ from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     Query, get_retention_policy, _compile_aggregation_patterns, parse_series
+     Query, get_retention_policy, _compile_aggregation_patterns, parse_series, \
+     make_memcache_client
 from ..templates import parse_influxdb_graphite_templates, apply_template, \
      TemplateMatchError
 from .reader import InfluxDBReader
@@ -89,13 +89,8 @@ class InfluxDBFinder(object):
         memcache_conf = influxdb_config.get('memcache', {})
         memcache_host = memcache_conf.get('host')
         self.memcache_ttl = memcache_conf.get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
-        memcache_max_value = memcache_conf.get('max_value', 1)
-        if memcache_host:
-            self.memcache = memcache.Client(
-                [memcache_host], pickleProtocol=-1,
-                server_max_value_length=1024**2*memcache_max_value)
-        else:
-            self.memcache = None
+        self.memcache = make_memcache_client(
+            memcache_host, memcache_max_value=memcache_conf.get('max_value', 1))
         self.aggregation_functions = _compile_aggregation_patterns(
             influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
         series_loader_interval = influxdb_config.get('series_loader_interval', 900)
@@ -114,8 +109,7 @@ class InfluxDBFinder(object):
         self.reader = InfluxDBReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
-            memcache_host=memcache_host,
-            memcache_max_value=memcache_max_value,
+            memcache=self.memcache,
             deltas=self.deltas)
         self._start_reindexer(reindex_interval)
 
@@ -419,7 +413,7 @@ class InfluxDBFinder(object):
         measurement = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
           if retention \
           else ', '.join(('"%s"' % (path,) for path in paths))
-        return ((measurement, None, None),), None
+        return ((measurement, None, ['value']),), None
 
     def _gen_unique_infl_queries(self, query_data, start_time, end_time,
                                  aggregation_func, interval):

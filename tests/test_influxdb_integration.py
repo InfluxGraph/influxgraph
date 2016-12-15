@@ -580,7 +580,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
     def test_reader_memcache_integration(self):
         reader = influxgraph.InfluxDBReader(InfluxDBClient(
             database=self.db_name), self.series1, influxgraph.utils.NullStatsd(),
-            memcache_host='localhost')
+            memcache=influxgraph.utils.make_memcache_client('localhost'))
         self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),
                                      int(self.end_time.strftime("%s"))))
     

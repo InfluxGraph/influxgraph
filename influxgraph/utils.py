@@ -21,6 +21,7 @@ import sys
 import re
 import hashlib
 
+import memcache
 from .constants import INFLUXDB_AGGREGATIONS
 try:
     from .ext.classes.tree import NodeTreeIndex
@@ -112,15 +113,19 @@ class NullStatsd(object):
         pass
 
     def timer(self, key, val=None):
+        """No-Op"""
         return self
 
     def timing(self, key, val):
+        """No-Op"""
         pass
 
     def start(self):
+        """No-Op"""
         pass
 
     def stop(self):
+        """No-Op"""
         pass
 
 def _compile_aggregation_patterns(aggregation_functions):
@@ -234,6 +239,14 @@ def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
+
+def make_memcache_client(memcache_host, memcache_max_value=1):
+    """Make memcache client if given a memcache host or `None`"""
+    if not memcache_host:
+        return
+    return memcache.Client(
+        [memcache_host], pickleProtocol=-1,
+        server_max_value_length=1024**2*memcache_max_value)
 
 def parse_series(series, fields, graphite_templates, separator='.'):
     """Parses series and fields with/without graphite templates

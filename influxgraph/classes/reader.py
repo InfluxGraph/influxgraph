@@ -18,7 +18,6 @@
 from __future__ import absolute_import, print_function
 import logging
 
-import memcache
 from ..constants import _INFLUXDB_CLIENT_PARAMS
 from ..utils import calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key
@@ -39,27 +38,20 @@ class InfluxDBReader(object):
                  'memcache', 'deltas', 'intervals')
 
     def __init__(self, client, path, statsd_client,
-                 memcache_host=None,
+                 memcache=None,
                  aggregation_functions=None,
-                 deltas=None,
-                 # 1MB default
-                 memcache_max_value=1):
+                 deltas=None):
         self.client = client
         self.path = path
         self.statsd_client = statsd_client
         self.aggregation_functions = aggregation_functions
-        if memcache_host:
-            self.memcache = memcache.Client(
-                [memcache_host], pickleProtocol=-1,
-                server_max_value_length=1024**2*memcache_max_value)
-        else:
-            self.memcache = None
+        self.memcache = memcache
         self.deltas = deltas
         self.intervals = Interval()
 
     def fetch(self, start_time, end_time):
         """Fetch single series' data from > start_time and <= end_time
-        
+
         :param start_time: start_time in seconds from epoch
         :param end_time: end_time in seconds from epoch
         """
@@ -94,9 +86,8 @@ class InfluxDBReader(object):
             self.memcache.set(
                 memcache_key, data, time=interval, min_compress_len=50)
         return time_info, data.get(self.path, [])
-    
+
     def get_intervals(self):
         """Noop function - Used for whisper backends but not
-        needed for Graphite-Influxdb
-        """
+        needed for InfluxDB"""
         return self.intervals
