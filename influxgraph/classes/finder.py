@@ -28,7 +28,6 @@ import datetime
 import logging
 from logging.handlers import WatchedFileHandler
 import itertools
-import gzip
 from collections import deque
 
 try:
@@ -335,6 +334,41 @@ class InfluxDBFinder(object):
         aggregation_func = aggregation_funcs[0]
         return aggregation_func
 
+    def _get_template_values_from_paths(self, paths, _filter, template,
+                                        default_tags, separator,
+                                        path_measurements):
+        _measurements = deque()
+        _tags = {}
+        _fields = deque()
+        matched_paths = deque()
+        for path in paths:
+            if _filter and not _filter.match(path):
+                continue
+            try:
+                measurement, tags, field = apply_template(
+                    path.split('.'), template, default_tags, separator)
+            except TemplateMatchError:
+                continue
+            if measurement not in _measurements:
+                _measurements.append(measurement)
+            for tag in tags:
+                if tag not in _tags or tags[tag] not in _tags[tag]:
+                    _tags.setdefault(tag, []).append(tags[tag])
+            if not field:
+                field = 'value'
+            if not field in _fields:
+                _fields.append(field)
+            matched_paths.append(path)
+            path_measurements.setdefault(measurement, {}).setdefault(
+                'paths', []).append(path)
+            if not field in path_measurements[measurement].setdefault(
+                    'fields', []):
+                path_measurements[measurement].setdefault(
+                    'fields', []).append(field)
+            path_measurements[measurement]['tags'] = list(
+                itertools.product(*_tags.values()))
+        return _measurements, _tags, _fields, matched_paths
+
     def _get_all_template_values(self, paths):
         paths = paths[:]
         query_data = deque()
@@ -342,36 +376,10 @@ class InfluxDBFinder(object):
         for (_filter, template, default_tags, separator) in self.graphite_templates:
             if not paths:
                 break
-            _measurements = deque()
-            _tags = {}
-            _fields = deque()
-            matched_paths = deque()
-            for path in paths:
-                if _filter and not _filter.match(path):
-                    continue
-                try:
-                    measurement, tags, field = apply_template(
-                        path.split('.'), template, default_tags, separator)
-                except TemplateMatchError:
-                    continue
-                if measurement not in _measurements:
-                    _measurements.append(measurement)
-                for tag in tags:
-                    if tag not in _tags or tags[tag] not in _tags[tag]:
-                        _tags.setdefault(tag, []).append(tags[tag])
-                if not field:
-                    field = 'value'
-                if not field in _fields:
-                    _fields.append(field)
-                matched_paths.append(path)
-                path_measurements.setdefault(measurement, {}).setdefault(
-                    'paths', []).append(path)
-                if not field in path_measurements[measurement].setdefault(
-                        'fields', []):
-                    path_measurements[measurement].setdefault(
-                        'fields', []).append(field)
-                path_measurements[measurement]['tags'] = list(
-                    itertools.product(*_tags.values()))
+            _measurements, _tags, _fields, matched_paths = \
+              self._get_template_values_from_paths(
+                  paths, _filter, template, default_tags, separator,
+                  path_measurements)
             if _measurements:
                 # Found template match for path, add query data and
                 # remove matched paths so we do not try to match them again
@@ -380,22 +388,28 @@ class InfluxDBFinder(object):
                     del paths[paths.index(path)]
         return query_data, path_measurements
 
+    def _gen_query(self, _measurements, _tags, _fields, retention):
+        measurements = ', '.join(
+            ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
+            if retention \
+            else ', '.join(('"%s"' % (measure,) for measure in _measurements))
+        tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
+                    for tag_val in _tags[tag]]
+                    for tag in _tags] \
+                    if _tags else None
+        tag_pairs = itertools.product(*tag_sets) if tag_sets else None
+        tags = [" AND ".join(t) for t in tag_pairs] if tag_pairs else None
+        fields = _fields if _fields else ['value']
+        return measurements, tags, fields
+
     def _gen_query_values_from_templates(self, paths, retention):
         _query_data, path_measurements = self._get_all_template_values(paths)
         if len(_query_data) == 0:
             return
         query_data = deque()
         for (_measurements, _tags, _fields) in _query_data:
-            measurements = ', '.join(
-                ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
-                if retention else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-            tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
-                         for tag_val in _tags[tag]]
-                         for tag in _tags] \
-                         if _tags else None
-            tag_pairs = itertools.product(*tag_sets) if tag_sets else None
-            tags = [" AND ".join(t) for t in tag_pairs] if tag_pairs else None
-            fields = _fields if _fields else ['value']
+            measurements, tags, fields = self._gen_query(
+                _measurements, _tags, _fields, retention)
             query_data.append((measurements, tags, fields),)
         return query_data, path_measurements
 
@@ -407,37 +421,36 @@ class InfluxDBFinder(object):
           else ', '.join(('"%s"' % (path,) for path in paths))
         return ((measurement, None, None),), None
 
-    def _gen_influxdb_query(self, start_time, end_time, paths, interval):
+    def _gen_unique_infl_queries(self, query_data, start_time, end_time,
+                                 aggregation_func, interval):
+        queries = deque()
+        for (measurement, tags, fields) in query_data:
+            query_fields = ', '.join(['%s("%s") as "%s"'  % (
+                aggregation_func, field, field) for field in fields])
+            query = 'select %s from %s where (time > %ds and time <= %ds)' % (
+                query_fields, measurement, start_time, end_time,)
+            group_by = 'GROUP BY time(%ss) fill(previous)' % (interval,)
+            if tags:
+                # Add sub queries
+                queries.append(';'.join(
+                    ["%s AND %s %s" % (query, tag, group_by,)
+                     for tag in tags]))
+            else:
+                queries.append(" ".join([query, group_by]))
+        return queries
+
+    def _gen_influxdb_stmt(self, start_time, end_time, paths, interval):
         retention = get_retention_policy(interval, self.retention_policies) \
           if self.retention_policies else None
         aggregation_func = self._gen_aggregation_func(paths)
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
-        queries = deque()
         try:
             query_data, path_measurements = self._gen_query_values(paths, retention)
         except TypeError:
             return
-        for (measurement, tags, _fields) in query_data:
-            if not _fields:
-                _fields = ['value']
-            query_fields = ', '.join(['%s("%s") as "%s"'  % (
-                aggregation_func, field, field) for field in _fields])
-            query = 'select %s from %s where (time > %ds and time <= %ds) ' % (
-                query_fields, measurement, start_time, end_time,)
-            group_by = ' GROUP BY time(%ss) fill(previous)' % (interval,)
-            if tags:
-                _queries = []
-                _query = query
-                for tag in tags:
-                    _query += "AND %s" % (tag,)
-                    _query += group_by
-                    _queries.append(_query)
-                    _query = query
-                queries.append(';'.join(_queries))
-            else:
-                query += group_by
-                queries.append(query)
+        queries = self._gen_unique_infl_queries(
+            query_data, start_time, end_time, aggregation_func, interval)
         query = ';'.join(queries)
         return query, memcache_key, path_measurements
 
@@ -464,7 +477,7 @@ class InfluxDBFinder(object):
             return self._make_empty_multi_fetch_result(
                 time_info, [n.path for n in nodes])
         try:
-            query, memcache_key, path_measurements = self._gen_influxdb_query(
+            query, memcache_key, path_measurements = self._gen_influxdb_stmt(
                 start_time, end_time, paths, interval)
         except TypeError:
             return self._make_empty_multi_fetch_result(time_info, paths)
