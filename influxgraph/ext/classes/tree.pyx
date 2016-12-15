@@ -23,7 +23,7 @@ from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 from cpython.version cimport PY_MAJOR_VERSION
 
-cdef unicode _ustring(_str):
+cdef unicode _decode_str(_str):
     if PY_MAJOR_VERSION > 2 and not isinstance(_str, bytes):
         # fast path for most common case(s)
         return <unicode>_str
@@ -77,7 +77,7 @@ cdef class Node:
         """Return list of (name, children) items for this node's children"""
         cdef bytes name
         cdef Node node
-        return [(_ustring(name), node.to_array(),) for (name, node,) in self.children] \
+        return [(_decode_str(name), node.to_array(),) for (name, node,) in self.children] \
           if self.children is not None else None
 
     @staticmethod
@@ -120,23 +120,43 @@ cdef class NodeTreeIndex:
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
+    def _get_children_from_matched_paths(self, list matched_paths, Node node):
+        cdef bytes path
+        cdef unicode _path
+        cdef Node _node
+        for (path, _node) in node.children:
+            _path = _decode_str(path)
+            if _path in matched_paths:
+                yield (_path, _node)
+
+    cdef Node _get_child_from_string_query(self, sub_query, Node node):
+        cdef bytes path
+        cdef Node _node
+        for (path, _node) in node.children:
+            if _decode_str(path) == sub_query:
+                return _node
+
+    def _get_matched_children(self, sub_query, Node node):
+        cdef bytes key
+        cdef list keys = [_decode_str(key) for (key, _) in node.children] \
+          if node.children is not None else []
+        cdef list matched_paths = match_entries(keys, sub_query)
+        if node.children is not None and is_pattern(sub_query):
+            matched_children = self._get_children_from_matched_paths(
+                matched_paths, node)
+        else:
+            matched_children = [(sub_query,
+                                 self._get_child_from_string_query(
+                                     sub_query, node))] \
+                                     if node.children is not None \
+                                     and sub_query in keys else []
+        return matched_children
+
     def search(self, Node node, list split_query, list split_path):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
-        cdef list keys = [_ustring(key) for (key, _) in node.children] \
-          if node.children is not None else []
-        cdef list matched_paths = match_entries(keys, sub_query)
-        cdef Node _node
-        matched_children = (
-            (_ustring(path), _node)
-            for (path, _node) in node.children
-            if _ustring(path) in matched_paths) \
-            if node.children is not None and is_pattern(sub_query) \
-            else [(sub_query, [n for (k, n) in node.children
-                    if _ustring(k) == sub_query][0])] \
-                    if node.children is not None \
-                    and sub_query in keys else []
+        matched_children = self._get_matched_children(sub_query, node)
         cdef Node child_node
         cdef list child_path
         cdef list child_query

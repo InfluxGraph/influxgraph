@@ -16,7 +16,6 @@
 """Tree representation of Graphite metrics"""
 
 from __future__ import absolute_import, print_function
-import sys
 import json
 from collections import deque
 
@@ -114,22 +113,37 @@ class NodeTreeIndex(object):
         return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
                 for path, node in nodes)
 
+    def _get_children_from_matched_paths(self, matched_paths, node):
+        for (path, _node) in node.children:
+            _path = _decode_str(path)
+            if _path in matched_paths:
+                yield (_path, _node)
+
+    def _get_child_from_string_query(self, sub_query, node):
+        for (path, _node) in node.children:
+            if _decode_str(path) == sub_query:
+                return _node
+
+    def _get_matched_children(self, sub_query, node):
+        keys = [_decode_str(key) for (key, _) in node.children] \
+          if node.children is not None else []
+        matched_paths = match_entries(keys, sub_query)
+        if node.children is not None and is_pattern(sub_query):
+            matched_children = self._get_children_from_matched_paths(
+                matched_paths, node)
+        else:
+            matched_children = [(sub_query,
+                                 self._get_child_from_string_query(
+                                     sub_query, node))] \
+                                     if node.children is not None \
+                                     and sub_query in keys else []
+        return matched_children
+
     def search(self, node, split_query, split_path):
         """Return matching children for each query part in split query starting
         from given node"""
         sub_query = split_query[0]
-        keys = [_decode_str(key) for (key, _) in node.children] \
-          if node.children is not None else []
-        matched_paths = match_entries(keys, sub_query)
-        matched_children = (
-            (_decode_str(path), _node)
-            for (path, _node) in node.children
-            if _decode_str(path) in matched_paths) \
-            if node.children is not None and is_pattern(sub_query) \
-            else [(sub_query, [n for (k, n) in node.children
-                               if _decode_str(k) == sub_query][0])] \
-                               if node.children is not None \
-                               and sub_query in keys else []
+        matched_children = self._get_matched_children(sub_query, node)
         for child_name, child_node in matched_children:
             child_path = split_path[:]
             child_path.append(child_name)
