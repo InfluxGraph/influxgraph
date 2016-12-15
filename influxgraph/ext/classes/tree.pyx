@@ -117,7 +117,7 @@ cdef class NodeTreeIndex:
         """Return nodes matching Graphite glob pattern query"""
         cdef list nodes = sorted(self.search(self.index, query.split('.'), []))
         cdef Node node
-        return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
+        return (('.'.join(path), node,)
                 for path, node in nodes)
 
     def _get_children_from_matched_paths(self, list matched_paths, Node node):

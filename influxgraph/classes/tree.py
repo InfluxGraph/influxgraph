@@ -90,10 +90,6 @@ class NodeTreeIndex(object):
     def __init__(self):
         self.index = Node()
 
-    def insert_series(self, series):
-        for serie in series:
-            self.insert(serie)
-
     def insert(self, metric_path):
         """Insert metric path into tree index"""
         paths = deque([_encode_bytes(s) for s in metric_path.split('.')])
@@ -110,7 +106,7 @@ class NodeTreeIndex(object):
     def query(self, query):
         """Return nodes matching Graphite glob pattern query"""
         nodes = sorted(self.search(self.index, query.split('.'), []))
-        return ({'metric': '.'.join(path), 'is_leaf': node.is_leaf()}
+        return (('.'.join(path), node,)
                 for path, node in nodes)
 
     def _get_children_from_matched_paths(self, matched_paths, node):

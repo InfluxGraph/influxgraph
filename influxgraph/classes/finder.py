@@ -307,17 +307,17 @@ class InfluxDBFinder(object):
         :param query: Query to search for
         :type query: :mod:`influxgraph.utils.Query`
         """
-        paths = self.index.query(query.pattern)
-        for path in paths:
-            if path['is_leaf']:
+        node_paths = self.index.query(query.pattern)
+        for path, node in node_paths:
+            if node.is_leaf():
                 # Set path on existing reader to avoid having to create
                 # new objects for each path which is expensive
                 # Reader is not used for queries when multi fetch is enabled
                 # regardless
-                self.reader.path = path['metric']
-                yield InfluxDBLeafNode(path['metric'], self.reader)
+                self.reader.path = path
+                yield InfluxDBLeafNode(path, self.reader)
             else:
-                yield BranchNode(path['metric'])
+                yield BranchNode(path)
 
     def _gen_aggregation_func(self, paths):
         aggregation_funcs = list(set(get_aggregation_func(path, self.aggregation_functions)

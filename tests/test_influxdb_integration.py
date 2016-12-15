@@ -835,7 +835,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             index_fh.close()
         self.assertTrue(index is not None)
         for query in ['*', '*.*', '*.*.*', '*.*.*.*']:
-            self.assertEqual(list(index.query(query)), list(finder_index.query(query)))
+            self.assertEqual([path for (path, _) in index.query(query)],
+                             [path for (path, _) in finder_index.query(query)])
 
     def test_index_load_from_file(self):
         values = [['carbon.relays.host.dispatcher1.wallTime_us'],

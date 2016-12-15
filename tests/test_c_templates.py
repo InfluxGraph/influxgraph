@@ -42,36 +42,36 @@ class TemplatesCExtTestCase(unittest.TestCase):
             ["a.b.c.d.e.f.g.m.n.j.measurement.field* env=int,region=the_west"])
         index = parse_series(series, fields, templates)
         self.assertTrue(index is not None)
-        self.assertEqual([n['metric'] for n in index.query('*')], [u'1'])
-        self.assertEqual([n['metric'] for n in index.query('*.*')], [u'1.2'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*')], [u'1.2.3'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*')], [u'1.2.3.4'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*.*')], [u'1.2.3.4.5'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*.*.*')], [u'1.2.3.4.5.6'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7.8'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7.8.9'])
-        self.assertEqual([n['metric'] for n in index.query('*.*.*.*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7.8.9.10'])
-        self.assertEqual(sorted([n['metric'] for n in index.query('*.*.*.*.*.*.*.*.*.*.%s.*' % (measurements[0],))]),
+        self.assertEqual([n[0] for n in index.query('*')], [u'1'])
+        self.assertEqual([n[0] for n in index.query('*.*')], [u'1.2'])
+        self.assertEqual([n[0] for n in index.query('*.*.*')], [u'1.2.3'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*')], [u'1.2.3.4'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*.*')], [u'1.2.3.4.5'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*.*.*')], [u'1.2.3.4.5.6'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7.8'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7.8.9'])
+        self.assertEqual([n[0] for n in index.query('*.*.*.*.*.*.*.*.*.*')], [u'1.2.3.4.5.6.7.8.9.10'])
+        self.assertEqual(sorted([n[0] for n in index.query('*.*.*.*.*.*.*.*.*.*.%s.*' % (measurements[0],))]),
                          sorted([u'1.2.3.4.5.6.7.8.9.10.%s.%s' % (measurements[0], f,) for f in field_names]))
 
     def test_templated_index_find(self):
         index = parse_series(self.series, self.all_fields, self.templates)
         query = '*'
-        nodes = [n['metric'] for n in index.query(query)]
+        nodes = [n[0] for n in index.query(query)]
         expected = [self.metric_prefix]
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))
         query = str("%s.*" % (self.metric_prefix,))
-        nodes = [n['metric'] for n in index.query(query)]
+        nodes = [n[0] for n in index.query(query)]
         expected = ['.'.join([self.metric_prefix,
                              self.tags[self.paths[1]]])]
         self.assertEqual(nodes, expected,
                          msg="Got sub branch query result %s - wanted %s" % (
                              nodes, expected,))
         query = str("%s.%s.*" % (self.metric_prefix, self.tags[self.paths[1]]))
-        nodes = sorted([n['metric'] for n in index.query(query)])
+        nodes = sorted([n[0] for n in index.query(query)])
         expected = sorted(['.'.join([self.metric_prefix,
                                      self.tags[self.paths[1]],
                                      m]) for m in self.measurements])
@@ -79,7 +79,7 @@ class TemplatesCExtTestCase(unittest.TestCase):
                          msg="Got sub branch query result %s - wanted %s" % (
                              nodes, expected,))
         query = str("%s.%s.*.*" % (self.metric_prefix, self.tags[self.paths[1]],))
-        nodes = sorted([n['metric'] for n in index.query(query)])
+        nodes = sorted([n[0] for n in index.query(query)])
         expected = sorted(['.'.join([self.metric_prefix,
                                      self.tags[self.paths[1]],
                                      m, f])
