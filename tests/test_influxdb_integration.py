@@ -366,7 +366,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
     def test_get_non_existant_series(self):
         """Test single fetch data for a series by name"""
         path = 'fake_path'
-        reader = influxgraph.InfluxdbReader(InfluxDBClient(
+        reader = influxgraph.InfluxDBReader(InfluxDBClient(
             database=self.db_name), path, influxgraph.utils.NullStatsd())
         time_info, data = reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
@@ -377,9 +377,9 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
     def test_multi_fetch_non_existant_series(self):
         """Test single fetch data for a series by name"""
         path1, path2 = 'fake_path1', 'fake_path2'
-        reader1 = influxgraph.InfluxdbReader(InfluxDBClient(
+        reader1 = influxgraph.InfluxDBReader(InfluxDBClient(
             database=self.db_name), path1, influxgraph.utils.NullStatsd())
-        reader2 = influxgraph.InfluxdbReader(InfluxDBClient(
+        reader2 = influxgraph.InfluxDBReader(InfluxDBClient(
             database=self.db_name), path2, influxgraph.utils.NullStatsd())
         nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(path1, reader1),
                  influxgraph.classes.leaf.InfluxDBLeafNode(path2, reader2)]
@@ -578,7 +578,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                          " for series %s" % (self.series1,))
     
     def test_reader_memcache_integration(self):
-        reader = influxgraph.InfluxdbReader(InfluxDBClient(
+        reader = influxgraph.InfluxDBReader(InfluxDBClient(
             database=self.db_name), self.series1, influxgraph.utils.NullStatsd(),
             memcache_host='localhost')
         self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),

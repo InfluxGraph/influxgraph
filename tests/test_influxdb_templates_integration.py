@@ -8,7 +8,6 @@ import time
 from random import randint
 import influxdb.exceptions
 import influxgraph
-import influxgraph.utils
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, _MEMCACHE_FIELDS_KEY
