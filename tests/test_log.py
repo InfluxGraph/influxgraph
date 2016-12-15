@@ -25,7 +25,7 @@ class InfluxGraphLogFileTestCase(unittest.TestCase):
                                   'log_level' : 'debug',
                                   },
                                   }
-        finder = influxgraph.InfluxdbFinder(config)
+        finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder)
 
     def test_create_root_log_file_should_fail(self):
@@ -38,7 +38,7 @@ class InfluxGraphLogFileTestCase(unittest.TestCase):
                                    'log_level' : 'debug',
                                    },
                                    }
-        finder = influxgraph.InfluxdbFinder(_config)
+        finder = influxgraph.InfluxDBFinder(_config)
         self.assertTrue(finder)
 
 if __name__ == '__main__':
