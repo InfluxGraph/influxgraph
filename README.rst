@@ -55,6 +55,8 @@ There will now be a Graphite-API running on ``localhost:8000`` from the containe
 
 The image will use a supplied ``graphite-api.yaml`` on build, when ``docker build`` is called on an InfluxGraph image.
 
+A dockerfile can also be found under `docker` directory of the repository.
+
 Main features
 ==============
 
