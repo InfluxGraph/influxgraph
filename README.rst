@@ -267,6 +267,8 @@ If the number of unique metrics `InfluxDB` is high enough to make CPython with C
 
 When build index time exceeds request response timeout, the extension may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option or extensions should be disabled if switching interpreter is not viable.
 
+There are two performance tests in the repository that can be used to see relative performance with and without extensions, for index and template respectively. On `PyPy` extensions are purposefully disabled.
+
 Known Limitations
 ==================
 
