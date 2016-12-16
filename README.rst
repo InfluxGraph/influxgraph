@@ -254,16 +254,6 @@ Where ``<varnish_port>`` is Varnish's listening port.
 
 A different HTTP caching service will similarly work just as well.
 
-Known Limitations
-==================
-
-- Index memory usage will be a factor of about 10 higher than the size of the uncompressed on disk index. For example a 100MB uncompressed on-disk index will use ~1GB of memory. This is already as low as it can be, is a hard limit imposed by Python interpreter implementation details and not likely to get any better without changes to use memory mapped file rather than loading the whole index in memory, which is AFAIK only supported on Py3 and in the index's C extension.
-- On CPython interpreters, API requests while an index re-build is happening will be quite slow (a few seconds, no more than ten). PyPy does not have this problem and is recommended.
-
-The docker image provided uses PyPy.
-
-Contributions are most welcome to resolve any of these limitations and for anything else.
-
 Optional C Extensions
 ======================
 
@@ -276,6 +266,16 @@ In order of fastest to slowest, here is how the supported interpreters fare with
 If the number of unique metrics `InfluxDB` is high enough to make CPython with C extensions index build time exceed one minute, it would be best to switch to PyPy or alternatively disable extensions by running `setup.py` with the `DISABLE_INFLUXGRAPH_CEXT=1` environment variable set. A notice will be displayed by `setup.py` that extensions have been disabled.
 
 When build index time exceeds request response timeout, the extension may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option or extensions should be disabled if switching interpreter is not viable.
+
+Known Limitations
+==================
+
+- Index memory usage will be a factor of about 10 higher than the size of the uncompressed on disk index. For example a 100MB uncompressed on-disk index will use ~1GB of memory. This is already as low as it can be, is a hard limit imposed by Python interpreter implementation details and not likely to get any better without changes to use memory mapped file rather than loading the whole index in memory, which is AFAIK only supported on Py3 and in the index's C extension.
+- On CPython interpreters, API requests while an index re-build is happening will be quite slow (a few seconds, no more than ten). PyPy does not have this problem and is recommended.
+
+The docker image provided uses PyPy.
+
+Contributions are most welcome to resolve any of these limitations and for anything else.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
