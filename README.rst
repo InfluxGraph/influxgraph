@@ -257,7 +257,7 @@ A different HTTP caching service will similarly work just as well.
 Optional C Extensions
 ======================
 
-In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used.
+In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used, can expect at least 4x and 2x respectively performance increases for PyPy and CPython with extensions respectively.
 
 #. Pypy
 #. CPython with C extensions
@@ -267,7 +267,7 @@ If the number of unique metrics `InfluxDB` is high enough to make CPython with C
 
 When build index time exceeds request response timeout, the extension may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option or extensions should be disabled if switching interpreter is not viable.
 
-There are two performance tests in the repository that can be used to see relative performance with and without extensions, for index and template respectively. On `PyPy` extensions are purposefully disabled.
+There are two performance tests in the repository that can be used to see relative performance with and without extensions, for index and template respectively. On PyPy extensions are purposefully disabled.
 
 Known Limitations
 ==================
