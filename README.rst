@@ -183,7 +183,7 @@ Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-ca
 
 Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown in configuration example.
 
-An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v0.9/query_language/functions.html>`_.
+An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v1.1/query_language/functions.html>`_.
 
 Known InfluxDB aggregation functions are defined at ``influxgraph.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
 
@@ -263,6 +263,19 @@ Known Limitations
 The docker image provided uses PyPy.
 
 Contributions are most welcome to resolve any of these limitations and for anything else.
+
+Optional C Extensions
+======================
+
+In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used.
+
+#. Pypy
+#. CPython with C extensions
+#. CPython
+
+If the number of unique metrics `InfluxDB` is high enough to make CPython with C extensions index build time exceed one minute, it would be best to switch to PyPy or alternatively disable extensions by running `setup.py` with the `DISABLE_INFLUXGRAPH_CEXT=1` environment variable set. A notice will be displayed by `setup.py` that extensions have been disabled.
+
+When build index time exceeds request response timeout, the extension may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option or extensions should be disabled if switching interpreter is not viable.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
