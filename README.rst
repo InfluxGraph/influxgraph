@@ -54,8 +54,7 @@ Docker Image
 There will now be a Graphite-API running on ``localhost:8000`` from the container with a default InfluxDB configuration and memcache enabled. Finder expects InfluxDB to be running on ``localhost:8086`` by default.
 
 The image will use a supplied ``graphite-api.yaml`` on build, when ``docker build`` is called on an InfluxGraph image.
-
-A dockerfile can also be found under `docker` directory of the repository.
+A dockerfile can also be found under ``docker`` directory of the repository.
 
 Main features
 ==============
