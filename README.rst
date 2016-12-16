@@ -257,7 +257,7 @@ A different HTTP caching service will similarly work just as well.
 Optional C Extensions
 ======================
 
-In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used, can expect at least 4x and 2x respectively performance increases for PyPy and CPython with extensions respectively.
+In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used, can expect at least `4x` and `2x` performance increases for PyPy and CPython with extensions respectively.
 
 #. Pypy
 #. CPython with C extensions
