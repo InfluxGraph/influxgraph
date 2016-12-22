@@ -67,7 +67,7 @@ Main features
 * Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
 * Memcached integration
 * Python 3 and PyPy compatibility
-* Good performance even with extremely large number of metrics in the DB - generated queries are guaranteed to be have O(1) performance characteristics
+* Good performance even with extremely large number of metrics in the DB - generated queries are guaranteed to be have ``O(1)`` performance characteristics
 
 Google User's Group
 =====================
@@ -78,7 +78,7 @@ Goals
 ======
 
 * InfluxDB as a drop-in replacement data store to the Graphite query API
-* Backwards compatibility with existing Graphite API clients like Grafana and Graphite installations migrated to InfluxDB backends using Graphite input service *with or without* Graphite template configuration
+* Backwards compatibility with existing Graphite API clients like Grafana and Graphite installations migrated to InfluxDB data stores using Graphite input service *with or without* Graphite template configuration
 * Expose native InfluxDB line protocol ingested data via the Graphite API
 * Clean, readable code with complete documentation for public endpoints
 * Complete code coverage with both unit and integration testing. Code has `>90%` test coverage and is integration tested against a real InfluxDB service
@@ -103,7 +103,7 @@ With the exception of `InfluxDB`_ itself, the other dependencies are installed a
 * ``influxdb`` Python module
 * `Graphite-API`_
 * ``python-memcached`` Python module
-* `InfluxDB`_ service
+* `InfluxDB`_ service, versions ``1.0`` or higher
 
 InfluxDB Graphite metric templates
 ==================================
@@ -170,11 +170,11 @@ See `Graphite-API example configuration file <https://github.com/InfluxGraph/inf
 Aggregation function configuration
 -----------------------------------
 
-The graphite-influxdb finder supports configurable aggregation functions to use for specific metric path patterns. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
+The finder supports configurable aggregation and selector functions to use per metric path regular expression pattern. This is the equivalent of ``storage-aggregation.conf`` in Graphite's ``carbon-cache``.
 
-Default aggregation function used is ``mean`` if no configuration provided nor matching.
+Default aggregation function used is ``mean`` if no configuration provided nor any matching configuration.
 
-Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
+InfluxGraph has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
 
   aggregation_functions:
       \.min$ : min
@@ -184,9 +184,11 @@ Graphite-influxdb has pre-defined aggregation configuration matching ``carbon-ca
 
 Defaults are overridden if ``aggregation_functions`` is configured in ``graphite-api.yaml`` as shown in configuration example.
 
-An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation method per `InfluxDB function list <https://influxdb.com/docs/v1.1/query_language/functions.html>`_.
+An error will be printed to stderr if a configured aggregation function is not a known valid InfluxDB aggregation or selector method per `InfluxDB function list <https://docs.influxdata.com/influxdb/v1.1/query_language/functions/>`_.
 
-Known InfluxDB aggregation functions are defined at ``influxgraph.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
+Transformation functions, for example ``derivative``, may _not_ be used as they require a separate aggregation to be performed. Transformations are performed by Graphite-API instead, which also supports pluggable functions.
+
+Known InfluxDB aggregation and selector functions are defined at ``influxgraph.constants.INFLUXDB_AGGREGATIONS`` and can be overriden if necessary.
 
 .. note::
 
@@ -206,19 +208,20 @@ Memcached can be used to cache InfluxDB data so the `Graphite-API` can avoid que
 
 TTL configuration for memcache as shown in `Full Configuration Example`_ is only for `/metrics/find` endpoint with `/render` endpoint TTL being set to the group by interval used.
 
-For example, for a query spanning 24hrs, a group by interval of 1 min is used by default. TTL for memcache is set to 1 min for that data.
+For example, for a query spanning twenty-four hours, a group by interval of one minute is used by default. TTL for memcache is set to one minute for that query.
 
-For a query spanning 1 month, a 15min interval is used by default. TTL is also set to 15min for that data.
-
+For a query spanning one month, a fifteen minute group by interval is used by default. TTL is also set to fifteen minutes for that query.
 
 Calculated intervals
 --------------------
 
-A data `group by` interval is automatically calculated depending on the date/time range of the query. This keeps data size tolerable regardless of query date/time range size and speeds up graph generation for large date/time ranges.
+A data ``group by`` interval is automatically calculated depending on the date/time range of the query. This keeps data size in check regardless of query date/time range size and speeds up graph generation for large ranges.
 
 Default configuration mirrors what `Grafana`_ uses with the native InfluxDB API.
 
-Overriding the automatically calculated interval is supported via the optional ``deltas`` configuration. See `Full Configuration Example`_ file for all supported configuration options.
+Overriding the automatically calculated intervals can be done via the optional ``deltas`` configuration. See `Full Configuration Example`_ file for all supported configuration options.
+
+Unlike other Graphite compatible data stores, InfluxDB queries aggregate data on query, not on ingestion. Queries made by InfluxGraph are therefore always aggregation queries with a group by clause.
 
 Users that wish to retrieve all, non-aggregated, data points regardless of date/time range are advised to query `InfluxDB`_ directly.
 
@@ -229,9 +232,9 @@ The following is a sample configuration of `Varnish`_ as an HTTP cache in front 
 
 The intention is for a local (to InfluxDB) Varnish service to cache frequently accessed data and protect the database from multiple identical requests, for example multiple users viewing the same dashboard.
 
-Graphite-API webapp should use Varnish port to connect to InfluxDB on each node.
+InfluxGraph configuration should use Varnish port to connect to InfluxDB.
 
-Unfortunately, given that clients like Grafana POST requests against the Graphite API, which cannot be cached, using Varnish in front of a Graphite-API webapp would have no effect. Multiple requests for the same dashboard/graph will therefore still hit Graphite-API webapp but with Varnish in front of InfluxDB, the more sensitive DB is spared from duplicated queries.
+Unfortunately, given that clients like Grafana POST requests against the Graphite API, which cannot be cached, using Varnish in front of a Graphite-API webapp would have no effect. Multiple requests for the same dashboard/graph will therefore still hit Graphite-API webapp, but with Varnish in front of InfluxDB, the more sensitive DB is spared from duplicated queries.
 
 Substitute the default ``8086`` backend port with the InfluxDB API port for your installation if needed  ::
 
@@ -253,27 +256,27 @@ Graphite API example configuration ::
 
 Where ``<varnish_port>`` is Varnish's listening port.
 
-A different HTTP caching service will similarly work just as well.
+Any other HTTP caching service will similarly work just as well.
 
 Optional C Extensions
 ======================
 
-In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used, can expect at least `4x` and `2x` performance increases for PyPy and CPython with extensions respectively.
+In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used - can expect at least `4x` and `2x` performance increases for PyPy and CPython with extensions respectively compared to standard CPython without extensions.
 
 #. Pypy
 #. CPython with C extensions
 #. CPython
 
-If the number of unique metrics `InfluxDB` is high enough to make CPython with C extensions index build time exceed one minute, it would be best to switch to PyPy or alternatively disable extensions by running `setup.py` with the `DISABLE_INFLUXGRAPH_CEXT=1` environment variable set. A notice will be displayed by `setup.py` that extensions have been disabled.
+If the number of unique metrics `InfluxDB` is high enough to make CPython with C extensions index build time exceed one minute, it would be best to switch to PyPy. Alternatively extensions should be disabled by running `setup.py` with the `DISABLE_INFLUXGRAPH_CEXT=1` environment variable set. A notice will be displayed by `setup.py` that extensions have been disabled.
 
-When build index time exceeds request response timeout, the extension may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option or extensions should be disabled if switching interpreter is not viable.
+When build index time exceeds request response timeout, the extensions may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option. Extensions should be disabled if switching interpreter is not viable.
 
-There are two performance tests in the repository that can be used to see relative performance with and without extensions, for index and template respectively. On PyPy extensions are purposefully disabled.
+There are two performance tests in the repository that can be used to see relative performance with and without extensions, for `index <https://github.com/InfluxGraph/influxgraph/blob/master/tests/index_perf.py>`_ and `template <https://github.com/InfluxGraph/influxgraph/blob/master/tests/templates_parse_perf.py>`_ respectively. On PyPy extensions are purposefully disabled.
 
 Known Limitations
 ==================
 
-- Index memory usage will be a factor of about 10 higher than the size of the uncompressed on disk index. For example a 100MB uncompressed on-disk index will use ~1GB of memory. This is already as low as it can be, is a hard limit imposed by Python interpreter implementation details and not likely to get any better without changes to use memory mapped file rather than loading the whole index in memory, which is AFAIK only supported on Py3 and in the index's C extension.
+- Index memory usage will be a factor of about 10 higher than the size of the uncompressed on disk index. For example a 100MB uncompressed on-disk index will use ~1GB of memory per individual Python process. This is already as low as it can be, is a hard limit imposed by Python interpreter implementation details and not likely to get any better without changes to use memory mapped file rather than loading the whole index in memory, which is AFAIK only supported on Py3 or in C extensions.
 - On CPython interpreters, API requests while an index re-build is happening will be quite slow (a few seconds, no more than ten). PyPy does not have this problem and is recommended.
 
 The docker image provided uses PyPy.
