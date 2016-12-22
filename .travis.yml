@@ -40,6 +40,7 @@ deploy:
   user: pkittenis
   password:
     secure: YjKb3mcrgeUmNFVzlJxBQcvTE//X8dERdVqQyqPYgNNMo/NZgR6++gzdYSB25AP14hlFXalGuRZ5x5/t0ngv+eDE2YeCczPtAWGS2KG+Tym6XaIMfLesQsfrJhIB+7pj5iWzXYxhyChKBjWLkM1sz3GhCPSMBngBim4uH24Fja3xIuCCi9dmCMxV/j2laCPwW870Lc/gR5kLLsS9Lf9tZmGz0t6yujRqfW3wtzbQZX0VVun5LaUo01l9Q6tIhEOLswjJt/jVjSqvG7NGap3EzIFtIIgiyx9yFRnpDdxeVEIbp/jyZJgWXM6Wx9VaGzQDBIJUHpF9ro5pEiFCXWrSE19L/Y+mVoZy6SwhI/RwVhmEoYuOguxbDtyQTewl0ldDo3nZ7H0v5xo2DEWqdcVOTGIBd9FErhXNOP3Nz35AiJj+ovnEl9jxJEQgZGXCQnFks/cHDjmENhXjPiqX6FJNohCp+hZmbx4OCZ5x98Zema9K8zN/UPNpxxZwA8zdR6rrQe8iVHZ34aber9gg0mmHkvw1zj9QxKjKDhZR7wvI2eBcUSYGyrqIXCOlTF5rXAIbJ/XGBuebkrMQStE/aPyv6NZQbCtszgPL6BTKgT69ADOm50twgjdews1lIlymI8cwasvoPkOLXebrjjiyAO6Xr/IiBdFQBpQ5aJR/pRnKje0=
+  skip_upload_docs: true
 after_deploy:
   - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
     cd docker &&
