@@ -47,6 +47,7 @@ after_success:
       cd docker &&
       docker build -t ikuosu/influxgraph . &&
       docker push ikuosu/influxgraph:${TRAVIS_TAG};
+      docker push ikuosu/influxgraph;
     elif [ "$TRAVIS_BRANCH" == "master" ]; then
       docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
       cd docker &&
