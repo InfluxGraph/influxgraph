@@ -20,9 +20,9 @@
 # when used in a 'group by' query - we leave those to graphite-api to perform
 INFLUXDB_AGGREGATIONS = [
     # aggregations
-    'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread', 'sum',
+    'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread', 'stddev', 'sum',
     # selectors
-    'bottom', 'first', 'last', 'max', 'min', 'percentile', 'top']
+    'bottom', 'first', 'last', 'max', 'min', 'percentile', 'sample', 'top']
 
 DEFAULT_AGGREGATIONS = {r'\.min$' : 'min',
                         r'\.max$' : 'max',
