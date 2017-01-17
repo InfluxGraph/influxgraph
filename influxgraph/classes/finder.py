@@ -368,6 +368,7 @@ class InfluxDBFinder(object):
         query_data = deque()
         path_measurements = {}
         for (_filter, template, default_tags, separator) in self.graphite_templates:
+            # One influx query statement per template
             if not paths:
                 break
             _measurements, _tags, _fields, matched_paths = \
@@ -383,18 +384,31 @@ class InfluxDBFinder(object):
         return query_data, path_measurements
 
     def _gen_query(self, _measurements, _tags, _fields, retention):
+        # import ipdb; ipdb.set_trace()
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
             if retention \
             else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
-                    for tag_val in _tags[tag]]
-                    for tag in _tags] \
-                    if _tags else None
-        tag_pairs = itertools.product(*tag_sets) if tag_sets else None
-        tags = [" AND ".join(t) for t in tag_pairs] if tag_pairs else None
+        groupings = deque()
+        tags = deque()
+        for tag in _tags:
+            if len(_tags[tag]) > 1:
+                groupings.append(tag)
+                continue
+            tags.append(""""%s" = '%s'""" % (tag, _tags[tag],))
+        # tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
+        #             for tag_val in _tags[tag]]
+        #             for tag in _tags] \
+        #             if _tags else None
+        ####
+        # tags = [' AND '.join(['(%s)' % ' OR '.join(
+        #     [""""%s" = '%s'""" % (tag, tag_val,) for tag_val in _tags[tag]])
+        #     for tag in _tags])] if _tags else None
+        ####
+        # tag_pairs = itertools.product(*tag_sets) if tag_sets else None
+        # tags = [" AND ".join(t) for t in tag_pairs] if tag_pairs else None
         fields = _fields if _fields else ['value']
-        return measurements, tags, fields
+        return measurements, tags, fields, groupings
 
     def _gen_query_values_from_templates(self, paths, retention):
         _query_data, path_measurements = self._get_all_template_values(paths)
@@ -402,9 +416,10 @@ class InfluxDBFinder(object):
             return
         query_data = deque()
         for (_measurements, _tags, _fields) in _query_data:
-            measurements, tags, fields = self._gen_query(
+            measurements, tags, fields, groupings = self._gen_query(
                 _measurements, _tags, _fields, retention)
-            query_data.append((measurements, tags, fields),)
+            query_data.append((measurements, tags, fields, groupings),)
+        # import ipdb; ipdb.set_trace()
         return query_data, path_measurements
 
     def _gen_query_values(self, paths, retention):
@@ -491,6 +506,7 @@ class InfluxDBFinder(object):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
+        # import ipdb; ipdb.set_trace()
         data = read_influxdb_values(data, paths, path_measurements)
         timer.stop()
         # Graphite API requires that data contain keys for

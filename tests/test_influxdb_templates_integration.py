@@ -373,6 +373,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             int(self.end_time.strftime("%s")))
         self.assertTrue(data[cpu_metric_nodes[0].path][-1] == idle_data['value'],
                         msg="Got incorrect data from multi-tag query")
+        # import ipdb; ipdb.set_trace()
 
     def test_template_multi_tags_multi_templ_multi_nodes(self):
         self.client.drop_database(self.db_name)
