@@ -8,7 +8,7 @@ python:
   - 3.5
   - pypy
 env:
-  - INFLUXDB_VERSION=1.1.0
+  - INFLUXDB_VERSION=1.1.1
 before_install:
   - pip install -U pip setuptools wheel
   - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
@@ -25,9 +25,6 @@ script:
   # Test integration with pure Python code
   - find influxgraph -type f -name '*.so' -exec rm -f {} +
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py
-notifications:
-  email:
-    on_failure: change
 services:
   - memcached
   - docker
