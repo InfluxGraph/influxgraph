@@ -359,16 +359,16 @@ class InfluxDBFinder(object):
                     'fields', []):
                 path_measurements[measurement].setdefault(
                     'fields', []).append(field)
-            path_measurements[measurement]['tags'] = list(
-                itertools.product(*_tags.values()))
+            path_measurements[measurement].setdefault(
+                'template', template)
         return _measurements, _tags, _fields, matched_paths
 
     def _get_all_template_values(self, paths):
         paths = paths[:]
-        query_data = deque()
         path_measurements = {}
+        measurements, tags, fields = deque(), deque(), set()
         for (_filter, template, default_tags, separator) in self.graphite_templates:
-            # One influx query statement per template
+            # One influx measurement queried per template
             if not paths:
                 break
             _measurements, _tags, _fields, matched_paths = \
@@ -376,51 +376,36 @@ class InfluxDBFinder(object):
                   paths, _filter, template, default_tags, separator,
                   path_measurements)
             if _measurements:
-                # Found template match for path, add query data and
+                # Found template match for path, append query data and
                 # remove matched paths so we do not try to match them again
-                query_data.append((_measurements, _tags, _fields))
+                measurements.extend(_measurements)
+                tags.append(_tags)
+                fields = fields.union(_fields)
                 for path in matched_paths:
                     del paths[paths.index(path)]
-        return query_data, path_measurements
+        return measurements, tags, fields, path_measurements
 
-    def _gen_query(self, _measurements, _tags, _fields, retention):
-        # import ipdb; ipdb.set_trace()
+    def _gen_query(self, measurements, tags, fields, retention):
+        groupings = set([k for t in tags for k in t.keys()])
         measurements = ', '.join(
-            ('"%s"."%s"' % (retention, measure,) for measure in _measurements)) \
+            ('"%s"."%s"' % (retention, measure,) for measure in measurements)) \
             if retention \
-            else ', '.join(('"%s"' % (measure,) for measure in _measurements))
-        groupings = deque()
-        tags = deque()
-        for tag in _tags:
-            if len(_tags[tag]) > 1:
-                groupings.append(tag)
-                continue
-            tags.append(""""%s" = '%s'""" % (tag, _tags[tag],))
-        # tag_sets = [[""""%s" = '%s'""" % (tag, tag_val,)
-        #             for tag_val in _tags[tag]]
-        #             for tag in _tags] \
-        #             if _tags else None
-        ####
-        # tags = [' AND '.join(['(%s)' % ' OR '.join(
-        #     [""""%s" = '%s'""" % (tag, tag_val,) for tag_val in _tags[tag]])
-        #     for tag in _tags])] if _tags else None
-        ####
-        # tag_pairs = itertools.product(*tag_sets) if tag_sets else None
-        # tags = [" AND ".join(t) for t in tag_pairs] if tag_pairs else None
-        fields = _fields if _fields else ['value']
-        return measurements, tags, fields, groupings
+            else ', '.join(('"%s"' % (measure,) for measure in measurements))
+        _tags = ' OR '.join(['(%s)' % (tag_set,) for tag_set in [
+            ' AND '.join(['(%s)' % ' OR '.join([
+        """"%s" = '%s'""" % (tag, tag_val,)
+                for tag_val in __tags[tag]])
+                for tag in __tags])
+            for __tags in tags]]) if tags else None
+        fields = fields if fields else ['value']
+        return measurements, _tags, fields, groupings
 
     def _gen_query_values_from_templates(self, paths, retention):
-        _query_data, path_measurements = self._get_all_template_values(paths)
-        if len(_query_data) == 0:
-            return
-        query_data = deque()
-        for (_measurements, _tags, _fields) in _query_data:
-            measurements, tags, fields, groupings = self._gen_query(
-                _measurements, _tags, _fields, retention)
-            query_data.append((measurements, tags, fields, groupings),)
-        # import ipdb; ipdb.set_trace()
-        return query_data, path_measurements
+        measurements, tags, fields, path_measurements = \
+          self._get_all_template_values(paths)
+        measurements, tags, fields, groupings = self._gen_query(
+            measurements, tags, fields, retention)
+        return measurements, tags, fields, groupings, path_measurements
 
     def _gen_query_values(self, paths, retention):
         if self.graphite_templates:
@@ -428,25 +413,23 @@ class InfluxDBFinder(object):
         measurement = ', '.join(('"%s"."%s"' % (retention, path,) for path in paths)) \
           if retention \
           else ', '.join(('"%s"' % (path,) for path in paths))
-        return ((measurement, None, ['value']),), None
+        return measurement, None, ['value'], None, None
 
-    def _gen_unique_infl_queries(self, query_data, start_time, end_time,
-                                 aggregation_func, interval):
-        queries = deque()
-        for (measurement, tags, fields) in query_data:
-            query_fields = ', '.join(['%s("%s") as "%s"'  % (
-                aggregation_func, field, field) for field in fields])
-            query = 'select %s from %s where (time > %ds and time <= %ds)' % (
-                query_fields, measurement, start_time, end_time,)
-            group_by = 'GROUP BY time(%ss) fill(previous)' % (interval,)
-            if tags:
-                # Add sub queries
-                queries.append(';'.join(
-                    ["%s AND %s %s" % (query, tag, group_by,)
-                     for tag in tags]))
-            else:
-                queries.append(" ".join([query, group_by]))
-        return queries
+    def _gen_infl_stmt(self, measurements, tags, fields, groupings, start_time,
+                       end_time, aggregation_func, interval):
+        time_clause = "(time > %ds and time <= %ds)" % (start_time, end_time,)
+        query_fields = ', '.join(['%s("%s") as "%s"'  % (
+            aggregation_func, field, field) for field in fields])
+        groupings = ['"%s"' % (grouping,) for grouping in groupings] \
+          if groupings else []
+        groupings.insert(0, 'time(%ss)' % (interval,))
+        groupings = ', '.join(groupings)
+        where_clause = "%s AND %s" % (time_clause, tags,) if tags else \
+          time_clause
+        group_by = '%s fill(previous)' % (groupings,)
+        query = 'select %s from %s where %s GROUP BY %s' % (
+            query_fields, measurements, where_clause, group_by,)
+        return query
 
     def _gen_influxdb_stmt(self, start_time, end_time, paths, interval):
         retention = get_retention_policy(interval, self.retention_policies) \
@@ -454,13 +437,11 @@ class InfluxDBFinder(object):
         aggregation_func = self._gen_aggregation_func(paths)
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
-        try:
-            query_data, path_measurements = self._gen_query_values(paths, retention)
-        except TypeError:
-            return
-        queries = self._gen_unique_infl_queries(
-            query_data, start_time, end_time, aggregation_func, interval)
-        query = ';'.join(queries)
+        measurements, tags, fields, groupings, path_measurements = \
+          self._gen_query_values(paths, retention)
+        query = self._gen_infl_stmt(measurements, tags, fields, groupings,
+                                    start_time, end_time, aggregation_func,
+                                    interval)
         return query, memcache_key, path_measurements
 
     def _make_empty_multi_fetch_result(self, time_info, paths):
@@ -488,7 +469,8 @@ class InfluxDBFinder(object):
         try:
             query, memcache_key, path_measurements = self._gen_influxdb_stmt(
                 start_time, end_time, paths, interval)
-        except TypeError:
+        except TypeError as ex:
+            logger.error("Type error generating query statement - %s", ex)
             return self._make_empty_multi_fetch_result(time_info, paths)
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
@@ -506,7 +488,6 @@ class InfluxDBFinder(object):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
-        # import ipdb; ipdb.set_trace()
         data = read_influxdb_values(data, paths, path_measurements)
         timer.stop()
         # Graphite API requires that data contain keys for

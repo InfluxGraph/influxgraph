@@ -373,7 +373,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             int(self.end_time.strftime("%s")))
         self.assertTrue(data[cpu_metric_nodes[0].path][-1] == idle_data['value'],
                         msg="Got incorrect data from multi-tag query")
-        # import ipdb; ipdb.set_trace()
 
     def test_template_multi_tags_multi_templ_multi_nodes(self):
         self.client.drop_database(self.db_name)
@@ -767,7 +766,9 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             elif tags_env2_h2['env'] in metric and tags_env2_h2['host'] in metric:
                 fields = env2_h2_fields
             field = [f for f in list(fields.keys()) if metric.endswith(f)][0]
-            self.assertTrue(data[metric][-1] == fields[field])
+            self.assertTrue(data[metric][-1] == fields[field],
+                            msg="Incorrect data for metric %s. Should be %s, got %s" % (
+                                metric, fields[field], data[metric][-1]))
 
     def test_field_data_part_or_no_template_match(self):
         del self.finder

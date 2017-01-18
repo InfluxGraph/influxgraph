@@ -25,10 +25,10 @@ import memcache
 from .constants import INFLUXDB_AGGREGATIONS
 try:
     from .ext.classes.tree import NodeTreeIndex
-    from .ext.templates import get_series_with_tags
+    from .ext.templates import get_series_with_tags, heapsort, _make_path_from_template
 except ImportError:
     from .classes.tree import NodeTreeIndex
-    from .templates import get_series_with_tags
+    from .templates import get_series_with_tags, heapsort, _make_path_from_template
 
 def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
@@ -162,39 +162,34 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
-def _find_metric_name(measurement_paths, tag_sets, field, fields):
-    for tag_set in tag_sets:
-        for path in measurement_paths:
-            if field in fields \
-            and field in path \
-            and len([t for t in tag_set if t in path]) == len(tag_set):
-                del measurement_paths[measurement_paths.index(path)]
-                return path
-
-def _retrieve_named_field_data(infl_data, path_measurements, measurement, _data):
+def _retrieve_named_field_data(infl_data, path_measurements, measurement, tags, _data):
     measurement_paths = path_measurements[measurement]['paths'][:]
-    tag_sets = path_measurements[measurement]['tags'][:]
-    field_keys = next(infl_data.get_points(measurement)).keys()
+    field_keys = next(infl_data.get_points(measurement, tags)).keys()
     point_fields = sorted([k for k in field_keys if k != 'time'])
     for field in point_fields:
-        metric = _find_metric_name(
-            measurement_paths, tag_sets, field,
-            path_measurements[measurement]['fields'])
-        if not metric:
+        split_path = []
+        _make_path_from_template(
+            split_path, measurement,
+            path_measurements[measurement]['template'], tags.items())
+        split_path = [p[1] for p in heapsort(split_path)]
+        split_path.append(field)
+        metric = '.'.join(split_path)
+        if not metric in measurement_paths:
             continue
+        del measurement_paths[measurement_paths.index(metric)]
         _data[metric] = [d[field]
-                         for d in infl_data.get_points(measurement)]
+                         for d in infl_data.get_points(measurement, tags)]
     path_measurements[measurement]['paths'] = measurement_paths
 
 def _retrieve_field_data(infl_data, path_measurements, measurement,
-                         metric, _data):
+                         metric, tags, _data):
     # Retrieve value field data
     if 'value' in  path_measurements[measurement]['fields']:
         _data[metric] = [d['value']
-                         for d in infl_data.get_points(measurement)]
+                         for d in infl_data.get_points(measurement, tags)]
     # Retrieve non value named field data with fields from path_measurements
     _retrieve_named_field_data(infl_data, path_measurements,
-                                measurement, _data)
+                                measurement, tags, _data)
 
 def read_influxdb_values(influxdb_data, paths, path_measurements):
     """Return key -> values dict for values from InfluxDB data"""
@@ -206,6 +201,7 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
     for infl_data in influxdb_data:
         for infl_keys in infl_data.keys():
             measurement = infl_keys[0]
+            tags = infl_keys[1]
             if not path_measurements:
                 if not measurement in paths:
                     continue
@@ -224,7 +220,7 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
             if metric not in paths:
                 continue
             _retrieve_field_data(infl_data, path_measurements,
-                                 measurement, metric, _data)
+                                 measurement, metric, tags, _data)
     return _data
 
 def gen_memcache_pattern_key(pattern):
