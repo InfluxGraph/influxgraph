@@ -162,15 +162,13 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
-def _retrieve_named_field_data(infl_data, path_measurements, measurement, tags, _data):
-    measurement_paths = path_measurements[measurement]['paths'][:]
-    field_keys = next(infl_data.get_points(measurement, tags)).keys()
-    point_fields = sorted([k for k in field_keys if k != 'time'])
-    for field in point_fields:
+def _retrieve_named_field_data(infl_data, measurement_data, measurement, tags, _data):
+    measurement_paths = measurement_data[measurement]['paths'][:]
+    for field in measurement_data[measurement]['fields']:
         split_path = []
         _make_path_from_template(
             split_path, measurement,
-            path_measurements[measurement]['template'], tags.items())
+            measurement_data[measurement]['template'], tags.items())
         split_path = [p[1] for p in heapsort(split_path)]
         split_path.append(field)
         metric = '.'.join(split_path)
@@ -178,20 +176,30 @@ def _retrieve_named_field_data(infl_data, path_measurements, measurement, tags, 
             continue
         del measurement_paths[measurement_paths.index(metric)]
         _data[metric] = [d[field]
-                         for d in infl_data.get_points(measurement, tags)]
-    path_measurements[measurement]['paths'] = measurement_paths
+                         for d in infl_data.get_points(measurement=measurement,
+                                                       tags=tags)]
+    measurement_data[measurement]['paths'] = measurement_paths
 
-def _retrieve_field_data(infl_data, path_measurements, measurement,
+def _retrieve_field_data(infl_data, measurement_data, measurement,
                          metric, tags, _data):
     # Retrieve value field data
-    if 'value' in  path_measurements[measurement]['fields']:
+    if 'value' in  measurement_data[measurement]['fields']:
         _data[metric] = [d['value']
-                         for d in infl_data.get_points(measurement, tags)]
-    # Retrieve non value named field data with fields from path_measurements
-    _retrieve_named_field_data(infl_data, path_measurements,
-                                measurement, tags, _data)
+                         for d in infl_data.get_points(measurement=measurement,
+                                                       tags=tags)]
+        return
+    # Retrieve non value named field data with fields from measurement_data
+    _retrieve_named_field_data(infl_data, measurement_data,
+                               measurement, tags, _data)
 
-def read_influxdb_values(influxdb_data, paths, path_measurements):
+def read_measurement_metric_values(infl_data, measurement, paths, _data):
+    if not measurement in paths:
+        return
+    _data[measurement] = [d['value']
+                          for d in infl_data.get_points(
+                              measurement=measurement)]
+
+def read_influxdb_values(influxdb_data, paths, measurement_data):
     """Return key -> values dict for values from InfluxDB data"""
     _data = {}
     if not isinstance(influxdb_data, list):
@@ -202,24 +210,20 @@ def read_influxdb_values(influxdb_data, paths, path_measurements):
         for infl_keys in infl_data.keys():
             measurement = infl_keys[0]
             tags = infl_keys[1]
-            if not path_measurements:
-                if not measurement in paths:
-                    continue
-                _data[measurement] = [d['value']
-                                      for d in infl_data.get_points(measurement)]
+            if not measurement_data:
+                read_measurement_metric_values(infl_data, measurement,
+                                               paths, _data)
                 continue
-            elif not measurement in path_measurements:
+            elif not measurement in measurement_data:
                 continue
             if measurement not in seen_measurements:
                 seen_measurements = set(tuple(seen_measurements) + (measurement,))
                 m_path_ind = 0
-            elif m_path_ind >= len(path_measurements[measurement]['paths']):
+            elif m_path_ind >= len(measurement_data[measurement]['paths']):
                 m_path_ind = 0
-            metric = path_measurements[measurement]['paths'][m_path_ind]
+            metric = measurement_data[measurement]['paths'][m_path_ind]
             m_path_ind += 1
-            if metric not in paths:
-                continue
-            _retrieve_field_data(infl_data, path_measurements,
+            _retrieve_field_data(infl_data, measurement_data,
                                  measurement, metric, tags, _data)
     return _data
 

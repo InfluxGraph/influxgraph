@@ -330,7 +330,7 @@ class InfluxDBFinder(object):
 
     def _get_template_values_from_paths(self, paths, _filter, template,
                                         default_tags, separator,
-                                        path_measurements):
+                                        measurement_data):
         _measurements = deque()
         _tags = {}
         _fields = deque()
@@ -353,19 +353,19 @@ class InfluxDBFinder(object):
             if not field in _fields:
                 _fields.append(field)
             matched_paths.append(path)
-            path_measurements.setdefault(measurement, {}).setdefault(
+            measurement_data.setdefault(measurement, {}).setdefault(
                 'paths', []).append(path)
-            if not field in path_measurements[measurement].setdefault(
+            if not field in measurement_data[measurement].setdefault(
                     'fields', []):
-                path_measurements[measurement].setdefault(
+                measurement_data[measurement].setdefault(
                     'fields', []).append(field)
-            path_measurements[measurement].setdefault(
+            measurement_data[measurement].setdefault(
                 'template', template)
         return _measurements, _tags, _fields, matched_paths
 
     def _get_all_template_values(self, paths):
         paths = paths[:]
-        path_measurements = {}
+        measurement_data = {}
         measurements, tags, fields = deque(), deque(), set()
         for (_filter, template, default_tags, separator) in self.graphite_templates:
             # One influx measurement queried per template
@@ -374,7 +374,7 @@ class InfluxDBFinder(object):
             _measurements, _tags, _fields, matched_paths = \
               self._get_template_values_from_paths(
                   paths, _filter, template, default_tags, separator,
-                  path_measurements)
+                  measurement_data)
             if _measurements:
                 # Found template match for path, append query data and
                 # remove matched paths so we do not try to match them again
@@ -383,7 +383,7 @@ class InfluxDBFinder(object):
                 fields = fields.union(_fields)
                 for path in matched_paths:
                     del paths[paths.index(path)]
-        return measurements, tags, fields, path_measurements
+        return measurements, tags, fields, measurement_data
 
     def _gen_query(self, measurements, tags, fields, retention):
         groupings = set([k for t in tags for k in t.keys()])
@@ -401,11 +401,11 @@ class InfluxDBFinder(object):
         return measurements, _tags, fields, groupings
 
     def _gen_query_values_from_templates(self, paths, retention):
-        measurements, tags, fields, path_measurements = \
+        measurements, tags, fields, measurement_data = \
           self._get_all_template_values(paths)
         measurements, tags, fields, groupings = self._gen_query(
             measurements, tags, fields, retention)
-        return measurements, tags, fields, groupings, path_measurements
+        return measurements, tags, fields, groupings, measurement_data
 
     def _gen_query_values(self, paths, retention):
         if self.graphite_templates:
@@ -437,12 +437,12 @@ class InfluxDBFinder(object):
         aggregation_func = self._gen_aggregation_func(paths)
         memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
                                         paths)
-        measurements, tags, fields, groupings, path_measurements = \
+        measurements, tags, fields, groupings, measurement_data = \
           self._gen_query_values(paths, retention)
         query = self._gen_infl_stmt(measurements, tags, fields, groupings,
                                     start_time, end_time, aggregation_func,
                                     interval)
-        return query, memcache_key, path_measurements
+        return query, memcache_key, measurement_data
 
     def _make_empty_multi_fetch_result(self, time_info, paths):
         data = {}
@@ -467,7 +467,7 @@ class InfluxDBFinder(object):
             return self._make_empty_multi_fetch_result(
                 time_info, [n.path for n in nodes])
         try:
-            query, memcache_key, path_measurements = self._gen_influxdb_stmt(
+            query, memcache_key, measurement_data = self._gen_influxdb_stmt(
                 start_time, end_time, paths, interval)
         except TypeError as ex:
             logger.error("Type error generating query statement - %s", ex)
@@ -488,7 +488,7 @@ class InfluxDBFinder(object):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
-        data = read_influxdb_values(data, paths, path_measurements)
+        data = read_influxdb_values(data, paths, measurement_data)
         timer.stop()
         # Graphite API requires that data contain keys for
         # all requested paths even if they have no datapoints
