@@ -186,8 +186,8 @@ influxdb:
   # on the fly for each query.
   # 
   # Eg to use a retention policy `30m` for intervals of thirty minutes and
-  # above, `10m` for queries with a time interval between thirty to ten minutes
-  # and `default` for intervals at or below five minutes:
+  # above, `10m` for queries with a time interval thirty minutes or less and
+  # ten minutes or above and `default` for intervals at or below five minutes
   retention_policies:
     1800: 30m
     600: 10m
