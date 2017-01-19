@@ -192,7 +192,7 @@ def _retrieve_field_data(infl_data, measurement_data, measurement,
     _retrieve_named_field_data(infl_data, measurement_data,
                                measurement, tags, _data)
 
-def read_measurement_metric_values(infl_data, measurement, paths, _data):
+def _read_measurement_metric_values(infl_data, measurement, paths, _data):
     if not measurement in paths:
         return
     _data[measurement] = [d['value']
@@ -200,7 +200,7 @@ def read_measurement_metric_values(infl_data, measurement, paths, _data):
                               measurement=measurement)]
 
 def read_influxdb_values(influxdb_data, paths, measurement_data):
-    """Return key -> values dict for values from InfluxDB data"""
+    """Return metric path -> datapoints dict for values from InfluxDB data"""
     _data = {}
     if not isinstance(influxdb_data, list):
         influxdb_data = [influxdb_data]
@@ -211,8 +211,8 @@ def read_influxdb_values(influxdb_data, paths, measurement_data):
             measurement = infl_keys[0]
             tags = infl_keys[1]
             if not measurement_data:
-                read_measurement_metric_values(infl_data, measurement,
-                                               paths, _data)
+                _read_measurement_metric_values(infl_data, measurement,
+                                                paths, _data)
                 continue
             elif not measurement in measurement_data:
                 continue
