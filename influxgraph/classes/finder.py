@@ -431,18 +431,16 @@ class InfluxDBFinder(object):
             query_fields, measurements, where_clause, group_by,)
         return query
 
-    def _gen_influxdb_stmt(self, start_time, end_time, paths, interval):
+    def _gen_influxdb_stmt(self, start_time, end_time, paths, interval,
+                           aggregation_func):
         retention = get_retention_policy(interval, self.retention_policies) \
           if self.retention_policies else None
-        aggregation_func = self._gen_aggregation_func(paths)
-        memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
-                                        paths)
         measurements, tags, fields, groupings, measurement_data = \
           self._gen_query_values(paths, retention)
         query = self._gen_infl_stmt(measurements, tags, fields, groupings,
                                     start_time, end_time, aggregation_func,
                                     interval)
-        return query, memcache_key, measurement_data
+        return query, measurement_data
 
     def _make_empty_multi_fetch_result(self, time_info, paths):
         data = {}
@@ -466,12 +464,9 @@ class InfluxDBFinder(object):
         if not len(paths) > 0:
             return self._make_empty_multi_fetch_result(
                 time_info, [n.path for n in nodes])
-        try:
-            query, memcache_key, measurement_data = self._gen_influxdb_stmt(
-                start_time, end_time, paths, interval)
-        except TypeError as ex:
-            logger.error("Type error generating query statement - %s", ex)
-            return self._make_empty_multi_fetch_result(time_info, paths)
+        aggregation_func = self._gen_aggregation_func(paths)
+        memcache_key = gen_memcache_key(start_time, end_time, aggregation_func,
+                                        paths)
         data = self.memcache.get(memcache_key) if self.memcache else None
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
@@ -479,6 +474,20 @@ class InfluxDBFinder(object):
         logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
                      datetime.datetime.fromtimestamp(float(end_time)), interval)
+        try:
+            query, measurement_data = self._gen_influxdb_stmt(
+                start_time, end_time, paths, interval, aggregation_func)
+        except TypeError as ex:
+            logger.error("Type error generating query statement - %s", ex)
+            return self._make_empty_multi_fetch_result(time_info, paths)        
+        data = self._run_infl_query(query, paths, measurement_data)
+        if self.memcache:
+            self.memcache.set(memcache_key, data,
+                              time=interval,
+                              min_compress_len=50)
+        return time_info, data
+
+    def _run_infl_query(self, query, paths, measurement_data):
         timer_name = ".".join([
             'service_is_graphite-api', 'ext_service_is_influxdb',
             'target_type_is_gauge', 'unit_is_ms', 'action_is_select_datapoints']
@@ -494,11 +503,7 @@ class InfluxDBFinder(object):
         # all requested paths even if they have no datapoints
         for key in paths:
             data.setdefault(key, [])
-        if self.memcache:
-            self.memcache.set(memcache_key, data,
-                              time=interval,
-                              min_compress_len=50)
-        return time_info, data
+        return data
 
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
