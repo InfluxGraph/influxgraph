@@ -86,6 +86,8 @@ def run_setup(ext_modules):
             'Programming Language :: Python',
             'Programming Language :: Python :: 2',
             'Programming Language :: Python :: 3',
+            'Topic :: Scientific/Engineering :: Information Analysis',
+            'Topic :: Scientific/Engineering :: Visualization',
             'Topic :: System :: Monitoring',
             ],
         install_requires=['influxdb>=3.0.0', 'graphite-api>=1.1.2', 'python-memcached'],
