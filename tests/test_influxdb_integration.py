@@ -576,7 +576,16 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertEqual(len(data[self.series1]), len(reader_data),
                          msg="Reader cached data does not match finder cached data"
                          " for series %s" % (self.series1,))
-    
+        fake_nodes = [influxgraph.classes.leaf.InfluxDBLeafNode('fake.node', finder.reader)]
+        fake_nodes_memcache_key = influxgraph.utils.gen_memcache_key(
+            int(self.start_time.strftime("%s")), int(self.end_time.strftime("%s")),
+            aggregation_func, [n.path for n in fake_nodes])
+        time_info, data = finder.fetch_multi(
+            fake_nodes, int(self.start_time.strftime("%s")),
+            int(self.end_time.strftime("%s")))
+        self.assertTrue(fake_nodes[0].path in data)
+        self.assertFalse(finder.memcache.get(fake_nodes_memcache_key))
+
     def test_reader_memcache_integration(self):
         reader = influxgraph.InfluxDBReader(InfluxDBClient(
             database=self.db_name), self.series1, influxgraph.utils.NullStatsd(),

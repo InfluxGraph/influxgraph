@@ -481,7 +481,8 @@ class InfluxDBFinder(object):
             logger.error("Type error generating query statement - %s", ex)
             return self._make_empty_multi_fetch_result(time_info, paths)        
         data = self._run_infl_query(query, paths, measurement_data)
-        if self.memcache:
+        # Do not cache empty responses
+        if self.memcache and sum([len(vals) for vals in data.values()]) > 0:
             self.memcache.set(memcache_key, data,
                               time=interval,
                               min_compress_len=50)
