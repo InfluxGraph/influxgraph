@@ -8,6 +8,7 @@ import time
 import json
 from gzip import GzipFile
 from random import randint
+import logging
 
 from influxdb import InfluxDBClient
 import influxdb.exceptions
@@ -17,8 +18,12 @@ from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
      _INFLUXDB_CLIENT_PARAMS
+from influxgraph.classes.finder import logger as finder_logger
 from influxgraph.classes.tree import NodeTreeIndex
 import memcache
+
+finder_logger.setLevel(logging.DEBUG)
+logging.basicConfig()
 
 os.environ['TZ'] = 'UTC'
 
@@ -166,7 +171,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
     def test_get_all_series(self):
         """ """
         query = Query('*')
-        series = self.finder.get_all_series(cache=True, limit=1)
+        series = self.finder.get_all_series(cache=True)
         self.assertTrue(len(series) == len(self.series),
                         msg="Got series list %s for root branch query - expected %s" % (
                             series, self.series,))
@@ -282,7 +287,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertEqual(branches, expected,
                          msg="Got branches list %s - wanted %s" % (
                              branches, expected,))
-    
+
     def test_multi_fetch_data(self):
         """Test fetching data for a single series by name"""
         nodes = list(self.finder.find_nodes(Query(self.series1)))
@@ -462,8 +467,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         # Give series loader more than long enough to finish
         time.sleep(_loader_interval + 2)
         if finder.memcache:
-            self.assertTrue(finder.memcache.get(loader_memcache_key),
-                            msg="No memcache data for series loader query %s" % (query.pattern,))
+            self.assertTrue(finder.memcache.get(loader_memcache_key))
         del finder
 
     def test_reindex(self):
@@ -486,14 +490,16 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_get_series_pagination(self):
         query, limit = Query('*'), 5
+        self.finder.loader_limit = limit
         series = self.finder.get_all_series(
-            query, limit=limit)
+            query)
         self.assertTrue(len(series) == len(self.series),
                         msg="Did not get data for all series with page limit %s" % (
                             limit,))
         query, limit = Query('*'), 10
+        self.finder.loader_limit = limit
         series = self.finder.get_all_series(
-            query, limit=limit)
+            query)
         self.assertTrue(len(series) == len(self.series),
                         msg="Did not get data for all series with page limit %s" % (
                             limit,))
@@ -529,8 +535,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertEqual(finder.memcache.server_max_value_length, 1024**2*20,
                          msg="Configured max value of %s MB, got %s instead" % (
                              1024**2*20, finder.memcache.server_max_value_length,))
-        node_names = list(finder.get_all_series(
-            limit=limit))
+        finder.loader_limit = limit
+        node_names = list(finder.get_all_series())
         self.assertTrue(self.series[0] in node_names,
                         msg="Node list does not contain prefix '%s' - %s" % (
                             self.metric_prefix, node_names))
@@ -539,7 +545,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 self.assertTrue(finder.memcache.get(memcache_key),
                                 msg="No memcache data for key %s" % (memcache_key,))
         limit = 1
-        nodes = sorted(list(finder.get_all_series(limit=limit)))
+        finder.loader_limit = limit
+        nodes = sorted(list(finder.get_all_series()))
         expected = sorted(self.series)
         self.assertEqual(nodes, expected,
                          msg="Did not get correct series list - "
@@ -592,7 +599,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             memcache=influxgraph.utils.make_memcache_client('localhost'))
         self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),
                                      int(self.end_time.strftime("%s"))))
-    
+
     def test_memcache_default_config_values(self):
         del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
@@ -620,7 +627,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                              [self.metric_prefix], node_names,))
         self.assertFalse(nodes[0].is_leaf,
                          msg="Root branch node incorrectly marked as leaf node")
-    
+
     def test_parent_branch_series(self):
         prefix = 'branch_test_prefix'
         written_branches = ['branch_node1.sub_branch1.sub_branch2.sub_branch3',
@@ -872,6 +879,33 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             self.assertEqual([n.name for n in self.finder.find_nodes(Query('*'))], expected)
         finally:
             os.unlink(_tempfile.name)
+
+    def test_loader_limit(self):
+        del self.finder
+        config = { 'influxdb' : { 'host' : 'localhost',
+                                  'port' : 8086,
+                                  'user' : 'root',
+                                  'pass' : 'root',
+                                  'db' : self.db_name,
+                                  'loader_limit': 1,
+                                  'series_loader_interval': 1,
+                                  'memcache' : { 'host': 'localhost',
+                                                 'ttl' : 60,
+                                                 },
+                                                 }}
+        loader_memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
+            '*', str(config['influxdb']['loader_limit']), str(0)]))
+        try:
+            _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+            _memcache.delete(loader_memcache_key)
+            _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        except NameError:
+            pass
+        self.finder = influxgraph.InfluxDBFinder(config)
+        self.assertEqual(self.finder.loader_limit, config['influxdb']['loader_limit'])
+        time.sleep(config['influxdb']['series_loader_interval'] * 2)
+        if self.finder.memcache:
+            self.assertTrue(self.finder.memcache.get(loader_memcache_key))
 
 if __name__ == '__main__':
     unittest.main()

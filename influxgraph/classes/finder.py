@@ -66,7 +66,8 @@ class InfluxDBFinder(object):
     __slots__ = ('client', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
-                 'index_lock', 'index_path', 'graphite_templates',)
+                 'index_lock', 'index_path', 'graphite_templates',
+                 'loader_limit')
 
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
@@ -95,6 +96,7 @@ class InfluxDBFinder(object):
             influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
         series_loader_interval = influxdb_config.get('series_loader_interval', 900)
         reindex_interval = influxdb_config.get('reindex_interval', 900)
+        self.loader_limit = influxdb_config.get('loader_limit', LOADER_LIMIT)
         self.deltas = influxdb_config.get('deltas', None)
         self.retention_policies = influxdb_config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
@@ -183,19 +185,19 @@ class InfluxDBFinder(object):
             logger.addHandler(_handler)
             _handler.setFormatter(formatter)
 
-    def get_series(self, cache=True, limit=LOADER_LIMIT, offset=0):
+    def get_series(self, cache=True, offset=0):
         """Retrieve series names from InfluxDB according to query pattern
 
         :param query: Query to run to get series names
         :type query: :mod:`graphite_api.storage.FindQuery` compatible class
         """
         memcache_key = gen_memcache_pattern_key("_".join([
-            '*', str(limit), str(offset)]))
+            '*', str(self.loader_limit), str(offset)]))
         cached_series = self.memcache.get(memcache_key) \
           if self.memcache and cache else None
         if cached_series is not None:
             logger.debug("Found cached series for limit %s, "
-                         "offset %s", limit, offset)
+                         "offset %s", self.loader_limit, offset)
             return cached_series
         timer_name = ".".join(['service_is_graphite-api',
                                'ext_service_is_influxdb',
@@ -204,17 +206,17 @@ class InfluxDBFinder(object):
                                'action_is_get_series'])
         timer = self.statsd_client.timer(timer_name)
         timer.start()
-        series = self._get_series(limit=limit, offset=offset)
+        series = self._get_series(offset=offset)
         timer.stop()
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
         return series
 
-    def _get_series(self, limit=LOADER_LIMIT, offset=0):
+    def _get_series(self, offset=0):
         memcache_key = gen_memcache_pattern_key("_".join([
-            '*', str(limit), str(offset)]))
-        _query = "SHOW SERIES LIMIT %s OFFSET %s" % (limit, offset,)
+            '*', str(self.loader_limit), str(offset)]))
+        _query = "SHOW SERIES LIMIT %s OFFSET %s" % (self.loader_limit, offset,)
         logger.debug("Series loader calling influxdb with query - %s", _query)
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         series = [d.get('key') for k in data for d in k if d]
@@ -223,7 +225,7 @@ class InfluxDBFinder(object):
                               min_compress_len=50)
         return series
 
-    def _store_last_offset(self, query, limit, offset):
+    def _store_last_offset(self, query_pattern, limit, offset):
         if offset and self.memcache:
             # Store empty list at offset+last limit to indicate
             # that this is the last page
@@ -231,41 +233,43 @@ class InfluxDBFinder(object):
             logger.debug("Pagination finished for query pattern %s "
                          "- storing empty array for limit %s and "
                          "last offset %s",
-                         query.pattern, limit, offset,)
+                         query_pattern, limit, offset,)
             memcache_key = gen_memcache_pattern_key("_".join([
-                query.pattern, str(limit), str(last_offset)]))
+                query_pattern, str(limit), str(last_offset)]))
             self.memcache.set(memcache_key, [], time=self.memcache_ttl)
 
     def get_all_series(self, cache=True,
-                       limit=LOADER_LIMIT, offset=0, _data=None):
+                       offset=0, _data=None, **kwargs):
         """Retrieve all series"""
         data = self.get_series(
-            cache=cache, limit=limit, offset=offset)
-        return self._pagination_runner(data, Query('*'), self.get_all_series, cache=cache,
-                                       limit=limit, offset=offset)
+            cache=cache, offset=offset)
+        return self._pagination_runner(data, '*', self.get_all_series,
+                                       limit=self.loader_limit,
+                                       cache=cache,
+                                       offset=offset)
 
-    def get_all_series_list(self, limit=LOADER_LIMIT, offset=0, _data=None,
+    def get_all_series_list(self, offset=0, _data=None,
                             *args, **kwargs):
         """Retrieve all series for series loader"""
-        query = Query('*')
-        data = self._get_series(limit=limit, offset=offset)
-        return self._pagination_runner(data, query, self.get_all_series_list,
-                                       limit=limit, offset=offset)
+        query_pattern = '*'
+        data = self._get_series(offset=offset)
+        return self._pagination_runner(data, query_pattern, self.get_all_series_list,
+                                       limit=self.loader_limit, offset=offset)
 
-    def _pagination_runner(self, data, query, get_series_func,
+    def _pagination_runner(self, data, query_pattern, get_series_func,
                            limit=None, offset=None, _data=None,
                            *args, **kwargs):
         if not _data:
             _data = []
         if data:
             if len(data) < limit:
-                self._store_last_offset(query, limit, offset)
+                self._store_last_offset(query_pattern, limit, offset)
                 return _data + data
             offset = limit + offset
             return data + get_series_func(
                 *args, limit=limit, offset=offset,
                 _data=_data, **kwargs)
-        self._store_last_offset(query, limit, offset)
+        self._store_last_offset(query_pattern, limit, offset)
         return data
 
     def _series_loader(self, interval=900):
