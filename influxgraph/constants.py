@@ -35,6 +35,9 @@ _INFLUXDB_CLIENT_PARAMS = {'epoch': 's'}
 SERIES_LOADER_MUTEX_KEY = 'influxgraph_series_loader'
 MEMCACHE_SERIES_DEFAULT_TTL = 1800
 LOADER_LIMIT = 100000
+# Fill params like 'null' that leave gaps are not valid for use with Graphite
+# API and are purposefully not included here
+FILL_PARAMS = ['previous', 'linear']
 
 # Memcache key for field keys list
 _MEMCACHE_FIELDS_KEY = 'infl_fields_key'

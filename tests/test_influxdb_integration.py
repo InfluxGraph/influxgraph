@@ -51,7 +51,9 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(self.client.write_points(data))
 
     def setUp(self):
+        # Num datapoints is number of non-zero non-null datapoints
         self.step, self.num_datapoints, self.db_name = 60, 31, 'integration_test'
+        self.all_datapoints_num = 61
         self.start_time, self.end_time = (datetime.datetime.utcnow() - datetime.timedelta(hours=1)), \
           datetime.datetime.utcnow()
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
@@ -906,6 +908,27 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         time.sleep(config['influxdb']['series_loader_interval'] * 2)
         if self.finder.memcache:
             self.assertTrue(self.finder.memcache.get(loader_memcache_key))
+
+    def test_fill_param_config(self):
+        self.config['influxdb']['fill'] = 0
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        self.assertEqual(self.finder.fill_param, self.config['influxdb']['fill'])
+        nodes = list(self.finder.find_nodes(Query(self.series1)))
+        time_info, data = self.finder.fetch_multi(nodes,
+                                                  int(self.start_time.strftime("%s")),
+                                                  int(self.end_time.strftime("%s")))
+        self.assertTrue(self.series1 in data,
+                        msg="Did not get data for requested series %s - got data for %s" % (
+                            self.series1, data.keys(),))
+        self.assertEqual(time_info,
+                         (int(self.start_time.strftime("%s")),
+                          int(self.end_time.strftime("%s")),
+                         self.step),
+                         msg="Time info and step do not match our requested values")
+        self.assertTrue(len(data[self.series1]) == self.all_datapoints_num,
+                        msg="Expected %s datapoints - got %s" % (
+                            self.all_datapoints_num, len(data[self.series1]),))
+        self.assertTrue(data[self.series1][-1] == self.config['influxdb']['fill'])
 
 if __name__ == '__main__':
     unittest.main()

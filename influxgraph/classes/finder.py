@@ -38,7 +38,7 @@ from influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
-     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY
+     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      Query, get_retention_policy, _compile_aggregation_patterns, parse_series, \
@@ -67,7 +67,7 @@ class InfluxDBFinder(object):
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path', 'graphite_templates',
-                 'loader_limit')
+                 'loader_limit', 'fill_param')
 
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
@@ -94,6 +94,11 @@ class InfluxDBFinder(object):
             memcache_host, memcache_max_value=memcache_conf.get('max_value', 1))
         self.aggregation_functions = _compile_aggregation_patterns(
             influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
+        self.fill_param = influxdb_config.get('fill', 'previous')
+        if self.fill_param not in FILL_PARAMS and not (
+                type(self.fill_param) == int or type(self.fill_param) == float):
+            raise Exception("Configured fill param %s is not a valid parameter "
+                            "nor integer or float number", self.fill_param,)
         series_loader_interval = influxdb_config.get('series_loader_interval', 900)
         reindex_interval = influxdb_config.get('reindex_interval', 900)
         self.loader_limit = influxdb_config.get('loader_limit', LOADER_LIMIT)
@@ -430,7 +435,7 @@ class InfluxDBFinder(object):
         groupings = ', '.join(groupings)
         where_clause = "%s AND %s" % (time_clause, tags,) if tags else \
           time_clause
-        group_by = '%s fill(previous)' % (groupings,)
+        group_by = '%s fill(%s)' % (groupings, self.fill_param,)
         query = 'select %s from %s where %s GROUP BY %s' % (
             query_fields, measurements, where_clause, group_by,)
         return query
