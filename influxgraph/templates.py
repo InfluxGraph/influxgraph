@@ -192,8 +192,11 @@ def get_series_with_tags(paths, all_fields, graphite_templates,
         # No template match
         return series
     if 'field' in template.values() or 'field*' in template.values():
-        _add_fields_to_paths(
-            all_fields[paths[0]], split_path, series, separator=separator)
+        try:
+            _add_fields_to_paths(
+                all_fields[paths[0]], split_path, series, separator=separator)
+        except KeyError:
+            logger.warning("Measurement %s not in field list", paths[0])
     else:
         series.append(split_path)
     return series

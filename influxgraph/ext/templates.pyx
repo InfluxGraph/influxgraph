@@ -16,6 +16,9 @@
 """C Extension of performance critical templates modules functions"""
 
 from heapq import heappush, heappop
+import logging
+
+logger = logging.getLogger('influxgraph')
 
 # py_byte_string = 'a'
 # from cpython cimport array
@@ -47,8 +50,11 @@ cpdef list get_series_with_tags(list paths, dict all_fields,
         return series
     cdef list values = list(template.values())
     if 'field' in values or 'field*' in values:
-        _add_fields_to_paths(
-            all_fields[paths[0]], split_path, series, separator)
+        try:
+            _add_fields_to_paths(
+                all_fields[paths[0]], split_path, series, separator)
+        except KeyError:
+            logger.warning("Measurement %s not in field list", paths[0])
     else:
         series.append(split_path)
     return series
