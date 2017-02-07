@@ -31,6 +31,14 @@ class TemplatesCExtTestCase(unittest.TestCase):
         self.graphite_series = ["%s" % (".".join(
             [self.tags[p] for p in self.paths] + [m])) for m in self.measurements]
 
+    def test_parse_series_missing_fields(self):
+        templates = parse_influxdb_graphite_templates(
+            ['measurement.field*'])
+        paths = ['series1,id=1', 'series2,id=1']
+        fields = {}
+        series = parse_series(paths, fields, templates)
+        self.assertTrue(series.index.children is None)
+
     def test_template_parse(self):
         measurements = [''.join([choice(ascii_letters) for _ in range(10)]) for _ in range(10)]
         series = [u'%s,a=1,b=2,c=3,d=4,e=5,f=6,g=7,m=8,n=9,j=10' % (m,) for m in measurements]
