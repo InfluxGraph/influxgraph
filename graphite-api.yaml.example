@@ -204,3 +204,18 @@ influxdb:
   # 
   # Example query: SHOW SERIES LIMIT <loader_limit> <..>
   # loader_limit: 100000
+
+  # 
+  ## Fill function parameter to use on data queries
+  # 
+  # Valid values are integers, floats and parameters like 'previous' or 
+  # 'linear' as defined in influxgraph.constants.FILL_PARAMS
+  # 
+  # Parameters like `null` or `none` that leave gaps in data are not accepted
+  # due to Graphite API requirements.
+  # 
+  # For example, with `fill: 1` all queries will use 
+  # 'SELECT <..> fill(1)' and missing data values will be filled 
+  # with `1`.
+  # 
+  # fill: previous
