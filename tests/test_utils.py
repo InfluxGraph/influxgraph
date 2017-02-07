@@ -35,7 +35,7 @@ class InfluxGraphUtilsTestCase(unittest.TestCase):
                          msg="Expected retention policy %s for interval %s - got %s" % (
                              '30min', 1900, policy))
         self.assertFalse(influxgraph.utils.get_retention_policy(60, None))
-    
+
     def test_null_statsd(self):
         statsd = influxgraph.utils.NullStatsd()
         statsd.timer('key', 'val')

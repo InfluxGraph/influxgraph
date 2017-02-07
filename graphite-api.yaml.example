@@ -192,3 +192,15 @@ influxdb:
     1800: 30m
     600: 10m
     300: default
+
+  # 
+  ## Series loader configuration
+  # 
+  # Row limit of series loader queries
+  # 
+  # Depending on InfluxDB data and machine memory sizes, this may need to be
+  # lowered to avoid InfluxDB returning partial results due to not enough 
+  # available memory.
+  # 
+  # Example query: SHOW SERIES LIMIT <loader_limit> <..>
+  # loader_limit: 100000
