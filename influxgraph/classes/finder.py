@@ -102,6 +102,9 @@ class InfluxDBFinder(object):
         series_loader_interval = influxdb_config.get('series_loader_interval', 900)
         reindex_interval = influxdb_config.get('reindex_interval', 900)
         self.loader_limit = influxdb_config.get('loader_limit', LOADER_LIMIT)
+        if type(self.loader_limit) != int:
+            raise Exception("Configured loader limit %s is not an integer",
+                            self.loader_limit)
         self.deltas = influxdb_config.get('deltas', None)
         self.retention_policies = influxdb_config.get('retention_policies', None)
         logger.debug("Configured aggregation functions - %s",

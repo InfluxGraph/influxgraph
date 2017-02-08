@@ -11,6 +11,7 @@ influxdb:
   # port: 8086
   # user: root
   # pass: root
+  # ssl: false
   
   ## Logging configuration
   # 

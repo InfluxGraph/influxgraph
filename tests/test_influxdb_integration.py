@@ -908,6 +908,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         time.sleep(config['influxdb']['series_loader_interval'] * 2)
         if self.finder.memcache:
             self.assertTrue(self.finder.memcache.get(loader_memcache_key))
+        config['influxdb']['loader_limit'] = 'bad_limit'
+        self.assertRaises(Exception, influxgraph.InfluxDBFinder, config)
 
     def test_fill_param_config(self):
         self.config['influxdb']['fill'] = 0
