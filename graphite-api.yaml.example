@@ -199,12 +199,14 @@ influxdb:
   # 
   # Row limit of series loader queries
   # 
+  # Should _not_ exceed max-row-limit setting of InfluxDB
+  # 
   # Depending on InfluxDB data and machine memory sizes, this may need to be
   # lowered to avoid InfluxDB returning partial results due to not enough 
   # available memory.
   # 
   # Example query: SHOW SERIES LIMIT <loader_limit> <..>
-  # loader_limit: 100000
+  # loader_limit: 10000
 
   # 
   ## Fill function parameter to use on data queries

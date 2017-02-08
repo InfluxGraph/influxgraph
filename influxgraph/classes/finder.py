@@ -1,5 +1,5 @@
-# Copyright (C) [2015-] [Thomson Reuters LLC]
-# Copyright (C) [2015-] [Panos Kittenis]
+# Copyright (C) [2015-2017] [Thomson Reuters LLC]
+# Copyright (C) [2015-2017] [Panos Kittenis]
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -627,20 +627,37 @@ class InfluxDBFinder(object):
         self.index = index
         logger.info("Loaded index from disk")
 
-    def get_field_keys(self):
-        """Get field keys for all measurements"""
-        field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
+    def get_all_field_keys(self, offset=0, field_keys=None):
+        """Get all field keys from DB, starting at offset"""
+        field_keys = {} if field_keys is None else field_keys
+        cur_field_keys = self.get_field_keys(offset=offset)
+        if len(cur_field_keys.keys()) == 0:
+            return field_keys
+        for key in cur_field_keys:
+            field_keys.setdefault(key, deque()).extend(cur_field_keys[key])
+        return self.get_all_field_keys(
+            offset=self.loader_limit + offset,
+            field_keys=field_keys)
+
+    def get_field_keys(self, offset=0):
+        """Get one field keys list at offset"""
+        memcache_key = gen_memcache_pattern_key("_".join([
+            _MEMCACHE_FIELDS_KEY, str(self.loader_limit), str(offset)]))
+        field_keys = self.memcache.get(memcache_key) \
           if self.memcache else None
         if field_keys:
-            logger.debug("Found cached field keys")
+            logger.debug("Found cached field keys list for limit %s, offset %s",
+                         self.loader_limit, offset,)
             return field_keys
-        logger.debug("Calling InfluxDB for field keys")
-        data = self.client.query('SHOW FIELD KEYS')
+        logger.debug("Calling InfluxDB for field keys with limit %s, offset %s",
+                     self.loader_limit, offset,)
+        data = self.client.query('SHOW FIELD KEYS LIMIT %s OFFSET %s' % (
+            self.loader_limit, offset,))
         field_keys = {}
         for ((key, _), vals) in data.items():
             field_keys[key] = [val['fieldKey'] for val in vals]
         if self.memcache:
-            if not self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
+            if not self.memcache.set(memcache_key, field_keys,
                                      time=self.memcache_ttl,
                                      min_compress_len=1):
                 logger.error("Could not add field key list to memcache - "

@@ -6,13 +6,18 @@ import unittest
 import datetime
 import time
 from random import randint
+import logging
 import influxdb.exceptions
 import influxgraph
-from influxgraph.utils import Query
+from influxgraph.utils import Query, make_memcache_client, gen_memcache_pattern_key
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, _MEMCACHE_FIELDS_KEY
 from influxdb import InfluxDBClient
 from influxgraph.templates import InvalidTemplateError
+from influxgraph.classes.finder import logger as finder_logger
+
+finder_logger.setLevel(logging.DEBUG)
+logging.basicConfig()
 
 os.environ['TZ'] = 'UTC'
 
@@ -1038,6 +1043,51 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         for metric in cpu_data:
             self.assertTrue(cpu_data[metric][-1] == fields[metric.split('.')[-1]])
 
+    def test_field_list_pagination(self):
+        del self.finder
+        measurements = ['m1', 'm2', 'm3']
+        fields = {'f1': self.randval(),
+                  'f2': self.randval(),
+                  'f3': self.randval(),
+                  'f4': self.randval()}
+        tags = {'t1': 't1_val'}
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, tags, fields)
+        m4_measurement = 'm4'
+        m4_fields = {'f5': self.randval()}
+        self.write_data([m4_measurement], tags, m4_fields)
+        m5_measurement= 'm5'
+        m5_fields = {'f5': self.randval(),
+                     'f6': self.randval(),
+                     'f7': self.randval(),
+                     'f8': self.randval(),
+                     'f9': self.randval(),
+                     'f10': self.randval(),
+                     }
+        self.write_data([m5_measurement], tags, m5_fields)
+        self.config['influxdb']['loader_limit'] = 1
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        fields_page1 = self.finder.get_field_keys()
+        self.assertEqual(len(fields_page1.values()[0]), self.finder.loader_limit)
+        all_db_fields = self.finder.get_all_field_keys()
+        for measurement in measurements:
+            self.assertEqual(len(all_db_fields[measurement]), len(fields.keys()))
+        self.assertEqual(len(all_db_fields['m4']), len(m4_fields.keys()))
+        self.assertEqual(len(all_db_fields['m5']), len(m5_fields.keys()))
+        # Memcached test
+        self.config['influxdb']['memcache'] = {'host': 'localhost'}
+        memcache_client = make_memcache_client(
+            self.config['influxdb']['memcache']['host'])
+        for offset in range(len(m5_fields.keys())):
+            memcache_key = gen_memcache_pattern_key("_".join([
+                _MEMCACHE_FIELDS_KEY, str(
+                    self.config['influxdb']['loader_limit']), str(offset)]))
+            memcache_client.delete(memcache_key)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        self.finder.get_all_field_keys()
+        cached_db_fields = self.finder.get_all_field_keys()
+        self.assertEqual(all_db_fields, cached_db_fields)
 
 if __name__ == '__main__':
     unittest.main()
