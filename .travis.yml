@@ -46,7 +46,7 @@ after_deploy:
     docker push ikuosu/influxgraph:${TRAVIS_TAG};
 after_success:
   - coveralls
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+  - if [ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]; then
       docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
       cd docker &&
       docker build -t ikuosu/influxgraph:latest . &&
