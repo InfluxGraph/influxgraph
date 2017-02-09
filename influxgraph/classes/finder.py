@@ -175,16 +175,17 @@ class InfluxDBFinder(object):
             '- %(message)s')
         level = getattr(logging, level.upper())
         logger.setLevel(level)
+        stdout_handler = logging.StreamHandler()
+        stdout_handler.setFormatter(formatter)
         if not log_file:
+            logger.addHandler(stdout_handler)
             return
         try:
             _handler = WatchedFileHandler(log_file)
         except IOError:
             logger.error("Could not write to %s, falling back to stdout",
                          log_file)
-            handler = logging.StreamHandler()
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
+            logger.addHandler(stdout_handler)
         else:
             logger.addHandler(_handler)
             _handler.setFormatter(formatter)
