@@ -967,16 +967,20 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_memcache_field_keys(self):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
-        self.config['influxdb']['series_loader_interval'] = 2
+        offset = 0
+        memcache_client = make_memcache_client(
+            self.config['influxdb']['memcache']['host'])
+        memcache_key = gen_memcache_pattern_key("_".join([
+            _MEMCACHE_FIELDS_KEY, str(
+                LOADER_LIMIT), str(offset)]))
+        memcache_client.delete(memcache_key)
         self.finder = influxgraph.InfluxDBFinder(self.config)
-        time.sleep(2)
-        self.assertTrue(self.finder.memcache.get(_MEMCACHE_FIELDS_KEY),
+        self.assertTrue(self.finder.memcache.get(memcache_key),
                         msg="Expected field key list to be loaded to cache "
                         "at startup")
-        self.finder.memcache.delete(_MEMCACHE_FIELDS_KEY)
-        keys_list = self.finder.get_field_keys()
-        keys_memcache = self.finder.memcache.get(_MEMCACHE_FIELDS_KEY)
-        self.assertEqual(keys_list, keys_memcache)
+        page1_keys_list = self.finder._get_field_keys()
+        page1_keys_memcache = self.finder.memcache.get(memcache_key)
+        self.assertEqual(page1_keys_list, page1_keys_memcache)
 
     def test_find_nodes_template_greedy_measurement_tags_and_no_tags(self):
         template = "env.host.measurement*"
@@ -1068,7 +1072,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.write_data([m5_measurement], tags, m5_fields)
         self.config['influxdb']['loader_limit'] = 1
         self.finder = influxgraph.InfluxDBFinder(self.config)
-        fields_page1 = self.finder.get_field_keys()
+        fields_page1 = self.finder._get_field_keys()
         self.assertEqual(len(fields_page1.values()[0]), self.finder.loader_limit)
         all_db_fields = self.finder.get_all_field_keys()
         for measurement in measurements:

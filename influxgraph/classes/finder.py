@@ -141,15 +141,9 @@ class InfluxDBFinder(object):
                 self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
                                   time=series_loader_interval)
                 try:
-                    if self.graphite_templates:
-                        self.get_field_keys()
-                    for _ in self.get_all_series_list():
-                        pass
-                except Exception as ex:
-                    logger.error("Error calling InfluxDB from initial series "
-                                 "and field list load - %s", ex)
-                finally:
-                    _SERIES_LOADER_LOCK.release()
+                    self._load_series_fields()
+                except Exception:
+                    pass
         loader = threading.Thread(target=self._series_loader,
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True
@@ -174,16 +168,13 @@ class InfluxDBFinder(object):
         """Setup log level and log file if set"""
         if not level:
             return
-        if logger.handlers:
+        if len(logger.handlers) > 0:
             return
         formatter = logging.Formatter(
             '[%(levelname)s] %(asctime)s - %(module)s.%(funcName)s() '
             '- %(message)s')
         level = getattr(logging, level.upper())
         logger.setLevel(level)
-        handler = logging.StreamHandler()
-        logger.addHandler(handler)
-        handler.setFormatter(formatter)
         if not log_file:
             return
         try:
@@ -191,6 +182,9 @@ class InfluxDBFinder(object):
         except IOError:
             logger.error("Could not write to %s, falling back to stdout",
                          log_file)
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
         else:
             logger.addHandler(_handler)
             _handler.setFormatter(formatter)
@@ -285,6 +279,19 @@ class InfluxDBFinder(object):
         self._store_last_offset(query_pattern, limit, offset)
         return data
 
+    def _load_series_fields(self):
+        try:
+            if self.graphite_templates:
+                self.get_all_field_keys()
+            for _ in self.get_all_series_list():
+                pass
+        except Exception as ex:
+            logger.error("Error calling InfluxDB from series loader - %s",
+                         ex,)
+            raise
+        finally:
+            _SERIES_LOADER_LOCK.release()
+
     def _series_loader(self, interval=900):
         """Loads influxdb series list into memcache at a rate of no
         more than once per interval
@@ -306,17 +313,9 @@ class InfluxDBFinder(object):
             logger.debug("Starting series list loader..")
             _SERIES_LOADER_LOCK.acquire()
             try:
-                if self.graphite_templates:
-                    self.get_field_keys()
-                for _ in self.get_all_series_list():
-                    pass
-            except Exception as ex:
-                logger.error("Error calling InfluxDB from series loader - %s",
-                             ex,)
-                time.sleep(interval)
+                self._load_series_fields()
+            except Exception:
                 continue
-            finally:
-                _SERIES_LOADER_LOCK.release()
             dt = datetime.datetime.now() - start_time
             logger.debug("Series list loader finished in %s", dt)
 
@@ -566,7 +565,7 @@ class InfluxDBFinder(object):
                          "Retrying after 30sec..", ex)
             time.sleep(30)
             return self.build_index()
-        all_fields = self.get_field_keys() if self.graphite_templates \
+        all_fields = self.get_all_field_keys() if self.graphite_templates \
           else None
         logger.info("Building index..")
         start_time = datetime.datetime.now()
@@ -630,7 +629,7 @@ class InfluxDBFinder(object):
     def get_all_field_keys(self, offset=0, field_keys=None):
         """Get all field keys from DB, starting at offset"""
         field_keys = {} if field_keys is None else field_keys
-        cur_field_keys = self.get_field_keys(offset=offset)
+        cur_field_keys = self._get_field_keys(offset=offset)
         if len(cur_field_keys.keys()) == 0:
             return field_keys
         for key in cur_field_keys:
@@ -639,7 +638,7 @@ class InfluxDBFinder(object):
             offset=self.loader_limit + offset,
             field_keys=field_keys)
 
-    def get_field_keys(self, offset=0):
+    def _get_field_keys(self, offset=0):
         """Get one field keys list at offset"""
         memcache_key = gen_memcache_pattern_key("_".join([
             _MEMCACHE_FIELDS_KEY, str(self.loader_limit), str(offset)]))
