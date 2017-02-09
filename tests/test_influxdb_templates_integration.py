@@ -1073,7 +1073,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.config['influxdb']['loader_limit'] = 1
         self.finder = influxgraph.InfluxDBFinder(self.config)
         fields_page1 = self.finder._get_field_keys()
-        self.assertEqual(len(fields_page1.values()[0]), self.finder.loader_limit)
+        self.assertEqual(len(list(fields_page1.values())[0]), self.finder.loader_limit)
         all_db_fields = self.finder.get_all_field_keys()
         for measurement in measurements:
             self.assertEqual(len(all_db_fields[measurement]), len(fields.keys()))
