@@ -7,6 +7,7 @@ import datetime
 import time
 from random import randint
 import logging
+from collections import deque
 import influxdb.exceptions
 import influxgraph
 from influxgraph.utils import Query, make_memcache_client, gen_memcache_pattern_key
@@ -1092,6 +1093,22 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.finder.get_all_field_keys()
         cached_db_fields = self.finder.get_all_field_keys()
         self.assertEqual(all_db_fields, cached_db_fields)
+
+    def test_large_field_list_pagination(self):
+        del self.finder
+        all_fields = {}
+        measurements = [u"m%s" % (str(n)) for n in xrange(0, 150)]
+        tags = {}
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        for i, measurement in enumerate(measurements):
+            _fields = {'f%s' % (str(f),): 1 for f in xrange(0, i+1)}
+            self.write_data([measurement], tags, _fields)
+            all_fields[measurement] = deque(sorted(_fields.keys()))
+        self.config['influxdb']['loader_limit'] = 120
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        finder_fields = self.finder.get_all_field_keys()
+        self.assertEqual(sorted(all_fields.keys()), sorted(finder_fields.keys()))
 
 if __name__ == '__main__':
     unittest.main()
