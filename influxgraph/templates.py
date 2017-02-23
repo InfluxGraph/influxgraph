@@ -144,7 +144,8 @@ def _template_sanity_check(template):
             template)
 
 def apply_template(metric_path_parts, template, default_tags, separator='.'):
-    """Apply template to metric path parts and return measurements, tags and field
+    """Apply template to metric path parts and return measurements, tags and
+    field
 
     :raises: mod:`TemplateMatchError` on error matching template"""
     measurement = []

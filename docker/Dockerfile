@@ -1,5 +1,7 @@
 FROM phusion/baseimage:0.9.19
 
+EXPOSE 80
+
 ENV HOME /root
 ONBUILD RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 CMD ["/sbin/my_init"]
@@ -8,8 +10,7 @@ CMD ["/sbin/my_init"]
 
 VOLUME /srv/graphite
 
-RUN echo 'deb http://ppa.launchpad.net/pypy/ppa/ubuntu trusty main' >> /etc/apt/sources.list
-RUN echo 'deb-src http://ppa.launchpad.net/pypy/ppa/ubuntu trusty main' >> /etc/apt/sources.list
+RUN add-apt-repository -y ppa:pypy/ppa
 RUN apt-get update && apt-get upgrade -y
 # RUN alias hostip="ip route show 0.0.0.0/0 | grep -Eo 'via \S+' | awk '{ print \$2 }'"
 # ENV HOSTIP $(hostip)
@@ -17,15 +18,12 @@ RUN apt-get update && apt-get upgrade -y
 
 RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev nginx memcached
 RUN rm -f /etc/nginx/sites-enabled/default
-# unauthenticated..
-RUN apt-get install -y --force-yes pypy
+RUN apt-get install -y pypy
 
 ENV LANGUAGE en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 RUN locale-gen en_US.UTF-8 && dpkg-reconfigure locales
-
-EXPOSE 80
 
 # add our default config and allow subsequent builds to add a different one
 ADD graphite-api.yaml /etc/graphite-api.yaml
