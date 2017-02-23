@@ -20,6 +20,7 @@ import logging
 from collections import deque
 from heapq import heappush, heappop
 
+
 logger = logging.getLogger('influxgraph')
 
 
@@ -135,7 +136,11 @@ def _template_sanity_check(template):
             field = tag
     if measurement_wildcard and field_wildcard:
         raise InvalidTemplateError(
-            "Either 'field*' or 'measurement*' can be used in each template, not both - %s",
+            "Either 'field*' or 'measurement*' can be used in each template, "
+            "not both - %s", template)
+    if not measurement_wildcard and 'measurement' not in template.values():
+        raise InvalidTemplateError(
+            "At least one of 'measurement' or 'measurement*' is required - %s",
             template)
 
 def apply_template(metric_path_parts, template, default_tags, separator='.'):

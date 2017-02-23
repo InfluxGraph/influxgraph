@@ -949,6 +949,10 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
         self.config['influxdb']['templates'] = ['host.field.field']
         self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
+        self.config['influxdb']['templates'] = ['host.field']
+        self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
+        self.config['influxdb']['templates'] = ['host.measurements.field']
+        self.assertRaises(InvalidTemplateError, influxgraph.InfluxDBFinder, self.config)
 
     def test_template_nofilter_extra_tags(self):
         self.config['influxdb']['templates'] = ['host.measurement* env=int,region=the_west']
