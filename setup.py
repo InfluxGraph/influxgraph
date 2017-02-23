@@ -90,7 +90,7 @@ def run_setup(ext_modules):
             'Topic :: Scientific/Engineering :: Visualization',
             'Topic :: System :: Monitoring',
             ],
-        install_requires=['influxdb>=3.0.0', 'graphite-api>=1.1.2', 'python-memcached'],
+        install_requires=['influxdb>=4.0.0a', 'graphite-api>=1.1.2', 'python-memcached'],
         extras_require={
             'statsd' : ['statsd'],
             },

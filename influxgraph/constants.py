@@ -19,7 +19,7 @@
 # NB - Transformation functions like derivative are invalid without an aggregation
 # when used in a 'group by' query - we leave those to graphite-api to perform
 INFLUXDB_AGGREGATIONS = [
-    # aggregations
+    # aggregators
     'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread', 'stddev', 'sum',
     # selectors
     'bottom', 'first', 'last', 'max', 'min', 'percentile', 'sample', 'top']

@@ -652,7 +652,7 @@ class InfluxDBFinder(object):
         logger.debug("Calling InfluxDB for field keys with limit %s, offset %s",
                      self.loader_limit, offset,)
         data = self.client.query('SHOW FIELD KEYS LIMIT %s OFFSET %s' % (
-            self.loader_limit, offset,))
+            self.loader_limit, offset), chunked=True)
         field_keys = {}
         for ((key, _), vals) in data.items():
             field_keys[key] = [val['fieldKey'] for val in vals]
