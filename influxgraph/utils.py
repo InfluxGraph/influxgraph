@@ -96,29 +96,29 @@ def get_retention_policy(interval, retention_policies):
     # return policy for max interval
     return retention_policies[max(sorted(retention_policies.keys()))]
 
-class Query(object):
+class Query(object): # pylint: disable=too-few-public-methods
     """Graphite-API compatible query class"""
 
     def __init__(self, pattern):
         self.pattern = pattern
 
 
-class NullStatsd(object):
+class NullStatsd(object): # pragma: no cover
     """Fake StatsClient compatible class to use when statsd is not configured"""
 
     def __enter__(self):
-        return self
+        return self  # pragma: no cover
 
     def __exit__(self, _type, value, traceback):
-        pass
+        pass  # pragma: no cover
 
-    def timer(self, key, val=None):
+    def timer(self, key, val=None): # pylint: disable=unused-argument
         """No-Op"""
-        return self
+        return self  # pragma: no cover
 
-    def timing(self, key, val):
+    def timing(self, key, val): # pylint: disable=unused-argument
         """No-Op"""
-        pass
+        pass  # pragma: no cover
 
     def start(self):
         """No-Op"""
