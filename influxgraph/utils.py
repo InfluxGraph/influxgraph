@@ -25,10 +25,10 @@ import memcache
 from .constants import INFLUXDB_AGGREGATIONS
 
 try:
-    from nodetrie import Node
+    from .ext.nodetrie import Node
 except ImportError:
     from .classes.tree import NodeTreeIndex as Node
-    
+
 try:
     from .ext.templates import get_series_with_tags, heapsort, _make_path_from_template
 except ImportError:

@@ -1,3 +1,5 @@
+# cython: boundscheck=False, wraparound=False, optimize.use_switch=True
+
 # Copyright (C) [2015-] [Thomson Reuters LLC]
 # Copyright (C) [2015-] [Panos Kittenis]
 
@@ -13,20 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""C Extension of performance critical templates modules functions"""
+"""Cython Extension of performance critical templates modules functions"""
 
 from heapq import heappush, heappop
 import logging
 
 logger = logging.getLogger('influxgraph')
-
-# py_byte_string = 'a'
-# from cpython cimport array
-# import array
-# cdef array.array ar = array.array('c', [py_byte_string])
-# cdef unsigned char[:] ca = ar
-# print(chr(ca[0]))
-# chr(ord(u'a'.encode('utf-8'))).decode('utf-8')
 
 cpdef list heapsort(list iterable):
     cdef list h = []
@@ -64,7 +58,8 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
     cdef list split_path = []
     cdef dict template = None
     cdef list tags_values = [p.split('=') for p in paths[1:]]
-    cdef int field_inds
+    cdef Py_ssize_t field_inds
+    cdef Py_ssize_t num_tmpl_items
     cdef list path
     for (_filter, template, _, separator) in graphite_templates:
         _make_path_from_template(
@@ -72,10 +67,10 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
         # Split path should be at least as large as number of wanted
         # template tags taking into account measurement and number of fields
         # in template
+        num_tmpl_items = len([k for k, v in template.items() if v])
         field_inds = len([v for v in template.values()
                           if v and 'field' in v])
-        if (len(split_path) + field_inds) >= len(
-                [k for k, v in template.items() if v]):
+        if (len(split_path) + field_inds) >= num_tmpl_items:
             path = [p[1] for p in heapsort(split_path)]
             if _filter:
                 if _filter.match_split_path(path):
@@ -92,8 +87,8 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
 cpdef void _make_path_from_template(list split_path, unicode measurement,
                                     dict template, list tags_values,
                                     str separator):
-    cdef int measurement_found = 0
-    cdef int i
+    cdef Py_ssize_t measurement_found = 0
+    cdef Py_ssize_t i
     if not tags_values and separator in measurement and \
        'measurement*' == [t for t in template.values() if t][0]:
         for i, measurement in enumerate(measurement.split(separator)):

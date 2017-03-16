@@ -10,8 +10,9 @@ python:
   - pypy
 env:
   - INFLUXDB_VERSION=1.2.0
-allow_failures:
-  - python: 2.6
+matrix:
+  allow_failures:
+    - python: 2.6
 before_install:
   - pip install -U pip setuptools wheel
   - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb

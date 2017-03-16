@@ -116,7 +116,7 @@ ext_modules = {'ext_modules': []}
 
 if not cpython:
     run_setup(ext_modules)
-    print("WARNING: C extensions are not supported on this platform,",
+    print("WARNING: C extensions are disabled on this platform,",
           "Pure Python build succeeded")
 elif os.environ.get('DISABLE_INFLUXGRAPH_CEXT'):
     run_setup(ext_modules)
