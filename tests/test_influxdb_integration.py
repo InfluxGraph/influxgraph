@@ -14,12 +14,12 @@ from influxdb import InfluxDBClient
 import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
-from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func
+from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func, \
+     Node
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
      _INFLUXDB_CLIENT_PARAMS
 from influxgraph.classes.finder import logger as finder_logger
-from influxgraph.classes.tree import NodeTreeIndex
 import memcache
 
 finder_logger.setLevel(logging.DEBUG)
@@ -159,6 +159,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
+        # import ipdb; ipdb.set_trace()
         self.finder.build_index()
         query = Query(prefix + '.*')
         # Test getting leaf nodes with wildcard
@@ -786,7 +787,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                             len(data_points)))
 
     def test_index_save_load_failure(self):
-        self.finder.index.clear()
+        del self.finder.index
         del self.finder
         bad_index_path = 'bad_index'
         try:
@@ -822,8 +823,10 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         except OSError:
             pass
 
+    @unittest.skipUnless(hasattr(Node, 'to_array'),
+                         "Index does not support dumping to array")
     def test_index_save_load(self):
-        self.finder.index.clear()
+        self.finder.index = None
         try:
             os.unlink(self.finder.index_path)
         except OSError:
@@ -841,14 +844,14 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         finder.index_path = 'index'
         finder.save_index()
         index_path = finder.index_path
-        finder_index = NodeTreeIndex.from_array(finder.index.to_array())
+        finder_index = Node.from_array(finder.index.to_array())
         time.sleep(config['influxdb']['reindex_interval'] + 1)
         del finder
         self.assertTrue(os.path.isfile('index'))
         # Reload index from file
         index_fh = open(index_path, 'rt')
         try:
-            index = NodeTreeIndex.from_file(index_fh)
+            index = Node.from_file(index_fh)
         finally:
             index_fh.close()
         self.assertTrue(index is not None)
@@ -876,7 +879,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             _tempfile.close()
         expected = ['carbon']
         try:
-            self.finder.index.clear()
+            self.finder.index = None
             self.finder.build_index(data=self.finder._read_static_data(_tempfile.name))
             self.assertEqual([n.name for n in self.finder.find_nodes(Query('*'))], expected)
         finally:

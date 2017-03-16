@@ -87,6 +87,10 @@ class NodeTreeIndex(object):
     """
     __slots__ = ('index')
 
+    @property
+    def children(self):
+        return self.index.children if self.index.children else []
+
     def __init__(self):
         self.index = Node()
 

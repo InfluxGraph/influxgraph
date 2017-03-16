@@ -28,7 +28,7 @@ logger = logging.getLogger('influxgraph')
 # print(chr(ca[0]))
 # chr(ord(u'a'.encode('utf-8'))).decode('utf-8')
 
-cdef list heapsort(list iterable):
+cpdef list heapsort(list iterable):
     cdef list h = []
     cdef tuple value
     for value in iterable:
@@ -89,9 +89,9 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
             split_path = []
     return [], template
 
-cdef void _make_path_from_template(list split_path, unicode measurement,
-                                   dict template, list tags_values,
-                                   str separator):
+cpdef void _make_path_from_template(list split_path, unicode measurement,
+                                    dict template, list tags_values,
+                                    str separator):
     cdef int measurement_found = 0
     cdef int i
     if not tags_values and separator in measurement and \

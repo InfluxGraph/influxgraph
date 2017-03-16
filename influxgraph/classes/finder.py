@@ -46,10 +46,7 @@ from ..templates import parse_influxdb_graphite_templates, apply_template, \
      TemplateMatchError
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
-try:
-    from ..ext.classes.tree import NodeTreeIndex
-except ImportError:
-    from .tree import NodeTreeIndex
+from .tree import NodeTreeIndex
 
 _SERIES_LOADER_LOCK = processLock()
 
@@ -573,8 +570,6 @@ class InfluxDBFinder(object):
         index = parse_series(data, all_fields, self.graphite_templates,
                              separator=separator)
         self.index_lock.acquire()
-        if self.index:
-            self.index.clear()
         self.index = index
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
@@ -587,6 +582,8 @@ class InfluxDBFinder(object):
     def save_index(self):
         """Save index to file"""
         if not self.index_path:
+            return
+        if not(hasattr(self, 'index') and self.index and hasattr(self.index, 'to_array')):
             return
         logger.info("Saving index to file %s", self.index_path,)
         start_time = datetime.datetime.now()
@@ -609,6 +606,8 @@ class InfluxDBFinder(object):
     def load_index(self):
         """Load index from file"""
         if not self.index_path:
+            return
+        if not (self.index and hasattr(self.index, 'from_file')):
             return
         logger.info("Loading index from file %s", self.index_path,)
         try:

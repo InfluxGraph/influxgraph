@@ -23,12 +23,17 @@ import hashlib
 
 import memcache
 from .constants import INFLUXDB_AGGREGATIONS
+
 try:
-    from .ext.classes.tree import NodeTreeIndex
+    from nodetrie import Node
+except ImportError:
+    from .classes.tree import NodeTreeIndex as Node
+    
+try:
     from .ext.templates import get_series_with_tags, heapsort, _make_path_from_template
 except ImportError:
-    from .classes.tree import NodeTreeIndex
     from .templates import get_series_with_tags, heapsort, _make_path_from_template
+
 
 def calculate_interval(start_time, end_time, deltas=None):
     """Calculates wanted data series interval according to start and end times
@@ -162,13 +167,15 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
-def _retrieve_named_field_data(infl_data, measurement_data, measurement, tags, _data):
+def _retrieve_named_field_data(infl_data, measurement_data, measurement, tags, _data,
+                               separator='.'):
     measurement_paths = measurement_data[measurement]['paths'][:]
     for field in measurement_data[measurement]['fields']:
         split_path = []
         _make_path_from_template(
             split_path, measurement,
-            measurement_data[measurement]['template'], tags.items())
+            measurement_data[measurement]['template'], tags.items(),
+            separator=separator)
         split_path = [p[1] for p in heapsort(split_path)]
         split_path.append(field)
         metric = '.'.join(split_path)
@@ -263,7 +270,7 @@ def parse_series(series, fields, graphite_templates, separator='.'):
 
     :rtype: :mod:`influxgraph.classes.tree.NodeTreeIndex`
     """
-    index = NodeTreeIndex()
+    index = Node()
     for serie in series:
         # If we have metrics with tags in them split them out and
         # pre-generate a correctly ordered split path for that metric

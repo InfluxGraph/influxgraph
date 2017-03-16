@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from timeit import timeit
 from pprint import pprint
@@ -10,11 +11,12 @@ class IndexTreePerfTestCase(unittest.TestCase):
 from random import randint, choice
 %s
 %s
-index = NodeTreeIndex()
-queries = ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]"""
+index = Node()
+queries = ['.'.join(['*' for _ in range(1,10)]) for _ in range(10,20)]
+split_series = [serie.split('.') for serie in series]"""
     timeit_insert_stmt = """
-for serie in series:
-    index.insert(serie)
+for split_path in split_series:
+    index.insert_split_path(split_path)
     """
     timeit_query_stmt = """
 for query in queries:
@@ -36,15 +38,15 @@ for query in queries:
                    number=10)
 
     def test_python_index(self):
-        index_import = """from influxgraph.classes.tree import NodeTreeIndex"""
+        index_import = """from influxgraph.classes.tree import NodeTreeIndex as Node"""
         load_time, reload_time, query_time = self.time_index(index_import)
         pprint("Python index load time is %s" % (load_time,))
         pprint("Python index re-load time is %s" % (reload_time,))
         pprint("Python index query time is %s" % (query_time,))
 
-    def test_cython_index(self):
-        index_import = """from influxgraph.ext.classes.tree import NodeTreeIndex"""
-        load_time, reload_time, query_time = self.time_index(index_import)
-        pprint("Cython index load time is %s" % (load_time,))
-        pprint("Cython index re-load time is %s" % (reload_time,))
-        pprint("Cython index query time is %s" % (query_time,))
+    def test_c_index(self):
+        c_node_import = """from influxgraph.ext.nodetrie import Node"""
+        load_time, reload_time, query_time = self.time_index(c_node_import)
+        pprint("C index load time is %s" % (load_time,))
+        pprint("C index re-load time is %s" % (reload_time,))
+        pprint("C index query time is %s" % (query_time,))
