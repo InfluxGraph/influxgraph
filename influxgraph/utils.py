@@ -174,7 +174,7 @@ def _retrieve_named_field_data(infl_data, measurement_data, measurement, tags, _
         split_path = []
         _make_path_from_template(
             split_path, measurement,
-            measurement_data[measurement]['template'], tags.items(),
+            measurement_data[measurement]['template'], list(tags.items()),
             separator=separator)
         split_path = [p[1] for p in heapsort(split_path)]
         split_path.append(field)

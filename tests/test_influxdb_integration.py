@@ -159,7 +159,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
-        # import ipdb; ipdb.set_trace()
         self.finder.build_index()
         query = Query(prefix + '.*')
         # Test getting leaf nodes with wildcard
