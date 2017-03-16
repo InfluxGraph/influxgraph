@@ -25,7 +25,7 @@ from ..utils import calculate_interval, read_influxdb_values, \
 
 logger = logging.getLogger('influxgraph')
 
-class Interval(object): # pylint: disable=too-few-public-methods
+class Interval(object):
     """No-op Interval class used by Graphite-API for whisper backends"""
     intervals = set()
 

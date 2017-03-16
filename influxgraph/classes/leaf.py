@@ -18,6 +18,6 @@
 from __future__ import absolute_import
 from graphite_api.node import LeafNode
 
-class InfluxDBLeafNode(LeafNode): # pylint: disable=too-few-public-methods
+class InfluxDBLeafNode(LeafNode):
     """Tell Graphite-Api that our leaf node supports multi-fetch"""
     __fetch_multi__ = 'influxdb'
