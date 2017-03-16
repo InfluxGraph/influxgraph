@@ -1,0 +1,3 @@
+[submodule "nodetrie"]
+	path = nodetrie
+	url = https://github.com/NodeTrie/NodeTrie_Py.git
