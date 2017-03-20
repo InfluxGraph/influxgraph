@@ -17,7 +17,7 @@ An `InfluxDB`_ storage plugin for `Graphite-API`_. Graphite with InfluxDB data s
   :alt: Documentation Status
 
 
-This project started as a re-write of `graphite-influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
+This project started as a re-write of `graphite influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.
 
 
 Installation
@@ -64,7 +64,7 @@ Main features
 * Dynamically calculated group by intervals based on query date/time range - fast queries regardless of the date/time they span
 * Configurable per-query aggregation functions by regular expression pattern
 * Configurable per-query retention policies by query date/time range. Automatically use pre-calculated downsampled data in a retention policy for historical data
-* In-memory index for Graphite metric path queries with on-disk persistance
+* Fast in-memory index for Graphite metric path queries as a Python native code extension
 * Multi-fetch enabled - fetch data for multiple metrics with one query to InfluxDB
 * Memcached integration
 * Python 3 and PyPy compatibility
@@ -264,28 +264,26 @@ Any other HTTP caching service will similarly work just as well.
 Optional C Extensions
 ======================
 
-In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used - can expect at least `4x` and `2x` performance increases for PyPy and CPython with extensions respectively compared to standard CPython without extensions.
+In order of fastest to slowest, here is how the supported interpreters fare with and without C extensions. How much faster depends largely on hardware and compiler used - can expect at least `15x` and `4x` performance increases for CPython with extensions and PyPy respectively compared to standard CPython without extensions.
 
-#. Pypy
+CPython with extensions will also use about `20x` less memory for the index than either PyPy or CPython without extensions.
+
 #. CPython with C extensions
+#. Pypy
 #. CPython
-
-If the number of unique metrics `InfluxDB` is high enough to make CPython with C extensions index build time exceed one minute, it would be best to switch to PyPy. Alternatively extensions should be disabled by running `setup.py` with the `DISABLE_INFLUXGRAPH_CEXT=1` environment variable set. A notice will be displayed by `setup.py` that extensions have been disabled.
-
-When build index time exceeds request response timeout, the extensions may not release the GiL quickly enough and could cause request timeouts. In this use case PyPy is a better option. Extensions should be disabled if switching interpreter is not viable.
 
 There are two performance tests in the repository that can be used to see relative performance with and without extensions, for `index <https://github.com/InfluxGraph/influxgraph/blob/master/tests/index_perf.py>`_ and `template <https://github.com/InfluxGraph/influxgraph/blob/master/tests/templates_parse_perf.py>`_ functionality respectively. On PyPy extensions are purposefully disabled.
 
 Known Limitations
-==================
+===================
 
-- Index memory usage will be a factor of about 10 higher than the size of the uncompressed on disk index. For example a 100MB uncompressed on-disk index will use ~1GB of memory per individual Python process. This is already as low as it can be, is a hard limit imposed by Python interpreter implementation details and not likely to get any better without changes to use memory mapped file rather than loading the whole index in memory, which is AFAIK only supported on Py3 or in C extensions.
-- On CPython interpreters, API requests while an index re-build is happening will be quite slow (a few seconds increase, no more than ten). PyPy does not have this problem and is recommended.
-- Attempts to use asynchronous I/O frameworks like `gevent` to run Graphite-API with will cause index re-builds to block the webapp for duration of rebuild.
+The index implementation via native code extension releases Python's GIL as much as possible, however, there will still be a response time increase while index is being re-built.
 
-The docker image provided uses PyPy.
+Without extensions response time increase will be much higher - building with extensions is highly recommended.
 
-Contributions are most welcome to resolve any of these limitations and for anything else.
+That said, building extensions can be disabled by running `setup.py` with the `DISABLE_INFLUXGRAPH_CEXT=1` environment variable set. A notice will be displayed by `setup.py` that extensions have been disabled.
+
+Note that without native extension, performance is much lower and memory use of index much higher.
 
 .. _Varnish: https://www.varnish-cache.org/
 .. _Graphite-API: https://github.com/brutasse/graphite-api
