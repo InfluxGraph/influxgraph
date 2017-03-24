@@ -1,2 +1,5 @@
 include versioneer.py
 include influxgraph/_version.py
+include *.c
+include *.h
+include node.h

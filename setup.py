@@ -3,7 +3,8 @@ import platform
 import os
 import sys
 import versioneer
-from setuptools import setup, find_packages, Extension, Distribution as _Distribution
+from setuptools import setup, find_packages, Extension, \
+     Distribution as _Distribution
 from distutils.errors import CCompilerError
 from distutils.errors import DistutilsExecError
 from distutils.errors import DistutilsPlatformError
@@ -119,7 +120,7 @@ if not cpython:
     print("WARNING: C extensions are disabled on this platform,",
           "Pure Python build succeeded")
 elif os.environ.get('DISABLE_INFLUXGRAPH_CEXT'):
-    run_setup(ext_modules)
+    run_setup({'ext_modules': []})
     print("DISABLE_INFLUXGRAPH_CEXT is set - not building C extension",
           "Pure Python build succeeded")
 else:
@@ -131,6 +132,6 @@ else:
               "building without it which will incur a performance penalty.",
               "Reasons for failure may be printed above. Build will now",
               "retry without C extension")
-        run_setup({})
+        run_setup({'ext_modules': []})
         print("WARNING: C extension could not be compiled.",
               "Pure Python build succeeded")
