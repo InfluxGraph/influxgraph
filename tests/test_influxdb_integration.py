@@ -933,7 +933,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         del self.finder
         self.config['influxdb']['reindex_interval'] = 0
         finders = []
-        for _ in xrange(num_finders):
+        for _ in range(num_finders):
             _finder = influxgraph.InfluxDBFinder(self.config)
             time.sleep(.001)
             finders.append(_finder)
