@@ -568,22 +568,17 @@ class InfluxDBFinder(object):
             return self.build_index()
         all_fields = self.get_field_keys() if self.graphite_templates \
             else None
-        self.index_lock.acquire()
-        logger.info("Building index..")
-        start_time = datetime.datetime.now()
-        try:
+        with self.index_lock:
+            logger.info("Building index..")
+            start_time = datetime.datetime.now()
             index = parse_series(data, all_fields, self.graphite_templates,
                                  separator=separator)
             self.index = index
-        finally:
-            self.index_lock.release()
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
 
     def _save_index_file(self, file_h):
         """Dump tree contents to file handle"""
-        if not hasattr(self.index, 'to_array'):
-            return
         json.dump(self.index.to_array(), file_h)
 
     def save_index(self):

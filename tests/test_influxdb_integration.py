@@ -926,5 +926,12 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                             self.all_datapoints_num, len(data[self.series1]),))
         self.assertTrue(data[self.series1][-1] == self.config['influxdb']['fill'])
 
+    def test_multi_finder_index_build(self):
+        """Test index build lock with multiple finders"""
+        fh = open(FILE_LOCK, 'w')
+        self.assertRaises(IOError, fcntl.flock(
+            fh, fcntl.LOCK_EX | fcntl.LOCK_NB))
+        fcntl.flock(fh, fcntl.LOCK_UN)
+
 if __name__ == '__main__':
     unittest.main()

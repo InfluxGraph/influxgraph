@@ -22,6 +22,11 @@ class FileLock(object):
     def release(self):
         fcntl.flock(self.handle, fcntl.LOCK_UN)
 
-    def __del__(self):
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
+
+    def __del__(self):
         self.handle.close()

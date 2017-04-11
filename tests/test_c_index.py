@@ -7,6 +7,7 @@ except ImportError:
     from influxgraph.classes.tree import NodeTreeIndex
 from influxgraph.utils import Query
 
+
 class CIndexTreeTestCase(unittest.TestCase):
 
     def setUp(self):
