@@ -59,13 +59,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
           datetime.datetime.utcnow()
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
                                 int(self.start_time.strftime("%s"))) * 1.0 / self.step)) + 1
-        self.config = { 'influxdb': { 'host' : 'localhost',
-                                       'port' : 8086,
-                                       'user' : 'root',
-                                       'pass' : 'root',
-                                       'db' : self.db_name,
-                                       # 'series_loader_interval': 1,
-                                       },
+        self.config = { 'influxdb': { 'db' : self.db_name,
+                                      },
                         'statsd': { 'host': 'localhost' },
                         'search_index': 'index',
                         }
@@ -94,16 +89,12 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_configured_deltas(self):
         del self.finder
-        config = { 'influxdb': { 'host' : 'localhost',
-                                 'port' : 8086,
-                                 'user' : 'root',
-                                 'pass' : 'root',
-                                 'db' : self.db_name,
+        config = { 'influxdb': {
+            'db' : self.db_name,
             # Set data interval to 1 second for queries
             # of one hour or less
-            'deltas' : {3600: 1},},
-            # 'search_index': 'index',
-            }
+            'deltas' : {3600: 1},
+            }}
         finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.deltas)
         nodes = list(finder.find_nodes(Query(self.series1)))
@@ -934,15 +925,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         msg="Expected %s datapoints - got %s" % (
                             self.all_datapoints_num, len(data[self.series1]),))
         self.assertTrue(data[self.series1][-1] == self.config['influxdb']['fill'])
-
-    def test_multi_finder_index_build(self):
-        """Test index build lock with multiple finders"""
-        del self.finder
-        self.config['influxdb']['reindex_interval'] = 0
-        self.finder = influxgraph.InfluxDBFinder(self.config)
-        new_finder = influxgraph.InfluxDBFinder(self.config)
-        self.assertRaises(IOError, fcntl.flock(
-            open(FILE_LOCK, 'w'), fcntl.LOCK_EX | fcntl.LOCK_NB))
 
 if __name__ == '__main__':
     unittest.main()

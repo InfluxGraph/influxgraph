@@ -50,7 +50,6 @@ from .tree import NodeTreeIndex
 from .lock import FileLock
 
 _SERIES_LOADER_LOCK = processLock()
-_INDEX_LOCK = FileLock(FILE_LOCK)
 
 logger = logging.getLogger('influxgraph')
 
@@ -64,7 +63,7 @@ class InfluxDBFinder(object):
     __slots__ = ('client', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
-                 'index_path', 'graphite_templates',
+                 'index_lock', 'index_path', 'graphite_templates',
                  'loader_limit', 'fill_param')
 
     def __init__(self, config):
@@ -113,6 +112,7 @@ class InfluxDBFinder(object):
         self._start_loader(series_loader_interval)
         self.index = None
         self.index_path = config.get('search_index')
+        self.index_lock = FileLock(FILE_LOCK)
         self.reader = InfluxDBReader(
             self.client, None, self.statsd_client,
             aggregation_functions=self.aggregation_functions,
@@ -568,7 +568,7 @@ class InfluxDBFinder(object):
             return self.build_index()
         all_fields = self.get_field_keys() if self.graphite_templates \
             else None
-        _INDEX_LOCK.acquire()
+        self.index_lock.acquire()
         logger.info("Building index..")
         start_time = datetime.datetime.now()
         try:
@@ -576,19 +576,21 @@ class InfluxDBFinder(object):
                                  separator=separator)
             self.index = index
         finally:
-            _INDEX_LOCK.release()
+            self.index_lock.release()
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
 
     def _save_index_file(self, file_h):
         """Dump tree contents to file handle"""
+        if not hasattr(self.index, 'to_array'):
+            return
         json.dump(self.index.to_array(), file_h)
 
     def save_index(self):
         """Save index to file"""
         if not self.index_path:
             return
-        if not(hasattr(self, 'index') and self.index \
+        if not (hasattr(self, 'index') and self.index \
                 and hasattr(self.index, 'to_array')):
             return
         logger.info("Saving index to file %s", self.index_path,)

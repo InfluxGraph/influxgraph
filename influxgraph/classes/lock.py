@@ -23,4 +23,5 @@ class FileLock(object):
         fcntl.flock(self.handle, fcntl.LOCK_UN)
 
     def __del__(self):
+        self.release()
         self.handle.close()
