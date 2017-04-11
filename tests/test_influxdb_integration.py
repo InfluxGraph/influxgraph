@@ -928,23 +928,28 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_multi_finder_index_build(self):
         """Test index build lock with multiple finders"""
+        num_finders = 50
         fh = open(FILE_LOCK, 'w')
         del self.finder
         self.config['influxdb']['reindex_interval'] = 0
-        self.finder = influxgraph.InfluxDBFinder(self.config)
-        finder2 = influxgraph.InfluxDBFinder(self.config)
-        finder3 = influxgraph.InfluxDBFinder(self.config)
-        finder4 = influxgraph.InfluxDBFinder(self.config)
-        finder5 = influxgraph.InfluxDBFinder(self.config)
-        time.sleep(.1)
-        finder6 = influxgraph.InfluxDBFinder(self.config)
-        finder7 = influxgraph.InfluxDBFinder(self.config)
-        finder8 = influxgraph.InfluxDBFinder(self.config)
-        finder9 = influxgraph.InfluxDBFinder(self.config)
-        finder10 = influxgraph.InfluxDBFinder(self.config)
+        finders = []
+        for _ in xrange(num_finders):
+            _finder = influxgraph.InfluxDBFinder(self.config)
+            time.sleep(.001)
+            finders.append(_finder)
         try:
             self.assertRaises(IOError, fcntl.flock,
                               fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except AssertionError:
+            i = 0
+            while i < 50:
+                i += 1
+                fcntl.flock(fh, fcntl.LOCK_UN)
+                try:
+                    self.assertRaises(IOError, fcntl.flock,
+                                      fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except AssertionError:
+                    continue
         finally:
             fcntl.flock(fh, fcntl.LOCK_UN)
             fh.close()
