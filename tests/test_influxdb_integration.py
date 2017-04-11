@@ -928,10 +928,17 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_multi_finder_index_build(self):
         """Test index build lock with multiple finders"""
+        del self.finder
+        self.config['influxdb']['reindex_interval'] = 0
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         fh = open(FILE_LOCK, 'w')
-        self.assertRaises(IOError, fcntl.flock(
-            fh, fcntl.LOCK_EX | fcntl.LOCK_NB))
-        fcntl.flock(fh, fcntl.LOCK_UN)
+        try:
+            self.assertRaises(IOError, fcntl.flock(
+                fh, fcntl.LOCK_EX | fcntl.LOCK_NB))
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+            fh.close()
+            os.unlink(FILE_LOCK)
 
 if __name__ == '__main__':
     unittest.main()
