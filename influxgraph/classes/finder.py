@@ -37,7 +37,7 @@ from influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
-     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS
+     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS, FILE_LOCK
 from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      get_retention_policy, _compile_aggregation_patterns, parse_series, \
@@ -47,8 +47,10 @@ from ..templates import parse_influxdb_graphite_templates, apply_template, \
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
+from .lock import FileLock
 
 _SERIES_LOADER_LOCK = processLock()
+_INDEX_LOCK = FileLock(FILE_LOCK)
 
 logger = logging.getLogger('influxgraph')
 
@@ -62,7 +64,7 @@ class InfluxDBFinder(object):
     __slots__ = ('client', 'statsd_client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
-                 'index_lock', 'index_path', 'graphite_templates',
+                 'index_path', 'graphite_templates',
                  'loader_limit', 'fill_param')
 
     def __init__(self, config):
@@ -110,7 +112,6 @@ class InfluxDBFinder(object):
             if templates else None
         self._start_loader(series_loader_interval)
         self.index = None
-        self.index_lock = threading.Lock()
         self.index_path = config.get('search_index')
         self.reader = InfluxDBReader(
             self.client, None, self.statsd_client,
@@ -173,6 +174,8 @@ class InfluxDBFinder(object):
             return
         if logger.handlers:
             return
+        if hasattr(logging, 'NullHandler'):
+            logger.addHandler(logging.NullHandler())
         formatter = logging.Formatter(
             '[%(levelname)s] %(asctime)s - %(module)s.%(funcName)s() '
             '- %(message)s')
@@ -564,16 +567,18 @@ class InfluxDBFinder(object):
             time.sleep(30)
             return self.build_index()
         all_fields = self.get_field_keys() if self.graphite_templates \
-          else None
+            else None
+        _INDEX_LOCK.acquire()
         logger.info("Building index..")
         start_time = datetime.datetime.now()
-        index = parse_series(data, all_fields, self.graphite_templates,
-                             separator=separator)
-        self.index_lock.acquire()
-        self.index = index
+        try:
+            index = parse_series(data, all_fields, self.graphite_templates,
+                                 separator=separator)
+            self.index = index
+        finally:
+            _INDEX_LOCK.release()
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
-        self.index_lock.release()
 
     def _save_index_file(self, file_h):
         """Dump tree contents to file handle"""
@@ -583,7 +588,8 @@ class InfluxDBFinder(object):
         """Save index to file"""
         if not self.index_path:
             return
-        if not(hasattr(self, 'index') and self.index and hasattr(self.index, 'to_array')):
+        if not(hasattr(self, 'index') and self.index \
+                and hasattr(self.index, 'to_array')):
             return
         logger.info("Saving index to file %s", self.index_path,)
         start_time = datetime.datetime.now()

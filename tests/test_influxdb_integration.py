@@ -9,6 +9,7 @@ import json
 from gzip import GzipFile
 from random import randint
 import logging
+import fcntl
 
 from influxdb import InfluxDBClient
 import influxdb.exceptions
@@ -18,7 +19,7 @@ from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func, \
      Node
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
-     _INFLUXDB_CLIENT_PARAMS
+     _INFLUXDB_CLIENT_PARAMS, FILE_LOCK
 from influxgraph.classes.finder import logger as finder_logger
 import memcache
 
@@ -933,6 +934,15 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         msg="Expected %s datapoints - got %s" % (
                             self.all_datapoints_num, len(data[self.series1]),))
         self.assertTrue(data[self.series1][-1] == self.config['influxdb']['fill'])
+
+    def test_multi_finder_index_build(self):
+        """Test index build lock with multiple finders"""
+        del self.finder
+        self.config['influxdb']['reindex_interval'] = 0
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        new_finder = influxgraph.InfluxDBFinder(self.config)
+        self.assertRaises(IOError, fcntl.flock(
+            open(FILE_LOCK, 'w'), fcntl.LOCK_EX | fcntl.LOCK_NB))
 
 if __name__ == '__main__':
     unittest.main()
