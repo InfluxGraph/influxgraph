@@ -10,15 +10,11 @@ CMD ["/sbin/my_init"]
 
 VOLUME /srv/graphite
 
-RUN add-apt-repository -y ppa:pypy/ppa
 RUN apt-get update && apt-get upgrade -y
-# RUN alias hostip="ip route show 0.0.0.0/0 | grep -Eo 'via \S+' | awk '{ print \$2 }'"
-# ENV HOSTIP $(hostip)
-# RUN echo -e "$HOSTIP\thostip" >> /etc/hosts
 
-RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev nginx memcached
+# Dependencies
+RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev nginx memcached python-dev libffi-dev
 RUN rm -f /etc/nginx/sites-enabled/default
-RUN apt-get install -y pypy
 
 ENV LANGUAGE en_US.UTF-8
 ENV LANG en_US.UTF-8
@@ -46,15 +42,20 @@ RUN chmod +x /etc/my_init.d/dockerhost.sh
 RUN mkdir /etc/service/memcached
 ADD memcached.sh /etc/service/memcached/run
 
-# Install pypy in virtualenv
-RUN virtualenv -p /usr/bin/pypy /srv/graphite-pypy
+# Install in virtualenv
+RUN virtualenv /srv/graphite-env
 
 # Activate virtualenv and add in path
-ENV VIRTUAL_ENV=/srv/graphite-pypy
-ENV PATH=/srv/graphite-pypy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ONBUILD ENV VIRTUAL_ENV=/srv/graphite-pypy
-ONBUILD ENV PATH=/srv/graphite-pypy/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV VIRTUAL_ENV=/srv/graphite-env
+ENV PATH=/srv/graphite-env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ONBUILD ENV VIRTUAL_ENV=/srv/graphite-env
+ONBUILD ENV PATH=/srv/graphite-env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
+# Update python build tools
+RUN pip install -U pip
+RUN pip install -U setuptools wheel
+
+# Install InfluxGraph, dependencies and tools for running webapp
 RUN pip install -U gunicorn graphite-api influxgraph
 
 # init scripts
