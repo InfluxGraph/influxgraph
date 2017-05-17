@@ -110,17 +110,16 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                             3601, len(data[self.series1])))
 
     def test_multi_series_data(self):
-        reader = influxgraph.InfluxDBReader(InfluxDBClient(
-            database=self.db_name), '', influxgraph.utils.NullStatsd())
-        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(path, reader)
-                 for path in self.series]
+        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(
+            path, self.finder.reader)
+                 for path in reversed(self.series)]
         _, data = self.finder.fetch_multi(nodes,
                                           int(self.start_time.strftime("%s")),
                                           int(self.end_time.strftime("%s")))
         self.assertEqual(len(data), len(self.series))
-        for i, node in enumerate(nodes):
-            self.assertTrue(node.path in data)
-            self.assertTrue(data[node.path][-1] == self.series_values[i])
+        for i, path in enumerate(self.series):
+            self.assertTrue(path in data)
+            self.assertTrue(data[path][-1] == self.series_values[i])
 
     def test_find_branch(self):
         """Test getting branch of metric path"""

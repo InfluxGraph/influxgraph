@@ -481,7 +481,7 @@ class InfluxDBFinder(object):
         time_info = start_time, end_time, interval
         if not nodes:
             return time_info, {}
-        paths = [n.path for n in nodes if n.is_leaf]
+        paths = sorted([n.path for n in nodes if n.is_leaf])
         if not len(paths) > 0:
             return self._make_empty_multi_fetch_result(
                 time_info, [n.path for n in nodes])

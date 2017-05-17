@@ -204,7 +204,7 @@ def _read_measurement_metric_values(infl_data, measurement, paths, _data):
         return
     _data[measurement] = [d['value']
                           for d in infl_data.get_points(
-                              measurement=measurement)]
+                                  measurement=measurement)]
 
 def read_influxdb_values(influxdb_data, paths, measurement_data):
     """Return metric path -> datapoints dict for values from InfluxDB data"""

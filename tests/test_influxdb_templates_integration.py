@@ -484,6 +484,14 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          sorted([mem_tags_mem_metric['metric'],
                                  mem_tags_free_metric['metric']]))
         mem_data = self._test_data_in_nodes(mem_nodes)
+        import ipdb; ipdb.set_trace()
+        for mem_metric in mem_data:
+            if mem_metric.endswith(mem_tags_mem_metric['metric']):
+                self.assertEqual(mem_data[mem_metric][-1],
+                                 mem_fields_mem_metric['value'])
+            elif mem_metric.endswith(mem_tags_free_metric['metric']):
+                self.assertEqual(mem_data[mem_metric][-1],
+                                 mem_fields_free_metric['value'])
         ##
         query = Query('%s.%s.*' % (
             int_tags_bytes_metric['host'], int_measurement,))
@@ -529,6 +537,69 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                     self.assertTrue(all_data[path][-1] == int_fields_int_metric['value'])
                 elif path.endswith(int_tags_bytes_metric['metric']):
                     self.assertTrue(all_data[path][-1] == int_fields_bytes_metric['value'])
+
+    def test_single_template_multi_tag_multi_target_no_field(self):
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        templates = ["host.measurement.metric"]
+        mem_measurement = 'memory'
+        mem_tags_mem_metric = {'host': 'my_host',
+                               'metric': 'mem_metric',
+                               }
+        mem_tags_free_metric = mem_tags_mem_metric.copy()
+        mem_tags_cache_metric = mem_tags_mem_metric.copy()
+        mem_tags_free_metric['metric'] = 'free'
+        mem_tags_cache_metric['metric'] = 'cache'
+        mem_tags_free_metric_host2 = mem_tags_free_metric.copy()
+        mem_tags_free_metric_host2['host'] = 'my_host2'
+        mem_fields_mem_metric = {'value': self.randval(),}
+        mem_fields_mem_metric_host2 = {'value': self.randval(),}
+        mem_fields_free_metric = {'value': self.randval(),}
+        mem_fields_cache_metric = {'value': self.randval(),}
+        mem_fields_free_metric_host2 = {'value': self.randval(),}
+        mem_tags_mem_metric_host2 = mem_tags_mem_metric.copy()
+        mem_tags_mem_metric_host2['host'] = 'my_host2'
+        self.write_data([mem_measurement], mem_tags_mem_metric, mem_fields_mem_metric)
+        self.write_data([mem_measurement], mem_tags_free_metric, mem_fields_free_metric)
+        self.write_data([mem_measurement], mem_tags_cache_metric, mem_fields_cache_metric)
+        self.write_data([mem_measurement], mem_tags_mem_metric_host2,
+                        mem_fields_mem_metric_host2)
+        self.write_data([mem_measurement], mem_tags_free_metric_host2,
+                        mem_fields_free_metric_host2)
+        self.config['influxdb']['templates'] = templates
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        paths = ['my_host.memory.mem_metric', 'my_host.memory.free',
+                 'my_host2.memory.mem_metric', 'my_host.memory.cache',
+                 'my_host2.memory.free',
+        ]
+        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(
+            path, self.finder.reader)
+                 for path in paths]
+        data = self._test_data_in_nodes(nodes)
+        for metric_path in data:
+            if metric_path.endswith(mem_tags_free_metric['metric']) \
+               and metric_path.startswith('%s.' % (mem_tags_mem_metric['host'])):
+                self.assertEqual(mem_fields_free_metric['value'],
+                                 data[metric_path][-1])
+            elif metric_path.endswith(mem_tags_cache_metric['metric']) \
+               and metric_path.startswith('%s.' % (mem_tags_cache_metric['host'])):
+                self.assertEqual(mem_fields_cache_metric['value'],
+                                 data[metric_path][-1])
+            elif metric_path.endswith(mem_tags_mem_metric['metric']) \
+               and metric_path.startswith('%s.' % (mem_tags_mem_metric['host'])):
+                self.assertEqual(mem_fields_mem_metric['value'],
+                                 data[metric_path][-1])
+            elif metric_path.endswith(mem_tags_mem_metric['metric']) \
+               and metric_path.startswith('%s.' % (mem_tags_mem_metric_host2['host'])):
+                self.assertEqual(mem_fields_mem_metric_host2['value'],
+                                 data[metric_path][-1])
+            elif metric_path.endswith(mem_tags_free_metric['metric']) \
+               and metric_path.startswith('%s.' % (mem_tags_free_metric_host2['host'])):
+                self.assertEqual(mem_fields_free_metric_host2['value'],
+                                 data[metric_path][-1])
+            else:
+                raise AssertionError("Unexpected metric path %s in data",
+                                     metric_path)
 
     def test_template_multiple_tags(self):
         self.client.drop_database(self.db_name)
