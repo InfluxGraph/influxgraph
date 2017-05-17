@@ -484,7 +484,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          sorted([mem_tags_mem_metric['metric'],
                                  mem_tags_free_metric['metric']]))
         mem_data = self._test_data_in_nodes(mem_nodes)
-        import ipdb; ipdb.set_trace()
         for mem_metric in mem_data:
             if mem_metric.endswith(mem_tags_mem_metric['metric']):
                 self.assertEqual(mem_data[mem_metric][-1],
