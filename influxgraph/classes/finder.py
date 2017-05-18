@@ -410,12 +410,12 @@ class InfluxDBFinder(object):
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in measurements)) \
             if retention \
-            else ', '.join(('"%s"' % (measure,) for measure in measurements))
+               else ', '.join(('"%s"' % (measure,) for measure in measurements))
         _tags = ' OR '.join(['(%s)' % (tag_set,) for tag_set in [
             ' AND '.join(['(%s)' % ' OR '.join([
-        """"%s" = '%s'""" % (tag, tag_val,)
+                """"%s" = '%s'""" % (tag, tag_val,)
                 for tag_val in __tags[tag]])
-                for tag in __tags])
+                          for tag in __tags])
             for __tags in tags]]) if tags else None
         fields = fields if fields else ['value']
         return measurements, _tags, fields, groupings
@@ -432,8 +432,8 @@ class InfluxDBFinder(object):
             return self._gen_query_values_from_templates(paths, retention)
         measurement = ', '.join(('"%s"."%s"' % (retention, path,)
                                  for path in paths)) if retention \
-                                 else ', '.join(('"%s"' % (path,)
-                                                 for path in paths))
+                                     else ', '.join(('"%s"' % (path,)
+                                                     for path in paths))
         return measurement, None, ['value'], None, None
 
     def _gen_infl_stmt(self, measurements, tags, fields, groupings, start_time,
@@ -442,11 +442,11 @@ class InfluxDBFinder(object):
         query_fields = ', '.join(['%s("%s") as "%s"'  % (
             aggregation_func, field, field) for field in fields])
         groupings = ['"%s"' % (grouping,) for grouping in groupings] \
-          if groupings else []
+                    if groupings else []
         groupings.insert(0, 'time(%ss)' % (interval,))
         groupings = ', '.join(groupings)
         where_clause = "%s AND %s" % (time_clause, tags,) if tags else \
-          time_clause
+                       time_clause
         group_by = '%s fill(%s)' % (groupings, self.fill_param,)
         query = 'select %s from %s where %s GROUP BY %s' % (
             query_fields, measurements, where_clause, group_by,)
@@ -455,7 +455,7 @@ class InfluxDBFinder(object):
     def _gen_influxdb_stmt(self, start_time, end_time, paths, interval,
                            aggregation_func):
         retention = get_retention_policy(interval, self.retention_policies) \
-          if self.retention_policies else None
+                    if self.retention_policies else None
         measurements, tags, fields, groupings, measurement_data = \
           self._gen_query_values(paths, retention)
         query = self._gen_infl_stmt(measurements, tags, fields, groupings,
