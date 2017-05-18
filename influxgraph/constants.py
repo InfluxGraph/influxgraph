@@ -22,12 +22,13 @@ INFLUXDB_AGGREGATIONS = [
     # aggregations
     'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread', 'stddev', 'sum',
     # selectors
-    'bottom', 'first', 'last', 'max', 'min', 'percentile', 'sample', 'top']
+    'bottom', 'first', 'last', 'max', 'min', 'percentile', 'sample', 'top'
+]
 
-DEFAULT_AGGREGATIONS = {r'\.min$' : 'min',
-                        r'\.max$' : 'max',
-                        r'\.last$' : 'last',
-                        r'\.sum$' : 'sum',
+DEFAULT_AGGREGATIONS = {r'\.min$': 'min',
+                        r'\.max$': 'max',
+                        r'\.last$': 'last',
+                        r'\.sum$': 'sum',
                         }
 
 # Tell influxdb to return time as seconds from epoch
