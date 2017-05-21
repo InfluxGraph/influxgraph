@@ -30,9 +30,11 @@ except ImportError:
     from .classes.tree import NodeTreeIndex as Node
 
 try:
-    from .ext.templates import get_series_with_tags, heapsort, _make_path_from_template
+    from .ext.templates import get_series_with_tags, heapsort, \
+        _make_path_from_template
 except ImportError:
-    from .templates import get_series_with_tags, heapsort, _make_path_from_template
+    from .templates import get_series_with_tags, heapsort, \
+        _make_path_from_template
 
 
 def calculate_interval(start_time, end_time, deltas=None):
@@ -44,8 +46,9 @@ def calculate_interval(start_time, end_time, deltas=None):
     :type start_time: int
     :type end_time: int
     :param deltas: Delta configuration to use. Defaults hardcoded if no
-    configuration is provided
-    :type deltas: dict(max time range of query in seconds: interval to use in seconds)
+      configuration is provided
+    :type deltas: dict(max time range of query in seconds: interval to use
+      in seconds)
 
     :rtype: int - *Interval in seconds*
     """
@@ -82,13 +85,15 @@ def calculate_interval(start_time, end_time, deltas=None):
     # 1 day default, or if time range > max configured (4 years default max)
     return 86400
 
+
 def get_retention_policy(interval, retention_policies):
     """Get appropriate retention policy for interval provided
 
     :param interval: Interval of query in seconds
     :type interval: int
     :param retention_policies: Retention policy configuration
-    :type retention_policies: dict(max time range of interval in seconds: retention policy name)
+    :type retention_policies: dict(max time range of interval
+      in seconds: retention policy name)
 
     :rtype: ``str`` or ``None``
     """
@@ -101,37 +106,13 @@ def get_retention_policy(interval, retention_policies):
     # return policy for max interval
     return retention_policies[max(sorted(retention_policies.keys()))]
 
-class Query(object): # pylint: disable=too-few-public-methods
+
+class Query(object):  # pylint: disable=too-few-public-methods
     """Graphite-API compatible query class"""
 
     def __init__(self, pattern):
         self.pattern = pattern
 
-
-class NullStatsd(object): # pragma: no cover
-    """Fake StatsClient compatible class to use when statsd is not configured"""
-
-    def __enter__(self):
-        return self  # pragma: no cover
-
-    def __exit__(self, _type, value, traceback):
-        pass  # pragma: no cover
-
-    def timer(self, key, val=None): # pylint: disable=unused-argument
-        """No-Op"""
-        return self  # pragma: no cover
-
-    def timing(self, key, val): # pylint: disable=unused-argument
-        """No-Op"""
-        pass  # pragma: no cover
-
-    def start(self):
-        """No-Op"""
-        pass
-
-    def stop(self):
-        """No-Op"""
-        pass
 
 def _compile_aggregation_patterns(aggregation_functions):
     """Compile aggregation function patterns to compiled regex objects"""
@@ -140,16 +121,20 @@ def _compile_aggregation_patterns(aggregation_functions):
     compiled_aggregations = {}
     for pattern in aggregation_functions.keys():
         if not aggregation_functions[pattern] in INFLUXDB_AGGREGATIONS:
-            sys.stderr.write("Requested aggregation function '%s' is not a valid InfluxDB "
-                             "aggregation function - ignoring..\n" % (
-                                 aggregation_functions[pattern],))
+            sys.stderr.write(
+                "Requested aggregation function '%s' is not a valid InfluxDB "
+                "aggregation function - ignoring..\n" % (
+                    aggregation_functions[pattern],))
             continue
         try:
-            compiled_aggregations[re.compile(r'%s' % (pattern,))] = aggregation_functions[pattern]
+            compiled_aggregations[
+                re.compile(r'%s' % (pattern,))] = aggregation_functions[pattern]
         except re.error:
-            sys.stderr.write("Error compiling regex pattern '%s' - ignoring..\n" % (
-                pattern,))
+            sys.stderr.write(
+                "Error compiling regex pattern '%s' - ignoring..\n" % (
+                    pattern,))
     return compiled_aggregations
+
 
 def get_aggregation_func(path, aggregation_functions):
     """Lookup aggregation function for path, if any.
@@ -167,8 +152,9 @@ def get_aggregation_func(path, aggregation_functions):
             return aggregation_functions[pattern]
     return 'mean'
 
-def _retrieve_named_field_data(infl_data, measurement_data, measurement, tags, _data,
-                               separator='.'):
+
+def _retrieve_named_field_data(infl_data, measurement_data, measurement,
+                               tags, _data, separator='.'):
     measurement_paths = measurement_data[measurement]['paths'][:]
     for field in measurement_data[measurement]['fields']:
         split_path = []
@@ -179,32 +165,35 @@ def _retrieve_named_field_data(infl_data, measurement_data, measurement, tags, _
         split_path = [p[1] for p in heapsort(split_path)]
         split_path.append(field)
         metric = '.'.join(split_path)
-        if not metric in measurement_paths:
+        if metric not in measurement_paths:
             continue
         del measurement_paths[measurement_paths.index(metric)]
         _data[metric] = [d[field]
-                         for d in infl_data.get_points(measurement=measurement,
-                                                       tags=tags)]
+                         for d in infl_data.get_points(
+                                 measurement=measurement, tags=tags)]
     measurement_data[measurement]['paths'] = measurement_paths
+
 
 def _retrieve_field_data(infl_data, measurement_data, measurement,
                          metric, tags, _data):
     # Retrieve value field data
-    if 'value' in  measurement_data[measurement]['fields']:
+    if 'value' in measurement_data[measurement]['fields']:
         _data[metric] = [d['value']
-                         for d in infl_data.get_points(measurement=measurement,
-                                                       tags=tags)]
+                         for d in infl_data.get_points(
+                                 measurement=measurement, tags=tags)]
         return
     # Retrieve non value named field data with fields from measurement_data
     _retrieve_named_field_data(infl_data, measurement_data,
                                measurement, tags, _data)
 
+
 def _read_measurement_metric_values(infl_data, measurement, paths, _data):
-    if not measurement in paths:
+    if measurement not in paths:
         return
     _data[measurement] = [d['value']
                           for d in infl_data.get_points(
                                   measurement=measurement)]
+
 
 def read_influxdb_values(influxdb_data, paths, measurement_data):
     """Return metric path -> datapoints dict for values from InfluxDB data"""
@@ -221,10 +210,11 @@ def read_influxdb_values(influxdb_data, paths, measurement_data):
                 _read_measurement_metric_values(infl_data, measurement,
                                                 paths, _data)
                 continue
-            elif not measurement in measurement_data:
+            elif measurement not in measurement_data:
                 continue
             if measurement not in seen_measurements:
-                seen_measurements = set(tuple(seen_measurements) + (measurement,))
+                seen_measurements = set(
+                    tuple(seen_measurements) + (measurement,))
                 m_path_ind = 0
             elif m_path_ind >= len(measurement_data[measurement]['paths']):
                 m_path_ind = 0
@@ -234,18 +224,22 @@ def read_influxdb_values(influxdb_data, paths, measurement_data):
                                  measurement, metric, tags, _data)
     return _data
 
+
 def gen_memcache_pattern_key(pattern):
     """Generate memcache key from pattern"""
     return hashlib.md5(pattern.encode('utf8')).hexdigest()
 
+
 def gen_memcache_key(start_time, end_time, aggregation_func, paths):
     """Generate memcache key to use to cache request data"""
-    start_time_dt, end_time_dt = datetime.datetime.fromtimestamp(float(start_time)), \
-      datetime.datetime.fromtimestamp(float(end_time))
+    start_time_dt, end_time_dt = datetime.datetime.fromtimestamp(
+        float(start_time)), datetime.datetime.fromtimestamp(float(end_time))
     td = end_time_dt - start_time_dt
-    delta = (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
+    delta = (td.microseconds + (
+        td.seconds + td.days * 24 * 3600) * 10**6) / 10**6
     key_prefix = hashlib.md5("".join(paths).encode('utf8')).hexdigest()
     return "".join([key_prefix, aggregation_func, str(delta)]).encode('utf8')
+
 
 def make_memcache_client(memcache_host, memcache_max_value=1):
     """Make memcache client if given a memcache host or `None`"""
@@ -254,6 +248,7 @@ def make_memcache_client(memcache_host, memcache_max_value=1):
     return memcache.Client(
         [memcache_host], pickleProtocol=-1,
         server_max_value_length=1024**2*memcache_max_value)
+
 
 def parse_series(series, fields, graphite_templates, separator='.'):
     """Parses series and fields with/without graphite templates

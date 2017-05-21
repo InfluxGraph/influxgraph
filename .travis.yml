@@ -1,6 +1,9 @@
 language: python
 cache: pip
 sudo: required
+notifications:
+  email:
+    change: never
 python:
   - 2.6
   - 2.7
@@ -20,7 +23,7 @@ before_install:
   - sudo /etc/init.d/influxdb start
 install:
   - pip install -r requirements.txt
-  - pip install coverage coveralls
+  - pip install coverage coveralls flake8
   - python setup.py build_ext --inplace
 script:
   - nosetests --with-coverage --cover-package=influxgraph
@@ -29,6 +32,7 @@ script:
   # Test integration with pure Python code
   - find influxgraph -type f -name '*.so' -exec rm -f {} +
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py
+  - flake8 influxgraph
 services:
   - memcached
   - docker

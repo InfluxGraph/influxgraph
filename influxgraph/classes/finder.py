@@ -29,16 +29,12 @@ import logging
 from logging.handlers import WatchedFileHandler
 from collections import deque
 
-try:
-    import statsd
-except ImportError:
-    pass
 from influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
      DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS, FILE_LOCK
-from ..utils import NullStatsd, calculate_interval, read_influxdb_values, \
+from ..utils import calculate_interval, read_influxdb_values, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
      get_retention_policy, _compile_aggregation_patterns, parse_series, \
      make_memcache_client
@@ -60,7 +56,7 @@ class InfluxDBFinder(object):
     Finds and fetches metric series from InfluxDB.
     """
     __fetch_multi__ = 'influxdb'
-    __slots__ = ('client', 'statsd_client', 'aggregation_functions',
+    __slots__ = ('client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path', 'graphite_templates',
@@ -74,36 +70,32 @@ class InfluxDBFinder(object):
                                      influxdb_config.get('passw', 'root'),
                                      influxdb_config.get('db', 'graphite'),
                                      influxdb_config.get('ssl', 'false'),)
-        self._setup_logger(influxdb_config.get('log_level', None),
+        self._setup_logger(influxdb_config.get('log_level', logging.INFO),
                            influxdb_config.get('log_file', None))
-        try:
-            self.statsd_client = statsd.StatsClient(config['statsd'].get('host'),
-                                                    config['statsd'].get('port', 8125)) \
-                if 'statsd' in config and config['statsd'].get('host') else NullStatsd()
-        except NameError:
-            logger.warning("Statsd client configuration present but 'statsd' module "
-                           "not installed - ignoring statsd configuration..")
-            self.statsd_client = NullStatsd()
         memcache_conf = influxdb_config.get('memcache', {})
         memcache_host = memcache_conf.get('host')
-        self.memcache_ttl = memcache_conf.get('ttl', MEMCACHE_SERIES_DEFAULT_TTL)
+        self.memcache_ttl = memcache_conf.get(
+            'ttl', MEMCACHE_SERIES_DEFAULT_TTL)
         self.memcache = make_memcache_client(
             memcache_host, memcache_max_value=memcache_conf.get('max_value', 1))
         self.aggregation_functions = _compile_aggregation_patterns(
             influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
         self.fill_param = influxdb_config.get('fill', 'previous')
         if self.fill_param not in FILL_PARAMS and not (
-                isinstance(self.fill_param, int) or isinstance(self.fill_param, float)):
+                isinstance(self.fill_param, int) or isinstance(
+                    self.fill_param, float)):
             raise Exception("Configured fill param %s is not a valid parameter "
                             "nor integer or float number", self.fill_param,)
-        series_loader_interval = influxdb_config.get('series_loader_interval', 900)
+        series_loader_interval = influxdb_config.get(
+            'series_loader_interval', 900)
         reindex_interval = influxdb_config.get('reindex_interval', 900)
         self.loader_limit = influxdb_config.get('loader_limit', LOADER_LIMIT)
         if not isinstance(self.loader_limit, int):
             raise Exception("Configured loader limit %s is not an integer",
                             self.loader_limit)
         self.deltas = influxdb_config.get('deltas', None)
-        self.retention_policies = influxdb_config.get('retention_policies', None)
+        self.retention_policies = influxdb_config.get(
+            'retention_policies', None)
         logger.debug("Configured aggregation functions - %s",
                      self.aggregation_functions,)
         templates = influxdb_config.get('templates')
@@ -114,7 +106,7 @@ class InfluxDBFinder(object):
         self.index_path = config.get('search_index')
         self.index_lock = FileLock(FILE_LOCK)
         self.reader = InfluxDBReader(
-            self.client, None, self.statsd_client,
+            self.client, None,
             aggregation_functions=self.aggregation_functions,
             memcache=self.memcache,
             deltas=self.deltas)
@@ -204,20 +196,12 @@ class InfluxDBFinder(object):
         memcache_key = gen_memcache_pattern_key("_".join([
             '*', str(self.loader_limit), str(offset)]))
         cached_series = self.memcache.get(memcache_key) \
-          if self.memcache and cache else None
+            if self.memcache and cache else None
         if cached_series is not None:
             logger.debug("Found cached series for limit %s, "
                          "offset %s", self.loader_limit, offset)
             return cached_series
-        timer_name = ".".join(['service_is_graphite-api',
-                               'ext_service_is_influxdb',
-                               'target_type_is_gauge',
-                               'unit_is_ms',
-                               'action_is_get_series'])
-        timer = self.statsd_client.timer(timer_name)
-        timer.start()
         series = self._get_series(offset=offset)
-        timer.stop()
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
@@ -370,12 +354,12 @@ class InfluxDBFinder(object):
                     _tags.setdefault(tag, []).append(tags[tag])
             if not field:
                 field = 'value'
-            if not field in _fields:
+            if field not in _fields:
                 _fields.append(field)
             matched_paths.append(path)
             measurement_data.setdefault(measurement, {}).setdefault(
                 'paths', []).append(path)
-            if not field in measurement_data[measurement].setdefault(
+            if field not in measurement_data[measurement].setdefault(
                     'fields', []):
                 measurement_data[measurement].setdefault(
                     'fields', []).append(field)
@@ -387,14 +371,15 @@ class InfluxDBFinder(object):
         paths = paths[:]
         measurement_data = {}
         measurements, tags, fields = deque(), deque(), set()
-        for (_filter, template, default_tags, separator) in self.graphite_templates:
+        for (_filter, template,
+             default_tags, separator) in self.graphite_templates:
             # One influx measurement queried per template
             if not paths:
                 break
-            _measurements, _tags, _fields, matched_paths = \
-              self._get_template_values_from_paths(
-                  paths, _filter, template, default_tags, separator,
-                  measurement_data)
+            _measurements, _tags, \
+                _fields, matched_paths = self._get_template_values_from_paths(
+                    paths, _filter, template, default_tags, separator,
+                    measurement_data)
             if _measurements:
                 # Found template match for path, append query data and
                 # remove matched paths so we do not try to match them again
@@ -410,7 +395,7 @@ class InfluxDBFinder(object):
         measurements = ', '.join(
             ('"%s"."%s"' % (retention, measure,) for measure in measurements)) \
             if retention \
-               else ', '.join(('"%s"' % (measure,) for measure in measurements))
+            else ', '.join(('"%s"' % (measure,) for measure in measurements))
         _tags = ' OR '.join(['(%s)' % (tag_set,) for tag_set in [
             ' AND '.join(['(%s)' % ' OR '.join([
                 """"%s" = '%s'""" % (tag, tag_val,)
@@ -432,17 +417,17 @@ class InfluxDBFinder(object):
             return self._gen_query_values_from_templates(paths, retention)
         measurement = ', '.join(('"%s"."%s"' % (retention, path,)
                                  for path in paths)) if retention \
-                                     else ', '.join(('"%s"' % (path,)
-                                                     for path in paths))
+                      else ', '.join(('"%s"' % (path,)
+                                      for path in paths))
         return measurement, None, ['value'], None, None
 
     def _gen_infl_stmt(self, measurements, tags, fields, groupings, start_time,
                        end_time, aggregation_func, interval):
         time_clause = "(time > %ds and time <= %ds)" % (start_time, end_time,)
-        query_fields = ', '.join(['%s("%s") as "%s"'  % (
+        query_fields = ', '.join(['%s("%s") as "%s"' % (
             aggregation_func, field, field) for field in fields])
         groupings = ['"%s"' % (grouping,) for grouping in groupings] \
-                    if groupings else []
+            if groupings else []
         groupings.insert(0, 'time(%ss)' % (interval,))
         groupings = ', '.join(groupings)
         where_clause = "%s AND %s" % (time_clause, tags,) if tags else \
@@ -456,8 +441,9 @@ class InfluxDBFinder(object):
                            aggregation_func):
         retention = get_retention_policy(interval, self.retention_policies) \
                     if self.retention_policies else None
-        measurements, tags, fields, groupings, measurement_data = \
-          self._gen_query_values(paths, retention)
+        measurements, tags, fields, \
+            groupings, measurement_data = self._gen_query_values(
+                paths, retention)
         query = self._gen_infl_stmt(measurements, tags, fields, groupings,
                                     start_time, end_time, aggregation_func,
                                     interval)
@@ -492,7 +478,8 @@ class InfluxDBFinder(object):
         if data:
             logger.debug("Found cached data for key %s", memcache_key)
             return time_info, data
-        logger.debug('fetch_multi() - start_time: %s - end_time: %s, interval %s',
+        logger.debug('fetch_multi() - start_time: %s - '
+                     'end_time: %s, interval %s',
                      datetime.datetime.fromtimestamp(float(start_time)),
                      datetime.datetime.fromtimestamp(float(end_time)), interval)
         try:
@@ -500,7 +487,7 @@ class InfluxDBFinder(object):
                 start_time, end_time, paths, interval, aggregation_func)
         except TypeError as ex:
             logger.error("Type error generating query statement - %s", ex)
-            return self._make_empty_multi_fetch_result(time_info, paths)        
+            return self._make_empty_multi_fetch_result(time_info, paths)
         data = self._run_infl_query(query, paths, measurement_data)
         # Do not cache empty responses
         if self.memcache and sum([len(vals) for vals in data.values()]) > 0:
@@ -510,17 +497,10 @@ class InfluxDBFinder(object):
         return time_info, data
 
     def _run_infl_query(self, query, paths, measurement_data):
-        timer_name = ".".join([
-            'service_is_graphite-api', 'ext_service_is_influxdb',
-            'target_type_is_gauge', 'unit_is_ms', 'action_is_select_datapoints']
-            )
-        timer = self.statsd_client.timer(timer_name)
-        timer.start()
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
         data = read_influxdb_values(data, paths, measurement_data)
-        timer.stop()
         # Graphite API requires that data contain keys for
         # all requested paths even if they have no datapoints
         for key in paths:
@@ -585,7 +565,7 @@ class InfluxDBFinder(object):
         """Save index to file"""
         if not self.index_path:
             return
-        if not (hasattr(self, 'index') and self.index \
+        if not (hasattr(self, 'index') and self.index
                 and hasattr(self.index, 'to_array')):
             return
         logger.info("Saving index to file %s", self.index_path,)
@@ -631,8 +611,8 @@ class InfluxDBFinder(object):
 
     def get_field_keys(self):
         """Get field keys for all measurements"""
-        field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) \
-          if self.memcache else None
+        field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) if self.memcache \
+            else None
         if field_keys:
             logger.debug("Found cached field keys")
             return field_keys

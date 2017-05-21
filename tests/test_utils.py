@@ -36,13 +36,6 @@ class InfluxGraphUtilsTestCase(unittest.TestCase):
                              '30min', 1900, policy))
         self.assertFalse(influxgraph.utils.get_retention_policy(60, None))
 
-    def test_null_statsd(self):
-        statsd = influxgraph.utils.NullStatsd()
-        statsd.timer('key', 'val')
-        statsd.timing('key', 'val')
-        statsd.start()
-        statsd.stop()
-
     def test_aggregation_functions(self):
         config = {'aggregation_functions': {
             '\.min$' : 'min',

@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Graphite template parsing functions per InfluxDB's Graphite service template syntax"""
+"""Graphite template parsing functions per InfluxDB's Graphite
+service template syntax
+"""
 
 from __future__ import absolute_import, print_function
 import logging
@@ -56,6 +58,7 @@ class TemplateFilter(object):
                 return False
         return True
 
+
 class InvalidTemplateError(Exception):
     """Raised on Graphite template configuration validation errors"""
     pass
@@ -78,13 +81,15 @@ def heapsort(iterable):
         heappush(h, value)
     return [heappop(h) for _ in range(len(h))]
 
+
 def parse_influxdb_graphite_templates(templates, separator='.'):
     """Parse InfluxDB template configuration and return parsed templates
 
     :param templates: Template patterns to parse. \
     Format is [filter] <template> [tag1=value1,tag2=value2]
     :type templates: list(str)
-    :param separator: (Optional) Separator to use when storing greedy matched columns
+    :param separator: (Optional) Separator to use when storing greedy
+      matched columns
     :type separator: str
 
     :raises: :mod:`InvalidTemplateError` on invalid template format used in any
@@ -120,6 +125,7 @@ def parse_influxdb_graphite_templates(templates, separator='.'):
         _template_sanity_check(template)
     return parsed_templates
 
+
 def _template_sanity_check(template):
     field = ""
     measurement_wildcard, field_wildcard = False, False
@@ -142,6 +148,7 @@ def _template_sanity_check(template):
         raise InvalidTemplateError(
             "At least one of 'measurement' or 'measurement*' is required - %s",
             template)
+
 
 def apply_template(metric_path_parts, template, default_tags, separator='.'):
     """Apply template to metric path parts and return measurements, tags and
@@ -174,6 +181,7 @@ def apply_template(metric_path_parts, template, default_tags, separator='.'):
         tags.update(default_tags)
     return separator.join(measurement), tags, field
 
+
 def _generate_template_tag_index(template):
     _tags = template.split('.')
     tags = {}
@@ -182,6 +190,7 @@ def _generate_template_tag_index(template):
             tag = None
         tags[i] = tag
     return tags
+
 
 def get_series_with_tags(paths, all_fields, graphite_templates,
                          separator='.'):
@@ -206,6 +215,7 @@ def get_series_with_tags(paths, all_fields, graphite_templates,
     else:
         series.append(split_path)
     return series
+
 
 def _split_series_with_tags(paths, graphite_templates):
     split_path, template = deque(), None
@@ -233,10 +243,12 @@ def _split_series_with_tags(paths, graphite_templates):
             split_path = []
     return [], template
 
+
 def _get_first_not_none_tmpl_val(template):
     for t in template.values():
         if t:
             return t
+
 
 def _make_path_from_template(split_path, measurement, template, tags_values,
                              separator='.'):
@@ -255,6 +267,7 @@ def _make_path_from_template(split_path, measurement, template, tags_values,
             elif 'measurement' in tmpl_tag_key and not measurement_found:
                 measurement_found = True
                 split_path.append((i, measurement))
+
 
 def _add_fields_to_paths(fields, split_path, series,
                          separator='.'):

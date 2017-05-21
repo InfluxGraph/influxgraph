@@ -22,10 +22,12 @@ from collections import deque
 from graphite_api.utils import is_pattern
 from graphite_api.finders import match_entries
 
+
 def _encode_bytes(_str):
     if not isinstance(b'', str):
         return _str.encode('utf-8')
     return bytes(_str)
+
 
 def _decode_str(_str):
     try:
@@ -34,10 +36,11 @@ def _decode_str(_str):
         pass
     return _str
 
+
 class Node(object):
     """Node class of a graphite metric"""
     __slots__ = ('children')
-    
+
     def __init__(self):
         self.children = None
 
@@ -65,8 +68,9 @@ class Node(object):
 
     def to_array(self):
         """Return list of (name, children) items for this node's children"""
-        return [(_decode_str(name), node.to_array(),) for (name, node,) in self.children] \
-          if self.children is not None else None
+        return [(_decode_str(name), node.to_array(),)
+                for (name, node,) in self.children] \
+            if self.children is not None else None
 
     @staticmethod
     def from_array(array):
@@ -80,6 +84,7 @@ class Node(object):
             child = Node.from_array(child_array)
             metric.children += ((_encode_bytes(child_name), child),)
         return metric
+
 
 class NodeTreeIndex(object):
     """Node tree index class with graphite glob searches per sub-part of a
@@ -101,7 +106,7 @@ class NodeTreeIndex(object):
 
     def insert_split_path(self, paths):
         """Insert already split path into tree index"""
-        self.index.insert(deque([_encode_bytes(s) for s in  paths]))
+        self.index.insert(deque([_encode_bytes(s) for s in paths]))
 
     def clear(self):
         """Clear tree index"""

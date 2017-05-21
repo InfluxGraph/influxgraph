@@ -16,11 +16,13 @@
 """Constants and default settings for InfluxGraph"""
 
 # https://influxdb.com/docs/v0.9/query_language/functions.html
-# NB - Transformation functions like derivative are invalid without an aggregation
-# when used in a 'group by' query - we leave those to graphite-api to perform
+# NB - Transformation functions like derivative are invalid without
+# an aggregation when used in a 'group by' query - we leave those to
+# graphite-api to perform
 INFLUXDB_AGGREGATIONS = [
     # aggregations
-    'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread', 'stddev', 'sum',
+    'count', 'distinct', 'integral', 'mean', 'median', 'mode', 'spread',
+    'stddev', 'sum',
     # selectors
     'bottom', 'first', 'last', 'max', 'min', 'percentile', 'sample', 'top'
 ]
