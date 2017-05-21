@@ -1,7 +1,7 @@
 # cython: boundscheck=False, wraparound=False, optimize.use_switch=True
 
-# Copyright (C) [2015-] [Thomson Reuters LLC]
-# Copyright (C) [2015-] [Panos Kittenis]
+# Copyright (C) [2015-2017] [Thomson Reuters LLC]
+# Copyright (C) [2015-2017] [Panos Kittenis]
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

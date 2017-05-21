@@ -3850,7 +3850,7 @@ PyMODINIT_FUNC PyInit_templates(void)
   /* "influxgraph/ext/templates.pyx":1
  * # cython: boundscheck=False, wraparound=False, optimize.use_switch=True             # <<<<<<<<<<<<<<
  * 
- * # Copyright (C) [2015-] [Thomson Reuters LLC]
+ * # Copyright (C) [2015-2017] [Thomson Reuters LLC]
  */
   __pyx_t_2 = PyDict_New(); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
