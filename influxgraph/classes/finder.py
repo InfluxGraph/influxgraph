@@ -70,7 +70,7 @@ class InfluxDBFinder(object):
                                      influxdb_config.get('passw', 'root'),
                                      influxdb_config.get('db', 'graphite'),
                                      influxdb_config.get('ssl', 'false'),)
-        self._setup_logger(influxdb_config.get('log_level', logging.INFO),
+        self._setup_logger(influxdb_config.get('log_level', 'info'),
                            influxdb_config.get('log_file', None))
         memcache_conf = influxdb_config.get('memcache', {})
         memcache_host = memcache_conf.get('host')

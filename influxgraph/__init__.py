@@ -9,7 +9,3 @@ from .classes.reader import InfluxDBReader as InfluxDBReader # flake8: noqa
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
-
-logger = logging.getLogger('influxgraph')
-if hasattr(logging, 'NullHandler'):
-    logger.addHandler(logging.NullHandler())
