@@ -467,7 +467,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         int_tags_int_metric = {'host': 'my_host',
                                'device': 'dev',
                                'metric': 'int_metric',
-                               }
+        }
         int_tags_bytes_metric = int_tags_int_metric.copy()
         int_tags_bytes_metric['metric'] = 'bytes'
         int_fields_int_metric = {'value': self.randval(),}
