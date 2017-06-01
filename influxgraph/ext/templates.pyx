@@ -22,12 +22,14 @@ import logging
 
 logger = logging.getLogger('influxgraph')
 
+
 cpdef list heapsort(list iterable):
     cdef list h = []
     cdef tuple value
     for value in iterable:
         heappush(h, value)
     return [heappop(h) for _ in range(len(h))]
+
 
 cpdef list get_series_with_tags(list paths, dict all_fields,
                                 list graphite_templates,
@@ -52,6 +54,7 @@ cpdef list get_series_with_tags(list paths, dict all_fields,
     else:
         series.append(split_path)
     return series
+
 
 cdef tuple _split_series_with_tags(list paths, list graphite_templates,
                                    str separator):
@@ -84,15 +87,32 @@ cdef tuple _split_series_with_tags(list paths, list graphite_templates,
             split_path = []
     return [], template
 
+
+cdef _get_first_not_none_tmpl_val(dict template):
+    for t in template.values():
+        if t:
+            return t
+
+
+cdef _get_measurement_idx(dict template):
+    for key in template:
+        if template[key] == 'measurement':
+            return key
+
+
 cpdef void _make_path_from_template(list split_path, unicode measurement,
                                     dict template, list tags_values,
                                     str separator):
-    cdef Py_ssize_t measurement_found = 0
+    cdef bint measurement_found = 0
     cdef Py_ssize_t i
     if not tags_values and separator in measurement and \
-       'measurement*' == [t for t in template.values() if t][0]:
+      _get_first_not_none_tmpl_val(template) == 'measurement*':
         for i, measurement in enumerate(measurement.split(separator)):
             split_path.append((i, measurement))
+        return
+    # Measurement without tags
+    if not tags_values:
+        split_path.append((_get_measurement_idx(template), measurement))
         return
     cdef unicode tag_key
     cdef unicode tag_val
@@ -105,6 +125,7 @@ cpdef void _make_path_from_template(list split_path, unicode measurement,
             elif 'measurement' in tmpl_tag_key and not measurement_found:
                 measurement_found = 1
                 split_path.append((i, measurement))
+
 
 cdef void _add_fields_to_paths(list fields, list split_path, list series,
                                str separator):

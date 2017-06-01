@@ -641,8 +641,8 @@ static const char *__pyx_f[] = {
 /*--- Type declarations ---*/
 struct __pyx_opt_args_11influxgraph_3ext_9templates_get_series_with_tags;
 
-/* "influxgraph/ext/templates.pyx":32
- *     return [heappop(h) for _ in range(len(h))]
+/* "influxgraph/ext/templates.pyx":34
+ * 
  * 
  * cpdef list get_series_with_tags(list paths, dict all_fields,             # <<<<<<<<<<<<<<
  *                                 list graphite_templates,
@@ -961,11 +961,28 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Generic(PyObject *o, PyObject* j
 static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i,
                                                      int is_list, int wraparound, int boundscheck);
 
-/* PyUnicodeContains.proto */
-static CYTHON_INLINE int __Pyx_PyUnicode_ContainsTF(PyObject* substring, PyObject* text, int eq) {
-    int result = PyUnicode_Contains(text, substring);
-    return unlikely(result < 0) ? result : (result == (eq == Py_EQ));
-}
+/* PyObjectCallNoArg.proto */
+#if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func);
+#else
+#define __Pyx_PyObject_CallNoArg(func) __Pyx_PyObject_Call(func, __pyx_empty_tuple, NULL)
+#endif
+
+/* PyObjectCallMethod0.proto */
+static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name);
+
+/* UnpackTupleError.proto */
+static void __Pyx_UnpackTupleError(PyObject *, Py_ssize_t index);
+
+/* UnpackTuple2.proto */
+static CYTHON_INLINE int __Pyx_unpack_tuple2(PyObject* tuple, PyObject** value1, PyObject** value2,
+                                             int is_tuple, int has_known_size, int decref_tuple);
+
+/* dict_iter.proto */
+static CYTHON_INLINE PyObject* __Pyx_dict_iterator(PyObject* dict, int is_dict, PyObject* method_name,
+                                                   Py_ssize_t* p_orig_length, int* p_is_dict);
+static CYTHON_INLINE int __Pyx_dict_iter_next(PyObject* dict_or_iter, Py_ssize_t orig_length, Py_ssize_t* ppos,
+                                              PyObject** pkey, PyObject** pvalue, PyObject** pitem, int is_dict);
 
 /* IncludeStringH.proto */
 #include <string.h>
@@ -982,6 +999,12 @@ static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int 
 #else
 #define __Pyx_PyString_Equals __Pyx_PyBytes_Equals
 #endif
+
+/* PyUnicodeContains.proto */
+static CYTHON_INLINE int __Pyx_PyUnicode_ContainsTF(PyObject* substring, PyObject* text, int eq) {
+    int result = PyUnicode_Contains(text, substring);
+    return unlikely(result < 0) ? result : (result == (eq == Py_EQ));
+}
 
 /* PyErrFetchRestore.proto */
 #if CYTHON_FAST_THREAD_STATE
@@ -1048,6 +1071,8 @@ static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *, int __pyx_skip_dispatch); /*proto*/
 static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyObject *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_11influxgraph_3ext_9templates_get_series_with_tags *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(PyObject *, PyObject *, PyObject *); /*proto*/
+static PyObject *__pyx_f_11influxgraph_3ext_9templates__get_first_not_none_tmpl_val(PyObject *); /*proto*/
+static PyObject *__pyx_f_11influxgraph_3ext_9templates__get_measurement_idx(PyObject *); /*proto*/
 static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObject *, PyObject *, PyObject *, PyObject *, PyObject *, int __pyx_skip_dispatch); /*proto*/
 static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject *, PyObject *, PyObject *, PyObject *); /*proto*/
 #define __Pyx_MODULE_NAME "influxgraph.ext.templates"
@@ -1084,9 +1109,9 @@ static const char __pyx_k_separator[] = "separator";
 static const char __pyx_k_all_fields[] = "all_fields";
 static const char __pyx_k_split_path[] = "split_path";
 static const char __pyx_k_influxgraph[] = "influxgraph";
-static const char __pyx_k_measurement[] = "measurement*";
+static const char __pyx_k_measurement[] = "measurement";
 static const char __pyx_k_tags_values[] = "tags_values";
-static const char __pyx_k_measurement_2[] = "measurement";
+static const char __pyx_k_measurement_2[] = "measurement*";
 static const char __pyx_k_match_split_path[] = "match_split_path";
 static const char __pyx_k_graphite_templates[] = "graphite_templates";
 static const char __pyx_k_Cython_Extension_of_performance[] = "Cython Extension of performance critical templates modules functions";
@@ -1111,8 +1136,8 @@ static PyObject *__pyx_n_s_logger;
 static PyObject *__pyx_n_s_logging;
 static PyObject *__pyx_n_s_main;
 static PyObject *__pyx_n_s_match_split_path;
-static PyObject *__pyx_kp_s_measurement;
-static PyObject *__pyx_n_s_measurement_2;
+static PyObject *__pyx_n_s_measurement;
+static PyObject *__pyx_kp_s_measurement_2;
 static PyObject *__pyx_n_s_paths;
 static PyObject *__pyx_n_s_range;
 static PyObject *__pyx_n_s_separator;
@@ -1132,8 +1157,8 @@ static __Pyx_CachedCFunction __pyx_umethod_PyDict_Type_values = {0, &__pyx_n_s_v
 static PyObject *__pyx_tuple__3;
 static PyObject *__pyx_tuple__4;
 
-/* "influxgraph/ext/templates.pyx":25
- * logger = logging.getLogger('influxgraph')
+/* "influxgraph/ext/templates.pyx":26
+ * 
  * 
  * cpdef list heapsort(list iterable):             # <<<<<<<<<<<<<<
  *     cdef list h = []
@@ -1157,19 +1182,19 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
   Py_ssize_t __pyx_t_8;
   __Pyx_RefNannySetupContext("heapsort", 0);
 
-  /* "influxgraph/ext/templates.pyx":26
+  /* "influxgraph/ext/templates.pyx":27
  * 
  * cpdef list heapsort(list iterable):
  *     cdef list h = []             # <<<<<<<<<<<<<<
  *     cdef tuple value
  *     for value in iterable:
  */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 26, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 27, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_h = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "influxgraph/ext/templates.pyx":28
+  /* "influxgraph/ext/templates.pyx":29
  *     cdef list h = []
  *     cdef tuple value
  *     for value in iterable:             # <<<<<<<<<<<<<<
@@ -1178,29 +1203,29 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
  */
   if (unlikely(__pyx_v_iterable == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 28, __pyx_L1_error)
+    __PYX_ERR(0, 29, __pyx_L1_error)
   }
   __pyx_t_1 = __pyx_v_iterable; __Pyx_INCREF(__pyx_t_1); __pyx_t_2 = 0;
   for (;;) {
     if (__pyx_t_2 >= PyList_GET_SIZE(__pyx_t_1)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_2); __Pyx_INCREF(__pyx_t_3); __pyx_t_2++; if (unlikely(0 < 0)) __PYX_ERR(0, 28, __pyx_L1_error)
+    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_2); __Pyx_INCREF(__pyx_t_3); __pyx_t_2++; if (unlikely(0 < 0)) __PYX_ERR(0, 29, __pyx_L1_error)
     #else
-    __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_2); __pyx_t_2++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 28, __pyx_L1_error)
+    __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_2); __pyx_t_2++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     #endif
-    if (!(likely(PyTuple_CheckExact(__pyx_t_3))||((__pyx_t_3) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "tuple", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 28, __pyx_L1_error)
+    if (!(likely(PyTuple_CheckExact(__pyx_t_3))||((__pyx_t_3) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "tuple", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 29, __pyx_L1_error)
     __Pyx_XDECREF_SET(__pyx_v_value, ((PyObject*)__pyx_t_3));
     __pyx_t_3 = 0;
 
-    /* "influxgraph/ext/templates.pyx":29
+    /* "influxgraph/ext/templates.pyx":30
  *     cdef tuple value
  *     for value in iterable:
  *         heappush(h, value)             # <<<<<<<<<<<<<<
  *     return [heappop(h) for _ in range(len(h))]
  * 
  */
-    __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_heappush); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 29, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_heappush); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 30, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_t_5 = NULL;
     __pyx_t_6 = 0;
@@ -1217,7 +1242,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
     #if CYTHON_FAST_PYCALL
     if (PyFunction_Check(__pyx_t_4)) {
       PyObject *__pyx_temp[3] = {__pyx_t_5, __pyx_v_h, __pyx_v_value};
-      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_4, __pyx_temp+1-__pyx_t_6, 2+__pyx_t_6); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_4, __pyx_temp+1-__pyx_t_6, 2+__pyx_t_6); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
       __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_GOTREF(__pyx_t_3);
     } else
@@ -1225,13 +1250,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
     #if CYTHON_FAST_PYCCALL
     if (__Pyx_PyFastCFunction_Check(__pyx_t_4)) {
       PyObject *__pyx_temp[3] = {__pyx_t_5, __pyx_v_h, __pyx_v_value};
-      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_4, __pyx_temp+1-__pyx_t_6, 2+__pyx_t_6); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_4, __pyx_temp+1-__pyx_t_6, 2+__pyx_t_6); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
       __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
       __Pyx_GOTREF(__pyx_t_3);
     } else
     #endif
     {
-      __pyx_t_7 = PyTuple_New(2+__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 29, __pyx_L1_error)
+      __pyx_t_7 = PyTuple_New(2+__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 30, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       if (__pyx_t_5) {
         __Pyx_GIVEREF(__pyx_t_5); PyTuple_SET_ITEM(__pyx_t_7, 0, __pyx_t_5); __pyx_t_5 = NULL;
@@ -1242,14 +1267,14 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
       __Pyx_INCREF(__pyx_v_value);
       __Pyx_GIVEREF(__pyx_v_value);
       PyTuple_SET_ITEM(__pyx_t_7, 1+__pyx_t_6, __pyx_v_value);
-      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 29, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_7, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     }
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-    /* "influxgraph/ext/templates.pyx":28
+    /* "influxgraph/ext/templates.pyx":29
  *     cdef list h = []
  *     cdef tuple value
  *     for value in iterable:             # <<<<<<<<<<<<<<
@@ -1259,20 +1284,20 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "influxgraph/ext/templates.pyx":30
+  /* "influxgraph/ext/templates.pyx":31
  *     for value in iterable:
  *         heappush(h, value)
  *     return [heappop(h) for _ in range(len(h))]             # <<<<<<<<<<<<<<
  * 
- * cpdef list get_series_with_tags(list paths, dict all_fields,
+ * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyList_GET_SIZE(__pyx_v_h); if (unlikely(__pyx_t_2 == -1)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __pyx_t_2 = PyList_GET_SIZE(__pyx_v_h); if (unlikely(__pyx_t_2 == -1)) __PYX_ERR(0, 31, __pyx_L1_error)
   for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_2; __pyx_t_8+=1) {
     __pyx_v__ = __pyx_t_8;
-    __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_heappop); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 30, __pyx_L1_error)
+    __pyx_t_4 = __Pyx_GetModuleGlobalName(__pyx_n_s_heappop); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 31, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_t_7 = NULL;
     if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_4))) {
@@ -1285,13 +1310,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
       }
     }
     if (!__pyx_t_7) {
-      __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_v_h); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
+      __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_4, __pyx_v_h); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
     } else {
       #if CYTHON_FAST_PYCALL
       if (PyFunction_Check(__pyx_t_4)) {
         PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_v_h};
-        __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
+        __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
         __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
         __Pyx_GOTREF(__pyx_t_3);
       } else
@@ -1299,33 +1324,33 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_heapsort(PyObject *__pyx_
       #if CYTHON_FAST_PYCCALL
       if (__Pyx_PyFastCFunction_Check(__pyx_t_4)) {
         PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_v_h};
-        __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
+        __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_4, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
         __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
         __Pyx_GOTREF(__pyx_t_3);
       } else
       #endif
       {
-        __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 30, __pyx_L1_error)
+        __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 31, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_5);
         __Pyx_GIVEREF(__pyx_t_7); PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_7); __pyx_t_7 = NULL;
         __Pyx_INCREF(__pyx_v_h);
         __Pyx_GIVEREF(__pyx_v_h);
         PyTuple_SET_ITEM(__pyx_t_5, 0+1, __pyx_v_h);
-        __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 30, __pyx_L1_error)
+        __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_4, __pyx_t_5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 31, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
       }
     }
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_3))) __PYX_ERR(0, 30, __pyx_L1_error)
+    if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_3))) __PYX_ERR(0, 31, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   }
   __pyx_r = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "influxgraph/ext/templates.pyx":25
- * logger = logging.getLogger('influxgraph')
+  /* "influxgraph/ext/templates.pyx":26
+ * 
  * 
  * cpdef list heapsort(list iterable):             # <<<<<<<<<<<<<<
  *     cdef list h = []
@@ -1356,7 +1381,7 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_1heapsort(PyObject *__py
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("heapsort (wrapper)", 0);
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_iterable), (&PyList_Type), 1, "iterable", 1))) __PYX_ERR(0, 25, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_iterable), (&PyList_Type), 1, "iterable", 1))) __PYX_ERR(0, 26, __pyx_L1_error)
   __pyx_r = __pyx_pf_11influxgraph_3ext_9templates_heapsort(__pyx_self, ((PyObject*)__pyx_v_iterable));
 
   /* function exit code */
@@ -1374,7 +1399,7 @@ static PyObject *__pyx_pf_11influxgraph_3ext_9templates_heapsort(CYTHON_UNUSED P
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("heapsort", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_11influxgraph_3ext_9templates_heapsort(__pyx_v_iterable, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 25, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_11influxgraph_3ext_9templates_heapsort(__pyx_v_iterable, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1391,8 +1416,8 @@ static PyObject *__pyx_pf_11influxgraph_3ext_9templates_heapsort(CYTHON_UNUSED P
   return __pyx_r;
 }
 
-/* "influxgraph/ext/templates.pyx":32
- *     return [heappop(h) for _ in range(len(h))]
+/* "influxgraph/ext/templates.pyx":34
+ * 
  * 
  * cpdef list get_series_with_tags(list paths, dict all_fields,             # <<<<<<<<<<<<<<
  *                                 list graphite_templates,
@@ -1431,7 +1456,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     }
   }
 
-  /* "influxgraph/ext/templates.pyx":35
+  /* "influxgraph/ext/templates.pyx":37
  *                                 list graphite_templates,
  *                                 str separator = '.'):
  *     if not graphite_templates:             # <<<<<<<<<<<<<<
@@ -1442,7 +1467,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
   __pyx_t_2 = ((!__pyx_t_1) != 0);
   if (__pyx_t_2) {
 
-    /* "influxgraph/ext/templates.pyx":36
+    /* "influxgraph/ext/templates.pyx":38
  *                                 str separator = '.'):
  *     if not graphite_templates:
  *         return [paths[0:1]]             # <<<<<<<<<<<<<<
@@ -1452,11 +1477,11 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     __Pyx_XDECREF(__pyx_r);
     if (unlikely(__pyx_v_paths == Py_None)) {
       PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 36, __pyx_L1_error)
+      __PYX_ERR(0, 38, __pyx_L1_error)
     }
-    __pyx_t_3 = __Pyx_PyList_GetSlice(__pyx_v_paths, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 36, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyList_GetSlice(__pyx_v_paths, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 38, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_4 = PyList_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 36, __pyx_L1_error)
+    __pyx_t_4 = PyList_New(1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 38, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __Pyx_GIVEREF(__pyx_t_3);
     PyList_SET_ITEM(__pyx_t_4, 0, __pyx_t_3);
@@ -1465,7 +1490,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     __pyx_t_4 = 0;
     goto __pyx_L0;
 
-    /* "influxgraph/ext/templates.pyx":35
+    /* "influxgraph/ext/templates.pyx":37
  *                                 list graphite_templates,
  *                                 str separator = '.'):
  *     if not graphite_templates:             # <<<<<<<<<<<<<<
@@ -1474,26 +1499,26 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
  */
   }
 
-  /* "influxgraph/ext/templates.pyx":37
+  /* "influxgraph/ext/templates.pyx":39
  *     if not graphite_templates:
  *         return [paths[0:1]]
  *     cdef list series = []             # <<<<<<<<<<<<<<
  *     cdef list split_path
  *     cdef dict template
  */
-  __pyx_t_4 = PyList_New(0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 37, __pyx_L1_error)
+  __pyx_t_4 = PyList_New(0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   __pyx_v_series = ((PyObject*)__pyx_t_4);
   __pyx_t_4 = 0;
 
-  /* "influxgraph/ext/templates.pyx":40
+  /* "influxgraph/ext/templates.pyx":42
  *     cdef list split_path
  *     cdef dict template
  *     split_path, template = _split_series_with_tags(paths, graphite_templates,             # <<<<<<<<<<<<<<
  *                                                    separator)
  *     if len(split_path) == 0:
  */
-  __pyx_t_4 = __pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(__pyx_v_paths, __pyx_v_graphite_templates, __pyx_v_separator); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 40, __pyx_L1_error)
+  __pyx_t_4 = __pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(__pyx_v_paths, __pyx_v_graphite_templates, __pyx_v_separator); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 42, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
   if (likely(__pyx_t_4 != Py_None)) {
     PyObject* sequence = __pyx_t_4;
@@ -1505,7 +1530,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     if (unlikely(size != 2)) {
       if (size > 2) __Pyx_RaiseTooManyValuesError(2);
       else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-      __PYX_ERR(0, 40, __pyx_L1_error)
+      __PYX_ERR(0, 42, __pyx_L1_error)
     }
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
     __pyx_t_3 = PyTuple_GET_ITEM(sequence, 0); 
@@ -1513,23 +1538,23 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     __Pyx_INCREF(__pyx_t_3);
     __Pyx_INCREF(__pyx_t_5);
     #else
-    __pyx_t_3 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 40, __pyx_L1_error)
+    __pyx_t_3 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 42, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 40, __pyx_L1_error)
+    __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 42, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     #endif
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   } else {
-    __Pyx_RaiseNoneNotIterableError(); __PYX_ERR(0, 40, __pyx_L1_error)
+    __Pyx_RaiseNoneNotIterableError(); __PYX_ERR(0, 42, __pyx_L1_error)
   }
-  if (!(likely(PyList_CheckExact(__pyx_t_3))||((__pyx_t_3) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 40, __pyx_L1_error)
-  if (!(likely(PyDict_CheckExact(__pyx_t_5))||((__pyx_t_5) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "dict", Py_TYPE(__pyx_t_5)->tp_name), 0))) __PYX_ERR(0, 40, __pyx_L1_error)
+  if (!(likely(PyList_CheckExact(__pyx_t_3))||((__pyx_t_3) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 42, __pyx_L1_error)
+  if (!(likely(PyDict_CheckExact(__pyx_t_5))||((__pyx_t_5) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "dict", Py_TYPE(__pyx_t_5)->tp_name), 0))) __PYX_ERR(0, 42, __pyx_L1_error)
   __pyx_v_split_path = ((PyObject*)__pyx_t_3);
   __pyx_t_3 = 0;
   __pyx_v_template = ((PyObject*)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "influxgraph/ext/templates.pyx":42
+  /* "influxgraph/ext/templates.pyx":44
  *     split_path, template = _split_series_with_tags(paths, graphite_templates,
  *                                                    separator)
  *     if len(split_path) == 0:             # <<<<<<<<<<<<<<
@@ -1538,13 +1563,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
  */
   if (unlikely(__pyx_v_split_path == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "object of type 'NoneType' has no len()");
-    __PYX_ERR(0, 42, __pyx_L1_error)
+    __PYX_ERR(0, 44, __pyx_L1_error)
   }
-  __pyx_t_6 = PyList_GET_SIZE(__pyx_v_split_path); if (unlikely(__pyx_t_6 == -1)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_6 = PyList_GET_SIZE(__pyx_v_split_path); if (unlikely(__pyx_t_6 == -1)) __PYX_ERR(0, 44, __pyx_L1_error)
   __pyx_t_2 = ((__pyx_t_6 == 0) != 0);
   if (__pyx_t_2) {
 
-    /* "influxgraph/ext/templates.pyx":44
+    /* "influxgraph/ext/templates.pyx":46
  *     if len(split_path) == 0:
  *         # No template match
  *         return series             # <<<<<<<<<<<<<<
@@ -1556,7 +1581,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     __pyx_r = __pyx_v_series;
     goto __pyx_L0;
 
-    /* "influxgraph/ext/templates.pyx":42
+    /* "influxgraph/ext/templates.pyx":44
  *     split_path, template = _split_series_with_tags(paths, graphite_templates,
  *                                                    separator)
  *     if len(split_path) == 0:             # <<<<<<<<<<<<<<
@@ -1565,7 +1590,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
  */
   }
 
-  /* "influxgraph/ext/templates.pyx":45
+  /* "influxgraph/ext/templates.pyx":47
  *         # No template match
  *         return series
  *     cdef list values = list(template.values())             # <<<<<<<<<<<<<<
@@ -1574,37 +1599,37 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
  */
   if (unlikely(__pyx_v_template == Py_None)) {
     PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "values");
-    __PYX_ERR(0, 45, __pyx_L1_error)
+    __PYX_ERR(0, 47, __pyx_L1_error)
   }
-  __pyx_t_4 = __Pyx_PyDict_Values(__pyx_v_template); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyDict_Values(__pyx_v_template); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 47, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = PySequence_List(__pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __pyx_t_5 = PySequence_List(__pyx_t_4); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 47, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_v_values = ((PyObject*)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "influxgraph/ext/templates.pyx":46
+  /* "influxgraph/ext/templates.pyx":48
  *         return series
  *     cdef list values = list(template.values())
  *     if 'field' in values or 'field*' in values:             # <<<<<<<<<<<<<<
  *         try:
  *             _add_fields_to_paths(
  */
-  __pyx_t_1 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_field, __pyx_v_values, Py_EQ)); if (unlikely(__pyx_t_1 < 0)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_1 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_field, __pyx_v_values, Py_EQ)); if (unlikely(__pyx_t_1 < 0)) __PYX_ERR(0, 48, __pyx_L1_error)
   __pyx_t_7 = (__pyx_t_1 != 0);
   if (!__pyx_t_7) {
   } else {
     __pyx_t_2 = __pyx_t_7;
     goto __pyx_L6_bool_binop_done;
   }
-  __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_kp_s_field_2, __pyx_v_values, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_7 = (__Pyx_PySequence_ContainsTF(__pyx_kp_s_field_2, __pyx_v_values, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 48, __pyx_L1_error)
   __pyx_t_1 = (__pyx_t_7 != 0);
   __pyx_t_2 = __pyx_t_1;
   __pyx_L6_bool_binop_done:;
   if (__pyx_t_2) {
 
-    /* "influxgraph/ext/templates.pyx":47
+    /* "influxgraph/ext/templates.pyx":49
  *     cdef list values = list(template.values())
  *     if 'field' in values or 'field*' in values:
  *         try:             # <<<<<<<<<<<<<<
@@ -1620,7 +1645,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
       __Pyx_XGOTREF(__pyx_t_10);
       /*try:*/ {
 
-        /* "influxgraph/ext/templates.pyx":49
+        /* "influxgraph/ext/templates.pyx":51
  *         try:
  *             _add_fields_to_paths(
  *                 all_fields[paths[0]], split_path, series, separator)             # <<<<<<<<<<<<<<
@@ -1629,17 +1654,17 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
  */
         if (unlikely(__pyx_v_all_fields == Py_None)) {
           PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 49, __pyx_L8_error)
+          __PYX_ERR(0, 51, __pyx_L8_error)
         }
         if (unlikely(__pyx_v_paths == Py_None)) {
           PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 49, __pyx_L8_error)
+          __PYX_ERR(0, 51, __pyx_L8_error)
         }
-        __pyx_t_5 = __Pyx_PyDict_GetItem(__pyx_v_all_fields, PyList_GET_ITEM(__pyx_v_paths, 0)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 49, __pyx_L8_error)
+        __pyx_t_5 = __Pyx_PyDict_GetItem(__pyx_v_all_fields, PyList_GET_ITEM(__pyx_v_paths, 0)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 51, __pyx_L8_error)
         __Pyx_GOTREF(__pyx_t_5);
-        if (!(likely(PyList_CheckExact(__pyx_t_5))||((__pyx_t_5) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_5)->tp_name), 0))) __PYX_ERR(0, 49, __pyx_L8_error)
+        if (!(likely(PyList_CheckExact(__pyx_t_5))||((__pyx_t_5) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "list", Py_TYPE(__pyx_t_5)->tp_name), 0))) __PYX_ERR(0, 51, __pyx_L8_error)
 
-        /* "influxgraph/ext/templates.pyx":48
+        /* "influxgraph/ext/templates.pyx":50
  *     if 'field' in values or 'field*' in values:
  *         try:
  *             _add_fields_to_paths(             # <<<<<<<<<<<<<<
@@ -1649,7 +1674,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
         __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(((PyObject*)__pyx_t_5), __pyx_v_split_path, __pyx_v_series, __pyx_v_separator);
         __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-        /* "influxgraph/ext/templates.pyx":47
+        /* "influxgraph/ext/templates.pyx":49
  *     cdef list values = list(template.values())
  *     if 'field' in values or 'field*' in values:
  *         try:             # <<<<<<<<<<<<<<
@@ -1667,7 +1692,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
       __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
       __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
 
-      /* "influxgraph/ext/templates.pyx":50
+      /* "influxgraph/ext/templates.pyx":52
  *             _add_fields_to_paths(
  *                 all_fields[paths[0]], split_path, series, separator)
  *         except KeyError:             # <<<<<<<<<<<<<<
@@ -1677,26 +1702,26 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
       __pyx_t_11 = __Pyx_PyErr_ExceptionMatches(__pyx_builtin_KeyError);
       if (__pyx_t_11) {
         __Pyx_AddTraceback("influxgraph.ext.templates.get_series_with_tags", __pyx_clineno, __pyx_lineno, __pyx_filename);
-        if (__Pyx_GetException(&__pyx_t_5, &__pyx_t_4, &__pyx_t_3) < 0) __PYX_ERR(0, 50, __pyx_L10_except_error)
+        if (__Pyx_GetException(&__pyx_t_5, &__pyx_t_4, &__pyx_t_3) < 0) __PYX_ERR(0, 52, __pyx_L10_except_error)
         __Pyx_GOTREF(__pyx_t_5);
         __Pyx_GOTREF(__pyx_t_4);
         __Pyx_GOTREF(__pyx_t_3);
 
-        /* "influxgraph/ext/templates.pyx":51
+        /* "influxgraph/ext/templates.pyx":53
  *                 all_fields[paths[0]], split_path, series, separator)
  *         except KeyError:
  *             logger.warning("Measurement %s not in field list", paths[0])             # <<<<<<<<<<<<<<
  *     else:
  *         series.append(split_path)
  */
-        __pyx_t_13 = __Pyx_GetModuleGlobalName(__pyx_n_s_logger); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 51, __pyx_L10_except_error)
+        __pyx_t_13 = __Pyx_GetModuleGlobalName(__pyx_n_s_logger); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 53, __pyx_L10_except_error)
         __Pyx_GOTREF(__pyx_t_13);
-        __pyx_t_14 = __Pyx_PyObject_GetAttrStr(__pyx_t_13, __pyx_n_s_warning); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 51, __pyx_L10_except_error)
+        __pyx_t_14 = __Pyx_PyObject_GetAttrStr(__pyx_t_13, __pyx_n_s_warning); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 53, __pyx_L10_except_error)
         __Pyx_GOTREF(__pyx_t_14);
         __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
         if (unlikely(__pyx_v_paths == Py_None)) {
           PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 51, __pyx_L10_except_error)
+          __PYX_ERR(0, 53, __pyx_L10_except_error)
         }
         __pyx_t_13 = NULL;
         __pyx_t_11 = 0;
@@ -1713,7 +1738,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
         #if CYTHON_FAST_PYCALL
         if (PyFunction_Check(__pyx_t_14)) {
           PyObject *__pyx_temp[3] = {__pyx_t_13, __pyx_kp_s_Measurement_s_not_in_field_list, PyList_GET_ITEM(__pyx_v_paths, 0)};
-          __pyx_t_12 = __Pyx_PyFunction_FastCall(__pyx_t_14, __pyx_temp+1-__pyx_t_11, 2+__pyx_t_11); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 51, __pyx_L10_except_error)
+          __pyx_t_12 = __Pyx_PyFunction_FastCall(__pyx_t_14, __pyx_temp+1-__pyx_t_11, 2+__pyx_t_11); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 53, __pyx_L10_except_error)
           __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
           __Pyx_GOTREF(__pyx_t_12);
         } else
@@ -1721,13 +1746,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
         #if CYTHON_FAST_PYCCALL
         if (__Pyx_PyFastCFunction_Check(__pyx_t_14)) {
           PyObject *__pyx_temp[3] = {__pyx_t_13, __pyx_kp_s_Measurement_s_not_in_field_list, PyList_GET_ITEM(__pyx_v_paths, 0)};
-          __pyx_t_12 = __Pyx_PyCFunction_FastCall(__pyx_t_14, __pyx_temp+1-__pyx_t_11, 2+__pyx_t_11); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 51, __pyx_L10_except_error)
+          __pyx_t_12 = __Pyx_PyCFunction_FastCall(__pyx_t_14, __pyx_temp+1-__pyx_t_11, 2+__pyx_t_11); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 53, __pyx_L10_except_error)
           __Pyx_XDECREF(__pyx_t_13); __pyx_t_13 = 0;
           __Pyx_GOTREF(__pyx_t_12);
         } else
         #endif
         {
-          __pyx_t_15 = PyTuple_New(2+__pyx_t_11); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 51, __pyx_L10_except_error)
+          __pyx_t_15 = PyTuple_New(2+__pyx_t_11); if (unlikely(!__pyx_t_15)) __PYX_ERR(0, 53, __pyx_L10_except_error)
           __Pyx_GOTREF(__pyx_t_15);
           if (__pyx_t_13) {
             __Pyx_GIVEREF(__pyx_t_13); PyTuple_SET_ITEM(__pyx_t_15, 0, __pyx_t_13); __pyx_t_13 = NULL;
@@ -1738,7 +1763,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
           __Pyx_INCREF(PyList_GET_ITEM(__pyx_v_paths, 0));
           __Pyx_GIVEREF(PyList_GET_ITEM(__pyx_v_paths, 0));
           PyTuple_SET_ITEM(__pyx_t_15, 1+__pyx_t_11, PyList_GET_ITEM(__pyx_v_paths, 0));
-          __pyx_t_12 = __Pyx_PyObject_Call(__pyx_t_14, __pyx_t_15, NULL); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 51, __pyx_L10_except_error)
+          __pyx_t_12 = __Pyx_PyObject_Call(__pyx_t_14, __pyx_t_15, NULL); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 53, __pyx_L10_except_error)
           __Pyx_GOTREF(__pyx_t_12);
           __Pyx_DECREF(__pyx_t_15); __pyx_t_15 = 0;
         }
@@ -1752,7 +1777,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
       goto __pyx_L10_except_error;
       __pyx_L10_except_error:;
 
-      /* "influxgraph/ext/templates.pyx":47
+      /* "influxgraph/ext/templates.pyx":49
  *     cdef list values = list(template.values())
  *     if 'field' in values or 'field*' in values:
  *         try:             # <<<<<<<<<<<<<<
@@ -1774,7 +1799,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
       __pyx_L15_try_end:;
     }
 
-    /* "influxgraph/ext/templates.pyx":46
+    /* "influxgraph/ext/templates.pyx":48
  *         return series
  *     cdef list values = list(template.values())
  *     if 'field' in values or 'field*' in values:             # <<<<<<<<<<<<<<
@@ -1784,7 +1809,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
     goto __pyx_L5;
   }
 
-  /* "influxgraph/ext/templates.pyx":53
+  /* "influxgraph/ext/templates.pyx":55
  *             logger.warning("Measurement %s not in field list", paths[0])
  *     else:
  *         series.append(split_path)             # <<<<<<<<<<<<<<
@@ -1792,24 +1817,24 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(PyOb
  * 
  */
   /*else*/ {
-    __pyx_t_16 = __Pyx_PyList_Append(__pyx_v_series, __pyx_v_split_path); if (unlikely(__pyx_t_16 == -1)) __PYX_ERR(0, 53, __pyx_L1_error)
+    __pyx_t_16 = __Pyx_PyList_Append(__pyx_v_series, __pyx_v_split_path); if (unlikely(__pyx_t_16 == -1)) __PYX_ERR(0, 55, __pyx_L1_error)
   }
   __pyx_L5:;
 
-  /* "influxgraph/ext/templates.pyx":54
+  /* "influxgraph/ext/templates.pyx":56
  *     else:
  *         series.append(split_path)
  *     return series             # <<<<<<<<<<<<<<
  * 
- * cdef tuple _split_series_with_tags(list paths, list graphite_templates,
+ * 
  */
   __Pyx_XDECREF(__pyx_r);
   __Pyx_INCREF(__pyx_v_series);
   __pyx_r = __pyx_v_series;
   goto __pyx_L0;
 
-  /* "influxgraph/ext/templates.pyx":32
- *     return [heappop(h) for _ in range(len(h))]
+  /* "influxgraph/ext/templates.pyx":34
+ * 
  * 
  * cpdef list get_series_with_tags(list paths, dict all_fields,             # <<<<<<<<<<<<<<
  *                                 list graphite_templates,
@@ -1871,12 +1896,12 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_3get_series_with_tags(Py
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_all_fields)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_series_with_tags", 0, 3, 4, 1); __PYX_ERR(0, 32, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_series_with_tags", 0, 3, 4, 1); __PYX_ERR(0, 34, __pyx_L3_error)
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_graphite_templates)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("get_series_with_tags", 0, 3, 4, 2); __PYX_ERR(0, 32, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("get_series_with_tags", 0, 3, 4, 2); __PYX_ERR(0, 34, __pyx_L3_error)
         }
         case  3:
         if (kw_args > 0) {
@@ -1885,7 +1910,7 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_3get_series_with_tags(Py
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_series_with_tags") < 0)) __PYX_ERR(0, 32, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_series_with_tags") < 0)) __PYX_ERR(0, 34, __pyx_L3_error)
       }
     } else {
       switch (PyTuple_GET_SIZE(__pyx_args)) {
@@ -1904,16 +1929,16 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_3get_series_with_tags(Py
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("get_series_with_tags", 0, 3, 4, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 32, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("get_series_with_tags", 0, 3, 4, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 34, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("influxgraph.ext.templates.get_series_with_tags", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_paths), (&PyList_Type), 1, "paths", 1))) __PYX_ERR(0, 32, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_all_fields), (&PyDict_Type), 1, "all_fields", 1))) __PYX_ERR(0, 32, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_graphite_templates), (&PyList_Type), 1, "graphite_templates", 1))) __PYX_ERR(0, 33, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_separator), (&PyString_Type), 1, "separator", 1))) __PYX_ERR(0, 34, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_paths), (&PyList_Type), 1, "paths", 1))) __PYX_ERR(0, 34, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_all_fields), (&PyDict_Type), 1, "all_fields", 1))) __PYX_ERR(0, 34, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_graphite_templates), (&PyList_Type), 1, "graphite_templates", 1))) __PYX_ERR(0, 35, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_separator), (&PyString_Type), 1, "separator", 1))) __PYX_ERR(0, 36, __pyx_L1_error)
   __pyx_r = __pyx_pf_11influxgraph_3ext_9templates_2get_series_with_tags(__pyx_self, __pyx_v_paths, __pyx_v_all_fields, __pyx_v_graphite_templates, __pyx_v_separator);
 
   /* function exit code */
@@ -1934,7 +1959,7 @@ static PyObject *__pyx_pf_11influxgraph_3ext_9templates_2get_series_with_tags(CY
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_2.__pyx_n = 1;
   __pyx_t_2.separator = __pyx_v_separator;
-  __pyx_t_1 = __pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(__pyx_v_paths, __pyx_v_all_fields, __pyx_v_graphite_templates, 0, &__pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_11influxgraph_3ext_9templates_get_series_with_tags(__pyx_v_paths, __pyx_v_all_fields, __pyx_v_graphite_templates, 0, &__pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 34, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1951,8 +1976,8 @@ static PyObject *__pyx_pf_11influxgraph_3ext_9templates_2get_series_with_tags(CY
   return __pyx_r;
 }
 
-/* "influxgraph/ext/templates.pyx":56
- *     return series
+/* "influxgraph/ext/templates.pyx":59
+ * 
  * 
  * cdef tuple _split_series_with_tags(list paths, list graphite_templates,             # <<<<<<<<<<<<<<
  *                                    str separator):
@@ -1990,19 +2015,19 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
   __Pyx_RefNannySetupContext("_split_series_with_tags", 0);
   __Pyx_INCREF(__pyx_v_separator);
 
-  /* "influxgraph/ext/templates.pyx":58
+  /* "influxgraph/ext/templates.pyx":61
  * cdef tuple _split_series_with_tags(list paths, list graphite_templates,
  *                                    str separator):
  *     cdef list split_path = []             # <<<<<<<<<<<<<<
  *     cdef dict template = None
  *     cdef list tags_values = [p.split('=') for p in paths[1:]]
  */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_v_split_path = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "influxgraph/ext/templates.pyx":59
+  /* "influxgraph/ext/templates.pyx":62
  *                                    str separator):
  *     cdef list split_path = []
  *     cdef dict template = None             # <<<<<<<<<<<<<<
@@ -2012,46 +2037,46 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
   __Pyx_INCREF(Py_None);
   __pyx_v_template = ((PyObject*)Py_None);
 
-  /* "influxgraph/ext/templates.pyx":60
+  /* "influxgraph/ext/templates.pyx":63
  *     cdef list split_path = []
  *     cdef dict template = None
  *     cdef list tags_values = [p.split('=') for p in paths[1:]]             # <<<<<<<<<<<<<<
  *     cdef Py_ssize_t field_inds
  *     cdef Py_ssize_t num_tmpl_items
  */
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   if (unlikely(__pyx_v_paths == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 60, __pyx_L1_error)
+    __PYX_ERR(0, 63, __pyx_L1_error)
   }
-  __pyx_t_2 = __Pyx_PyList_GetSlice(__pyx_v_paths, 1, PY_SSIZE_T_MAX); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyList_GetSlice(__pyx_v_paths, 1, PY_SSIZE_T_MAX); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = __pyx_t_2; __Pyx_INCREF(__pyx_t_3); __pyx_t_4 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   for (;;) {
     if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_3)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_2 = PyList_GET_ITEM(__pyx_t_3, __pyx_t_4); __Pyx_INCREF(__pyx_t_2); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 63, __pyx_L1_error)
     #else
-    __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_2 = PySequence_ITEM(__pyx_t_3, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     #endif
     __Pyx_XDECREF_SET(__pyx_v_p, __pyx_t_2);
     __pyx_t_2 = 0;
-    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_split); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_n_s_split); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 63, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 60, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_tuple__3, NULL); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 63, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_5))) __PYX_ERR(0, 60, __pyx_L1_error)
+    if (unlikely(__Pyx_ListComp_Append(__pyx_t_1, (PyObject*)__pyx_t_5))) __PYX_ERR(0, 63, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   }
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_v_tags_values = ((PyObject*)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "influxgraph/ext/templates.pyx":64
+  /* "influxgraph/ext/templates.pyx":67
  *     cdef Py_ssize_t num_tmpl_items
  *     cdef list path
  *     for (_filter, template, _, separator) in graphite_templates:             # <<<<<<<<<<<<<<
@@ -2060,15 +2085,15 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
   if (unlikely(__pyx_v_graphite_templates == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 64, __pyx_L1_error)
+    __PYX_ERR(0, 67, __pyx_L1_error)
   }
   __pyx_t_1 = __pyx_v_graphite_templates; __Pyx_INCREF(__pyx_t_1); __pyx_t_4 = 0;
   for (;;) {
     if (__pyx_t_4 >= PyList_GET_SIZE(__pyx_t_1)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_4); __Pyx_INCREF(__pyx_t_3); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 64, __pyx_L1_error)
+    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_4); __Pyx_INCREF(__pyx_t_3); __pyx_t_4++; if (unlikely(0 < 0)) __PYX_ERR(0, 67, __pyx_L1_error)
     #else
-    __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 64, __pyx_L1_error)
+    __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_4); __pyx_t_4++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 67, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     #endif
     if ((likely(PyTuple_CheckExact(__pyx_t_3))) || (PyList_CheckExact(__pyx_t_3))) {
@@ -2081,7 +2106,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
       if (unlikely(size != 4)) {
         if (size > 4) __Pyx_RaiseTooManyValuesError(4);
         else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-        __PYX_ERR(0, 64, __pyx_L1_error)
+        __PYX_ERR(0, 67, __pyx_L1_error)
       }
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
       if (likely(PyTuple_CheckExact(sequence))) {
@@ -2104,7 +2129,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         Py_ssize_t i;
         PyObject** temps[4] = {&__pyx_t_5,&__pyx_t_2,&__pyx_t_6,&__pyx_t_7};
         for (i=0; i < 4; i++) {
-          PyObject* item = PySequence_ITEM(sequence, i); if (unlikely(!item)) __PYX_ERR(0, 64, __pyx_L1_error)
+          PyObject* item = PySequence_ITEM(sequence, i); if (unlikely(!item)) __PYX_ERR(0, 67, __pyx_L1_error)
           __Pyx_GOTREF(item);
           *(temps[i]) = item;
         }
@@ -2114,7 +2139,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
     } else {
       Py_ssize_t index = -1;
       PyObject** temps[4] = {&__pyx_t_5,&__pyx_t_2,&__pyx_t_6,&__pyx_t_7};
-      __pyx_t_8 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 64, __pyx_L1_error)
+      __pyx_t_8 = PyObject_GetIter(__pyx_t_3); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 67, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
       __pyx_t_9 = Py_TYPE(__pyx_t_8)->tp_iternext;
@@ -2123,7 +2148,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         __Pyx_GOTREF(item);
         *(temps[index]) = item;
       }
-      if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 4) < 0) __PYX_ERR(0, 64, __pyx_L1_error)
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 4) < 0) __PYX_ERR(0, 67, __pyx_L1_error)
       __pyx_t_9 = NULL;
       __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       goto __pyx_L8_unpacking_done;
@@ -2131,11 +2156,11 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
       __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
       __pyx_t_9 = NULL;
       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-      __PYX_ERR(0, 64, __pyx_L1_error)
+      __PYX_ERR(0, 67, __pyx_L1_error)
       __pyx_L8_unpacking_done:;
     }
-    if (!(likely(PyDict_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "dict", Py_TYPE(__pyx_t_2)->tp_name), 0))) __PYX_ERR(0, 64, __pyx_L1_error)
-    if (!(likely(PyString_CheckExact(__pyx_t_7))||((__pyx_t_7) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "str", Py_TYPE(__pyx_t_7)->tp_name), 0))) __PYX_ERR(0, 64, __pyx_L1_error)
+    if (!(likely(PyDict_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "dict", Py_TYPE(__pyx_t_2)->tp_name), 0))) __PYX_ERR(0, 67, __pyx_L1_error)
+    if (!(likely(PyString_CheckExact(__pyx_t_7))||((__pyx_t_7) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "str", Py_TYPE(__pyx_t_7)->tp_name), 0))) __PYX_ERR(0, 67, __pyx_L1_error)
     __Pyx_XDECREF_SET(__pyx_v__filter, __pyx_t_5);
     __pyx_t_5 = 0;
     __Pyx_DECREF_SET(__pyx_v_template, ((PyObject*)__pyx_t_2));
@@ -2145,7 +2170,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
     __Pyx_DECREF_SET(__pyx_v_separator, ((PyObject*)__pyx_t_7));
     __pyx_t_7 = 0;
 
-    /* "influxgraph/ext/templates.pyx":66
+    /* "influxgraph/ext/templates.pyx":69
  *     for (_filter, template, _, separator) in graphite_templates:
  *         _make_path_from_template(
  *             split_path, paths[0], template, tags_values, separator)             # <<<<<<<<<<<<<<
@@ -2154,13 +2179,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
     if (unlikely(__pyx_v_paths == Py_None)) {
       PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 66, __pyx_L1_error)
+      __PYX_ERR(0, 69, __pyx_L1_error)
     }
-    if (!(likely(PyUnicode_CheckExact(PyList_GET_ITEM(__pyx_v_paths, 0)))||((PyList_GET_ITEM(__pyx_v_paths, 0)) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(PyList_GET_ITEM(__pyx_v_paths, 0))->tp_name), 0))) __PYX_ERR(0, 66, __pyx_L1_error)
+    if (!(likely(PyUnicode_CheckExact(PyList_GET_ITEM(__pyx_v_paths, 0)))||((PyList_GET_ITEM(__pyx_v_paths, 0)) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(PyList_GET_ITEM(__pyx_v_paths, 0))->tp_name), 0))) __PYX_ERR(0, 69, __pyx_L1_error)
     __pyx_t_3 = PyList_GET_ITEM(__pyx_v_paths, 0);
     __Pyx_INCREF(__pyx_t_3);
 
-    /* "influxgraph/ext/templates.pyx":65
+    /* "influxgraph/ext/templates.pyx":68
  *     cdef list path
  *     for (_filter, template, _, separator) in graphite_templates:
  *         _make_path_from_template(             # <<<<<<<<<<<<<<
@@ -2170,28 +2195,28 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
     __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(__pyx_v_split_path, ((PyObject*)__pyx_t_3), __pyx_v_template, __pyx_v_tags_values, __pyx_v_separator, 0);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-    /* "influxgraph/ext/templates.pyx":70
+    /* "influxgraph/ext/templates.pyx":73
  *         # template tags taking into account measurement and number of fields
  *         # in template
  *         num_tmpl_items = len([k for k, v in template.items() if v])             # <<<<<<<<<<<<<<
  *         field_inds = len([v for v in template.values()
  *                           if v and 'field' in v])
  */
-    __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 70, __pyx_L1_error)
+    __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 73, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     if (unlikely(__pyx_v_template == Py_None)) {
       PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "items");
-      __PYX_ERR(0, 70, __pyx_L1_error)
+      __PYX_ERR(0, 73, __pyx_L1_error)
     }
-    __pyx_t_7 = __Pyx_PyDict_Items(__pyx_v_template); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 70, __pyx_L1_error)
+    __pyx_t_7 = __Pyx_PyDict_Items(__pyx_v_template); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 73, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
     if (likely(PyList_CheckExact(__pyx_t_7)) || PyTuple_CheckExact(__pyx_t_7)) {
       __pyx_t_6 = __pyx_t_7; __Pyx_INCREF(__pyx_t_6); __pyx_t_10 = 0;
       __pyx_t_11 = NULL;
     } else {
-      __pyx_t_10 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 70, __pyx_L1_error)
+      __pyx_t_10 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_t_7); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 73, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_11 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 70, __pyx_L1_error)
+      __pyx_t_11 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 73, __pyx_L1_error)
     }
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     for (;;) {
@@ -2199,17 +2224,17 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         if (likely(PyList_CheckExact(__pyx_t_6))) {
           if (__pyx_t_10 >= PyList_GET_SIZE(__pyx_t_6)) break;
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-          __pyx_t_7 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_10); __Pyx_INCREF(__pyx_t_7); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 70, __pyx_L1_error)
+          __pyx_t_7 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_10); __Pyx_INCREF(__pyx_t_7); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 73, __pyx_L1_error)
           #else
-          __pyx_t_7 = PySequence_ITEM(__pyx_t_6, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 70, __pyx_L1_error)
+          __pyx_t_7 = PySequence_ITEM(__pyx_t_6, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 73, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_7);
           #endif
         } else {
           if (__pyx_t_10 >= PyTuple_GET_SIZE(__pyx_t_6)) break;
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-          __pyx_t_7 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_10); __Pyx_INCREF(__pyx_t_7); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 70, __pyx_L1_error)
+          __pyx_t_7 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_10); __Pyx_INCREF(__pyx_t_7); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 73, __pyx_L1_error)
           #else
-          __pyx_t_7 = PySequence_ITEM(__pyx_t_6, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 70, __pyx_L1_error)
+          __pyx_t_7 = PySequence_ITEM(__pyx_t_6, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 73, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_7);
           #endif
         }
@@ -2219,7 +2244,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
           PyObject* exc_type = PyErr_Occurred();
           if (exc_type) {
             if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-            else __PYX_ERR(0, 70, __pyx_L1_error)
+            else __PYX_ERR(0, 73, __pyx_L1_error)
           }
           break;
         }
@@ -2235,7 +2260,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         if (unlikely(size != 2)) {
           if (size > 2) __Pyx_RaiseTooManyValuesError(2);
           else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-          __PYX_ERR(0, 70, __pyx_L1_error)
+          __PYX_ERR(0, 73, __pyx_L1_error)
         }
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
         if (likely(PyTuple_CheckExact(sequence))) {
@@ -2248,15 +2273,15 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         __Pyx_INCREF(__pyx_t_2);
         __Pyx_INCREF(__pyx_t_5);
         #else
-        __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 70, __pyx_L1_error)
+        __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 73, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
-        __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 70, __pyx_L1_error)
+        __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 73, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_5);
         #endif
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       } else {
         Py_ssize_t index = -1;
-        __pyx_t_8 = PyObject_GetIter(__pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 70, __pyx_L1_error)
+        __pyx_t_8 = PyObject_GetIter(__pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 73, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
         __pyx_t_9 = Py_TYPE(__pyx_t_8)->tp_iternext;
@@ -2264,7 +2289,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         __Pyx_GOTREF(__pyx_t_2);
         index = 1; __pyx_t_5 = __pyx_t_9(__pyx_t_8); if (unlikely(!__pyx_t_5)) goto __pyx_L11_unpacking_failed;
         __Pyx_GOTREF(__pyx_t_5);
-        if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 2) < 0) __PYX_ERR(0, 70, __pyx_L1_error)
+        if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 2) < 0) __PYX_ERR(0, 73, __pyx_L1_error)
         __pyx_t_9 = NULL;
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
         goto __pyx_L12_unpacking_done;
@@ -2272,45 +2297,45 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
         __pyx_t_9 = NULL;
         if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-        __PYX_ERR(0, 70, __pyx_L1_error)
+        __PYX_ERR(0, 73, __pyx_L1_error)
         __pyx_L12_unpacking_done:;
       }
       __Pyx_XDECREF_SET(__pyx_v_k, __pyx_t_2);
       __pyx_t_2 = 0;
       __Pyx_XDECREF_SET(__pyx_v_v, __pyx_t_5);
       __pyx_t_5 = 0;
-      __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_v_v); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 70, __pyx_L1_error)
+      __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_v_v); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 73, __pyx_L1_error)
       if (__pyx_t_12) {
-        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_k))) __PYX_ERR(0, 70, __pyx_L1_error)
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_k))) __PYX_ERR(0, 73, __pyx_L1_error)
       }
     }
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-    __pyx_t_10 = PyList_GET_SIZE(__pyx_t_3); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 70, __pyx_L1_error)
+    __pyx_t_10 = PyList_GET_SIZE(__pyx_t_3); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 73, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __pyx_v_num_tmpl_items = __pyx_t_10;
 
-    /* "influxgraph/ext/templates.pyx":71
+    /* "influxgraph/ext/templates.pyx":74
  *         # in template
  *         num_tmpl_items = len([k for k, v in template.items() if v])
  *         field_inds = len([v for v in template.values()             # <<<<<<<<<<<<<<
  *                           if v and 'field' in v])
  *         if (len(split_path) + field_inds) >= num_tmpl_items:
  */
-    __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 71, __pyx_L1_error)
+    __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 74, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     if (unlikely(__pyx_v_template == Py_None)) {
       PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "values");
-      __PYX_ERR(0, 71, __pyx_L1_error)
+      __PYX_ERR(0, 74, __pyx_L1_error)
     }
-    __pyx_t_6 = __Pyx_PyDict_Values(__pyx_v_template); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 71, __pyx_L1_error)
+    __pyx_t_6 = __Pyx_PyDict_Values(__pyx_v_template); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 74, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
     if (likely(PyList_CheckExact(__pyx_t_6)) || PyTuple_CheckExact(__pyx_t_6)) {
       __pyx_t_7 = __pyx_t_6; __Pyx_INCREF(__pyx_t_7); __pyx_t_10 = 0;
       __pyx_t_11 = NULL;
     } else {
-      __pyx_t_10 = -1; __pyx_t_7 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 71, __pyx_L1_error)
+      __pyx_t_10 = -1; __pyx_t_7 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 74, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
-      __pyx_t_11 = Py_TYPE(__pyx_t_7)->tp_iternext; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 71, __pyx_L1_error)
+      __pyx_t_11 = Py_TYPE(__pyx_t_7)->tp_iternext; if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 74, __pyx_L1_error)
     }
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     for (;;) {
@@ -2318,17 +2343,17 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         if (likely(PyList_CheckExact(__pyx_t_7))) {
           if (__pyx_t_10 >= PyList_GET_SIZE(__pyx_t_7)) break;
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-          __pyx_t_6 = PyList_GET_ITEM(__pyx_t_7, __pyx_t_10); __Pyx_INCREF(__pyx_t_6); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 71, __pyx_L1_error)
+          __pyx_t_6 = PyList_GET_ITEM(__pyx_t_7, __pyx_t_10); __Pyx_INCREF(__pyx_t_6); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 74, __pyx_L1_error)
           #else
-          __pyx_t_6 = PySequence_ITEM(__pyx_t_7, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 71, __pyx_L1_error)
+          __pyx_t_6 = PySequence_ITEM(__pyx_t_7, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 74, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_6);
           #endif
         } else {
           if (__pyx_t_10 >= PyTuple_GET_SIZE(__pyx_t_7)) break;
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-          __pyx_t_6 = PyTuple_GET_ITEM(__pyx_t_7, __pyx_t_10); __Pyx_INCREF(__pyx_t_6); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 71, __pyx_L1_error)
+          __pyx_t_6 = PyTuple_GET_ITEM(__pyx_t_7, __pyx_t_10); __Pyx_INCREF(__pyx_t_6); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 74, __pyx_L1_error)
           #else
-          __pyx_t_6 = PySequence_ITEM(__pyx_t_7, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 71, __pyx_L1_error)
+          __pyx_t_6 = PySequence_ITEM(__pyx_t_7, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 74, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_6);
           #endif
         }
@@ -2338,7 +2363,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
           PyObject* exc_type = PyErr_Occurred();
           if (exc_type) {
             if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-            else __PYX_ERR(0, 71, __pyx_L1_error)
+            else __PYX_ERR(0, 74, __pyx_L1_error)
           }
           break;
         }
@@ -2347,35 +2372,35 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
       __Pyx_XDECREF_SET(__pyx_v_v, __pyx_t_6);
       __pyx_t_6 = 0;
 
-      /* "influxgraph/ext/templates.pyx":72
+      /* "influxgraph/ext/templates.pyx":75
  *         num_tmpl_items = len([k for k, v in template.items() if v])
  *         field_inds = len([v for v in template.values()
  *                           if v and 'field' in v])             # <<<<<<<<<<<<<<
  *         if (len(split_path) + field_inds) >= num_tmpl_items:
  *             path = [p[1] for p in heapsort(split_path)]
  */
-      __pyx_t_13 = __Pyx_PyObject_IsTrue(__pyx_v_v); if (unlikely(__pyx_t_13 < 0)) __PYX_ERR(0, 72, __pyx_L1_error)
+      __pyx_t_13 = __Pyx_PyObject_IsTrue(__pyx_v_v); if (unlikely(__pyx_t_13 < 0)) __PYX_ERR(0, 75, __pyx_L1_error)
       if (__pyx_t_13) {
       } else {
         __pyx_t_12 = __pyx_t_13;
         goto __pyx_L17_bool_binop_done;
       }
-      __pyx_t_13 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_field, __pyx_v_v, Py_EQ)); if (unlikely(__pyx_t_13 < 0)) __PYX_ERR(0, 72, __pyx_L1_error)
+      __pyx_t_13 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_field, __pyx_v_v, Py_EQ)); if (unlikely(__pyx_t_13 < 0)) __PYX_ERR(0, 75, __pyx_L1_error)
       __pyx_t_14 = (__pyx_t_13 != 0);
       __pyx_t_12 = __pyx_t_14;
       __pyx_L17_bool_binop_done:;
       if (__pyx_t_12) {
 
-        /* "influxgraph/ext/templates.pyx":71
+        /* "influxgraph/ext/templates.pyx":74
  *         # in template
  *         num_tmpl_items = len([k for k, v in template.items() if v])
  *         field_inds = len([v for v in template.values()             # <<<<<<<<<<<<<<
  *                           if v and 'field' in v])
  *         if (len(split_path) + field_inds) >= num_tmpl_items:
  */
-        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_v))) __PYX_ERR(0, 71, __pyx_L1_error)
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_v))) __PYX_ERR(0, 74, __pyx_L1_error)
 
-        /* "influxgraph/ext/templates.pyx":72
+        /* "influxgraph/ext/templates.pyx":75
  *         num_tmpl_items = len([k for k, v in template.items() if v])
  *         field_inds = len([v for v in template.values()
  *                           if v and 'field' in v])             # <<<<<<<<<<<<<<
@@ -2384,7 +2409,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
       }
 
-      /* "influxgraph/ext/templates.pyx":71
+      /* "influxgraph/ext/templates.pyx":74
  *         # in template
  *         num_tmpl_items = len([k for k, v in template.items() if v])
  *         field_inds = len([v for v in template.values()             # <<<<<<<<<<<<<<
@@ -2393,75 +2418,75 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
     }
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_10 = PyList_GET_SIZE(__pyx_t_3); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 71, __pyx_L1_error)
+    __pyx_t_10 = PyList_GET_SIZE(__pyx_t_3); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 74, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     __pyx_v_field_inds = __pyx_t_10;
 
-    /* "influxgraph/ext/templates.pyx":73
+    /* "influxgraph/ext/templates.pyx":76
  *         field_inds = len([v for v in template.values()
  *                           if v and 'field' in v])
  *         if (len(split_path) + field_inds) >= num_tmpl_items:             # <<<<<<<<<<<<<<
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:
  */
-    __pyx_t_10 = PyList_GET_SIZE(__pyx_v_split_path); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 73, __pyx_L1_error)
+    __pyx_t_10 = PyList_GET_SIZE(__pyx_v_split_path); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 76, __pyx_L1_error)
     __pyx_t_12 = (((__pyx_t_10 + __pyx_v_field_inds) >= __pyx_v_num_tmpl_items) != 0);
     if (__pyx_t_12) {
 
-      /* "influxgraph/ext/templates.pyx":74
+      /* "influxgraph/ext/templates.pyx":77
  *                           if v and 'field' in v])
  *         if (len(split_path) + field_inds) >= num_tmpl_items:
  *             path = [p[1] for p in heapsort(split_path)]             # <<<<<<<<<<<<<<
  *             if _filter:
  *                 if _filter.match_split_path(path):
  */
-      __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 74, __pyx_L1_error)
+      __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 77, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_7 = __pyx_f_11influxgraph_3ext_9templates_heapsort(__pyx_v_split_path, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 74, __pyx_L1_error)
+      __pyx_t_7 = __pyx_f_11influxgraph_3ext_9templates_heapsort(__pyx_v_split_path, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 77, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       if (unlikely(__pyx_t_7 == Py_None)) {
         PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-        __PYX_ERR(0, 74, __pyx_L1_error)
+        __PYX_ERR(0, 77, __pyx_L1_error)
       }
       __pyx_t_6 = __pyx_t_7; __Pyx_INCREF(__pyx_t_6); __pyx_t_10 = 0;
       __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       for (;;) {
         if (__pyx_t_10 >= PyList_GET_SIZE(__pyx_t_6)) break;
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_7 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_10); __Pyx_INCREF(__pyx_t_7); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 74, __pyx_L1_error)
+        __pyx_t_7 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_10); __Pyx_INCREF(__pyx_t_7); __pyx_t_10++; if (unlikely(0 < 0)) __PYX_ERR(0, 77, __pyx_L1_error)
         #else
-        __pyx_t_7 = PySequence_ITEM(__pyx_t_6, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 74, __pyx_L1_error)
+        __pyx_t_7 = PySequence_ITEM(__pyx_t_6, __pyx_t_10); __pyx_t_10++; if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 77, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_7);
         #endif
         __Pyx_XDECREF_SET(__pyx_v_p, __pyx_t_7);
         __pyx_t_7 = 0;
-        __pyx_t_7 = __Pyx_GetItemInt(__pyx_v_p, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 74, __pyx_L1_error)
+        __pyx_t_7 = __Pyx_GetItemInt(__pyx_v_p, 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 77, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_7);
-        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_t_7))) __PYX_ERR(0, 74, __pyx_L1_error)
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_t_7))) __PYX_ERR(0, 77, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       }
       __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       __Pyx_XDECREF_SET(__pyx_v_path, ((PyObject*)__pyx_t_3));
       __pyx_t_3 = 0;
 
-      /* "influxgraph/ext/templates.pyx":75
+      /* "influxgraph/ext/templates.pyx":78
  *         if (len(split_path) + field_inds) >= num_tmpl_items:
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:             # <<<<<<<<<<<<<<
  *                 if _filter.match_split_path(path):
  *                     return path, template
  */
-      __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_v__filter); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 75, __pyx_L1_error)
+      __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_v__filter); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 78, __pyx_L1_error)
       if (__pyx_t_12) {
 
-        /* "influxgraph/ext/templates.pyx":76
+        /* "influxgraph/ext/templates.pyx":79
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:
  *                 if _filter.match_split_path(path):             # <<<<<<<<<<<<<<
  *                     return path, template
  *             else:
  */
-        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v__filter, __pyx_n_s_match_split_path); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 76, __pyx_L1_error)
+        __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_v__filter, __pyx_n_s_match_split_path); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 79, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_6);
         __pyx_t_7 = NULL;
         if (CYTHON_UNPACK_METHODS && likely(PyMethod_Check(__pyx_t_6))) {
@@ -2474,13 +2499,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
           }
         }
         if (!__pyx_t_7) {
-          __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_v_path); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
+          __pyx_t_3 = __Pyx_PyObject_CallOneArg(__pyx_t_6, __pyx_v_path); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_3);
         } else {
           #if CYTHON_FAST_PYCALL
           if (PyFunction_Check(__pyx_t_6)) {
             PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_v_path};
-            __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_6, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
+            __pyx_t_3 = __Pyx_PyFunction_FastCall(__pyx_t_6, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
             __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
             __Pyx_GOTREF(__pyx_t_3);
           } else
@@ -2488,29 +2513,29 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
           #if CYTHON_FAST_PYCCALL
           if (__Pyx_PyFastCFunction_Check(__pyx_t_6)) {
             PyObject *__pyx_temp[2] = {__pyx_t_7, __pyx_v_path};
-            __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_6, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
+            __pyx_t_3 = __Pyx_PyCFunction_FastCall(__pyx_t_6, __pyx_temp+1-1, 1+1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
             __Pyx_XDECREF(__pyx_t_7); __pyx_t_7 = 0;
             __Pyx_GOTREF(__pyx_t_3);
           } else
           #endif
           {
-            __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 76, __pyx_L1_error)
+            __pyx_t_5 = PyTuple_New(1+1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 79, __pyx_L1_error)
             __Pyx_GOTREF(__pyx_t_5);
             __Pyx_GIVEREF(__pyx_t_7); PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_7); __pyx_t_7 = NULL;
             __Pyx_INCREF(__pyx_v_path);
             __Pyx_GIVEREF(__pyx_v_path);
             PyTuple_SET_ITEM(__pyx_t_5, 0+1, __pyx_v_path);
-            __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 76, __pyx_L1_error)
+            __pyx_t_3 = __Pyx_PyObject_Call(__pyx_t_6, __pyx_t_5, NULL); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
             __Pyx_GOTREF(__pyx_t_3);
             __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
           }
         }
         __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-        __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 76, __pyx_L1_error)
+        __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 79, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
         if (__pyx_t_12) {
 
-          /* "influxgraph/ext/templates.pyx":77
+          /* "influxgraph/ext/templates.pyx":80
  *             if _filter:
  *                 if _filter.match_split_path(path):
  *                     return path, template             # <<<<<<<<<<<<<<
@@ -2518,7 +2543,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  *                 return path, template
  */
           __Pyx_XDECREF(__pyx_r);
-          __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 77, __pyx_L1_error)
+          __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_3);
           __Pyx_INCREF(__pyx_v_path);
           __Pyx_GIVEREF(__pyx_v_path);
@@ -2531,7 +2556,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
           goto __pyx_L0;
 
-          /* "influxgraph/ext/templates.pyx":76
+          /* "influxgraph/ext/templates.pyx":79
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:
  *                 if _filter.match_split_path(path):             # <<<<<<<<<<<<<<
@@ -2540,7 +2565,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
         }
 
-        /* "influxgraph/ext/templates.pyx":75
+        /* "influxgraph/ext/templates.pyx":78
  *         if (len(split_path) + field_inds) >= num_tmpl_items:
  *             path = [p[1] for p in heapsort(split_path)]
  *             if _filter:             # <<<<<<<<<<<<<<
@@ -2550,7 +2575,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
         goto __pyx_L22;
       }
 
-      /* "influxgraph/ext/templates.pyx":79
+      /* "influxgraph/ext/templates.pyx":82
  *                     return path, template
  *             else:
  *                 return path, template             # <<<<<<<<<<<<<<
@@ -2559,7 +2584,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
       /*else*/ {
         __Pyx_XDECREF(__pyx_r);
-        __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 79, __pyx_L1_error)
+        __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 82, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_INCREF(__pyx_v_path);
         __Pyx_GIVEREF(__pyx_v_path);
@@ -2574,19 +2599,19 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
       }
       __pyx_L22:;
 
-      /* "influxgraph/ext/templates.pyx":80
+      /* "influxgraph/ext/templates.pyx":83
  *             else:
  *                 return path, template
  *             split_path = []             # <<<<<<<<<<<<<<
  *             continue
  *         # Reset path if template does not match
  */
-      __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 80, __pyx_L1_error)
+      __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 83, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF_SET(__pyx_v_split_path, ((PyObject*)__pyx_t_3));
       __pyx_t_3 = 0;
 
-      /* "influxgraph/ext/templates.pyx":81
+      /* "influxgraph/ext/templates.pyx":84
  *                 return path, template
  *             split_path = []
  *             continue             # <<<<<<<<<<<<<<
@@ -2595,7 +2620,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
       goto __pyx_L5_continue;
 
-      /* "influxgraph/ext/templates.pyx":73
+      /* "influxgraph/ext/templates.pyx":76
  *         field_inds = len([v for v in template.values()
  *                           if v and 'field' in v])
  *         if (len(split_path) + field_inds) >= num_tmpl_items:             # <<<<<<<<<<<<<<
@@ -2604,7 +2629,7 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  */
     }
 
-    /* "influxgraph/ext/templates.pyx":84
+    /* "influxgraph/ext/templates.pyx":87
  *         # Reset path if template does not match
  *         else:
  *             split_path = []             # <<<<<<<<<<<<<<
@@ -2612,13 +2637,13 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
  * 
  */
     /*else*/ {
-      __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 84, __pyx_L1_error)
+      __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 87, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_DECREF_SET(__pyx_v_split_path, ((PyObject*)__pyx_t_3));
       __pyx_t_3 = 0;
     }
 
-    /* "influxgraph/ext/templates.pyx":64
+    /* "influxgraph/ext/templates.pyx":67
  *     cdef Py_ssize_t num_tmpl_items
  *     cdef list path
  *     for (_filter, template, _, separator) in graphite_templates:             # <<<<<<<<<<<<<<
@@ -2629,17 +2654,17 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "influxgraph/ext/templates.pyx":85
+  /* "influxgraph/ext/templates.pyx":88
  *         else:
  *             split_path = []
  *     return [], template             # <<<<<<<<<<<<<<
  * 
- * cpdef void _make_path_from_template(list split_path, unicode measurement,
+ * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 85, __pyx_L1_error)
+  __pyx_t_1 = PyList_New(0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 88, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 85, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 88, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1);
@@ -2651,8 +2676,8 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
   __pyx_t_3 = 0;
   goto __pyx_L0;
 
-  /* "influxgraph/ext/templates.pyx":56
- *     return series
+  /* "influxgraph/ext/templates.pyx":59
+ * 
  * 
  * cdef tuple _split_series_with_tags(list paths, list graphite_templates,             # <<<<<<<<<<<<<<
  *                                    str separator):
@@ -2686,8 +2711,258 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
   return __pyx_r;
 }
 
-/* "influxgraph/ext/templates.pyx":87
- *     return [], template
+/* "influxgraph/ext/templates.pyx":91
+ * 
+ * 
+ * cdef _get_first_not_none_tmpl_val(dict template):             # <<<<<<<<<<<<<<
+ *     for t in template.values():
+ *         if t:
+ */
+
+static PyObject *__pyx_f_11influxgraph_3ext_9templates__get_first_not_none_tmpl_val(PyObject *__pyx_v_template) {
+  PyObject *__pyx_v_t = NULL;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  Py_ssize_t __pyx_t_3;
+  PyObject *(*__pyx_t_4)(PyObject *);
+  int __pyx_t_5;
+  __Pyx_RefNannySetupContext("_get_first_not_none_tmpl_val", 0);
+
+  /* "influxgraph/ext/templates.pyx":92
+ * 
+ * cdef _get_first_not_none_tmpl_val(dict template):
+ *     for t in template.values():             # <<<<<<<<<<<<<<
+ *         if t:
+ *             return t
+ */
+  if (unlikely(__pyx_v_template == Py_None)) {
+    PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "values");
+    __PYX_ERR(0, 92, __pyx_L1_error)
+  }
+  __pyx_t_1 = __Pyx_PyDict_Values(__pyx_v_template); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 92, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if (likely(PyList_CheckExact(__pyx_t_1)) || PyTuple_CheckExact(__pyx_t_1)) {
+    __pyx_t_2 = __pyx_t_1; __Pyx_INCREF(__pyx_t_2); __pyx_t_3 = 0;
+    __pyx_t_4 = NULL;
+  } else {
+    __pyx_t_3 = -1; __pyx_t_2 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 92, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_4 = Py_TYPE(__pyx_t_2)->tp_iternext; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 92, __pyx_L1_error)
+  }
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  for (;;) {
+    if (likely(!__pyx_t_4)) {
+      if (likely(PyList_CheckExact(__pyx_t_2))) {
+        if (__pyx_t_3 >= PyList_GET_SIZE(__pyx_t_2)) break;
+        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+        __pyx_t_1 = PyList_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) __PYX_ERR(0, 92, __pyx_L1_error)
+        #else
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 92, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_1);
+        #endif
+      } else {
+        if (__pyx_t_3 >= PyTuple_GET_SIZE(__pyx_t_2)) break;
+        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+        __pyx_t_1 = PyTuple_GET_ITEM(__pyx_t_2, __pyx_t_3); __Pyx_INCREF(__pyx_t_1); __pyx_t_3++; if (unlikely(0 < 0)) __PYX_ERR(0, 92, __pyx_L1_error)
+        #else
+        __pyx_t_1 = PySequence_ITEM(__pyx_t_2, __pyx_t_3); __pyx_t_3++; if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 92, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_1);
+        #endif
+      }
+    } else {
+      __pyx_t_1 = __pyx_t_4(__pyx_t_2);
+      if (unlikely(!__pyx_t_1)) {
+        PyObject* exc_type = PyErr_Occurred();
+        if (exc_type) {
+          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
+          else __PYX_ERR(0, 92, __pyx_L1_error)
+        }
+        break;
+      }
+      __Pyx_GOTREF(__pyx_t_1);
+    }
+    __Pyx_XDECREF_SET(__pyx_v_t, __pyx_t_1);
+    __pyx_t_1 = 0;
+
+    /* "influxgraph/ext/templates.pyx":93
+ * cdef _get_first_not_none_tmpl_val(dict template):
+ *     for t in template.values():
+ *         if t:             # <<<<<<<<<<<<<<
+ *             return t
+ * 
+ */
+    __pyx_t_5 = __Pyx_PyObject_IsTrue(__pyx_v_t); if (unlikely(__pyx_t_5 < 0)) __PYX_ERR(0, 93, __pyx_L1_error)
+    if (__pyx_t_5) {
+
+      /* "influxgraph/ext/templates.pyx":94
+ *     for t in template.values():
+ *         if t:
+ *             return t             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+      __Pyx_XDECREF(__pyx_r);
+      __Pyx_INCREF(__pyx_v_t);
+      __pyx_r = __pyx_v_t;
+      __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+      goto __pyx_L0;
+
+      /* "influxgraph/ext/templates.pyx":93
+ * cdef _get_first_not_none_tmpl_val(dict template):
+ *     for t in template.values():
+ *         if t:             # <<<<<<<<<<<<<<
+ *             return t
+ * 
+ */
+    }
+
+    /* "influxgraph/ext/templates.pyx":92
+ * 
+ * cdef _get_first_not_none_tmpl_val(dict template):
+ *     for t in template.values():             # <<<<<<<<<<<<<<
+ *         if t:
+ *             return t
+ */
+  }
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+
+  /* "influxgraph/ext/templates.pyx":91
+ * 
+ * 
+ * cdef _get_first_not_none_tmpl_val(dict template):             # <<<<<<<<<<<<<<
+ *     for t in template.values():
+ *         if t:
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_AddTraceback("influxgraph.ext.templates._get_first_not_none_tmpl_val", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XDECREF(__pyx_v_t);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "influxgraph/ext/templates.pyx":97
+ * 
+ * 
+ * cdef _get_measurement_idx(dict template):             # <<<<<<<<<<<<<<
+ *     for key in template:
+ *         if template[key] == 'measurement':
+ */
+
+static PyObject *__pyx_f_11influxgraph_3ext_9templates__get_measurement_idx(PyObject *__pyx_v_template) {
+  PyObject *__pyx_v_key = NULL;
+  PyObject *__pyx_r = NULL;
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  Py_ssize_t __pyx_t_2;
+  Py_ssize_t __pyx_t_3;
+  int __pyx_t_4;
+  PyObject *__pyx_t_5 = NULL;
+  int __pyx_t_6;
+  int __pyx_t_7;
+  __Pyx_RefNannySetupContext("_get_measurement_idx", 0);
+
+  /* "influxgraph/ext/templates.pyx":98
+ * 
+ * cdef _get_measurement_idx(dict template):
+ *     for key in template:             # <<<<<<<<<<<<<<
+ *         if template[key] == 'measurement':
+ *             return key
+ */
+  __pyx_t_2 = 0;
+  if (unlikely(__pyx_v_template == Py_None)) {
+    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
+    __PYX_ERR(0, 98, __pyx_L1_error)
+  }
+  __pyx_t_5 = __Pyx_dict_iterator(__pyx_v_template, 1, ((PyObject *)NULL), (&__pyx_t_3), (&__pyx_t_4)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 98, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __Pyx_XDECREF(__pyx_t_1);
+  __pyx_t_1 = __pyx_t_5;
+  __pyx_t_5 = 0;
+  while (1) {
+    __pyx_t_6 = __Pyx_dict_iter_next(__pyx_t_1, __pyx_t_3, &__pyx_t_2, &__pyx_t_5, NULL, NULL, __pyx_t_4);
+    if (unlikely(__pyx_t_6 == 0)) break;
+    if (unlikely(__pyx_t_6 == -1)) __PYX_ERR(0, 98, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    __Pyx_XDECREF_SET(__pyx_v_key, __pyx_t_5);
+    __pyx_t_5 = 0;
+
+    /* "influxgraph/ext/templates.pyx":99
+ * cdef _get_measurement_idx(dict template):
+ *     for key in template:
+ *         if template[key] == 'measurement':             # <<<<<<<<<<<<<<
+ *             return key
+ * 
+ */
+    if (unlikely(__pyx_v_template == Py_None)) {
+      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
+      __PYX_ERR(0, 99, __pyx_L1_error)
+    }
+    __pyx_t_5 = __Pyx_PyDict_GetItem(__pyx_v_template, __pyx_v_key); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    __pyx_t_7 = (__Pyx_PyString_Equals(__pyx_t_5, __pyx_n_s_measurement, Py_EQ)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    if (__pyx_t_7) {
+
+      /* "influxgraph/ext/templates.pyx":100
+ *     for key in template:
+ *         if template[key] == 'measurement':
+ *             return key             # <<<<<<<<<<<<<<
+ * 
+ * 
+ */
+      __Pyx_XDECREF(__pyx_r);
+      __Pyx_INCREF(__pyx_v_key);
+      __pyx_r = __pyx_v_key;
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      goto __pyx_L0;
+
+      /* "influxgraph/ext/templates.pyx":99
+ * cdef _get_measurement_idx(dict template):
+ *     for key in template:
+ *         if template[key] == 'measurement':             # <<<<<<<<<<<<<<
+ *             return key
+ * 
+ */
+    }
+  }
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "influxgraph/ext/templates.pyx":97
+ * 
+ * 
+ * cdef _get_measurement_idx(dict template):             # <<<<<<<<<<<<<<
+ *     for key in template:
+ *         if template[key] == 'measurement':
+ */
+
+  /* function exit code */
+  __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_AddTraceback("influxgraph.ext.templates._get_measurement_idx", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XDECREF(__pyx_v_key);
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* "influxgraph/ext/templates.pyx":103
+ * 
  * 
  * cpdef void _make_path_from_template(list split_path, unicode measurement,             # <<<<<<<<<<<<<<
  *                                     dict template, list tags_values,
@@ -2696,45 +2971,44 @@ static PyObject *__pyx_f_11influxgraph_3ext_9templates__split_series_with_tags(P
 
 static PyObject *__pyx_pw_11influxgraph_3ext_9templates_5_make_path_from_template(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
 static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObject *__pyx_v_split_path, PyObject *__pyx_v_measurement, PyObject *__pyx_v_template, PyObject *__pyx_v_tags_values, PyObject *__pyx_v_separator, CYTHON_UNUSED int __pyx_skip_dispatch) {
-  Py_ssize_t __pyx_v_measurement_found;
+  int __pyx_v_measurement_found;
   Py_ssize_t __pyx_v_i;
   PyObject *__pyx_v_tag_key = 0;
   PyObject *__pyx_v_tag_val = 0;
   PyObject *__pyx_v_tmpl_tag_key = NULL;
-  PyObject *__pyx_v_t = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
   int __pyx_t_2;
   int __pyx_t_3;
   PyObject *__pyx_t_4 = NULL;
-  PyObject *__pyx_t_5 = NULL;
+  Py_ssize_t __pyx_t_5;
   PyObject *__pyx_t_6 = NULL;
   Py_ssize_t __pyx_t_7;
-  PyObject *(*__pyx_t_8)(PyObject *);
-  Py_ssize_t __pyx_t_9;
-  int __pyx_t_10;
+  PyObject *__pyx_t_8 = NULL;
+  int __pyx_t_9;
+  PyObject *__pyx_t_10 = NULL;
   PyObject *__pyx_t_11 = NULL;
-  PyObject *__pyx_t_12 = NULL;
+  PyObject *(*__pyx_t_12)(PyObject *);
   PyObject *(*__pyx_t_13)(PyObject *);
   PyObject *__pyx_t_14 = NULL;
   Py_ssize_t __pyx_t_15;
   __Pyx_RefNannySetupContext("_make_path_from_template", 0);
   __Pyx_INCREF(__pyx_v_measurement);
 
-  /* "influxgraph/ext/templates.pyx":90
+  /* "influxgraph/ext/templates.pyx":106
  *                                     dict template, list tags_values,
  *                                     str separator):
- *     cdef Py_ssize_t measurement_found = 0             # <<<<<<<<<<<<<<
+ *     cdef bint measurement_found = 0             # <<<<<<<<<<<<<<
  *     cdef Py_ssize_t i
  *     if not tags_values and separator in measurement and \
  */
   __pyx_v_measurement_found = 0;
 
-  /* "influxgraph/ext/templates.pyx":92
- *     cdef Py_ssize_t measurement_found = 0
+  /* "influxgraph/ext/templates.pyx":108
+ *     cdef bint measurement_found = 0
  *     cdef Py_ssize_t i
  *     if not tags_values and separator in measurement and \             # <<<<<<<<<<<<<<
- *        'measurement*' == [t for t in template.values() if t][0]:
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':
  *         for i, measurement in enumerate(measurement.split(separator)):
  */
   __pyx_t_2 = (__pyx_v_tags_values != Py_None) && (PyList_GET_SIZE(__pyx_v_tags_values) != 0);
@@ -2746,9 +3020,9 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
   }
   if (unlikely(__pyx_v_measurement == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 92, __pyx_L1_error)
+    __PYX_ERR(0, 108, __pyx_L1_error)
   }
-  __pyx_t_3 = (__Pyx_PyUnicode_ContainsTF(__pyx_v_separator, __pyx_v_measurement, Py_EQ)); if (unlikely(__pyx_t_3 < 0)) __PYX_ERR(0, 92, __pyx_L1_error)
+  __pyx_t_3 = (__Pyx_PyUnicode_ContainsTF(__pyx_v_separator, __pyx_v_measurement, Py_EQ)); if (unlikely(__pyx_t_3 < 0)) __PYX_ERR(0, 108, __pyx_L1_error)
   __pyx_t_2 = (__pyx_t_3 != 0);
   if (__pyx_t_2) {
   } else {
@@ -2756,140 +3030,86 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
     goto __pyx_L4_bool_binop_done;
   }
 
-  /* "influxgraph/ext/templates.pyx":93
+  /* "influxgraph/ext/templates.pyx":109
  *     cdef Py_ssize_t i
  *     if not tags_values and separator in measurement and \
- *        'measurement*' == [t for t in template.values() if t][0]:             # <<<<<<<<<<<<<<
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':             # <<<<<<<<<<<<<<
  *         for i, measurement in enumerate(measurement.split(separator)):
  *             split_path.append((i, measurement))
  */
-  __pyx_t_4 = PyList_New(0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_t_4 = __pyx_f_11influxgraph_3ext_9templates__get_first_not_none_tmpl_val(__pyx_v_template); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 109, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  if (unlikely(__pyx_v_template == Py_None)) {
-    PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "values");
-    __PYX_ERR(0, 93, __pyx_L1_error)
-  }
-  __pyx_t_5 = __Pyx_PyDict_Values(__pyx_v_template); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 93, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_5);
-  if (likely(PyList_CheckExact(__pyx_t_5)) || PyTuple_CheckExact(__pyx_t_5)) {
-    __pyx_t_6 = __pyx_t_5; __Pyx_INCREF(__pyx_t_6); __pyx_t_7 = 0;
-    __pyx_t_8 = NULL;
-  } else {
-    __pyx_t_7 = -1; __pyx_t_6 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 93, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_6);
-    __pyx_t_8 = Py_TYPE(__pyx_t_6)->tp_iternext; if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 93, __pyx_L1_error)
-  }
-  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  for (;;) {
-    if (likely(!__pyx_t_8)) {
-      if (likely(PyList_CheckExact(__pyx_t_6))) {
-        if (__pyx_t_7 >= PyList_GET_SIZE(__pyx_t_6)) break;
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_5 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_7); __Pyx_INCREF(__pyx_t_5); __pyx_t_7++; if (unlikely(0 < 0)) __PYX_ERR(0, 93, __pyx_L1_error)
-        #else
-        __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 93, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_5);
-        #endif
-      } else {
-        if (__pyx_t_7 >= PyTuple_GET_SIZE(__pyx_t_6)) break;
-        #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-        __pyx_t_5 = PyTuple_GET_ITEM(__pyx_t_6, __pyx_t_7); __Pyx_INCREF(__pyx_t_5); __pyx_t_7++; if (unlikely(0 < 0)) __PYX_ERR(0, 93, __pyx_L1_error)
-        #else
-        __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 93, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_5);
-        #endif
-      }
-    } else {
-      __pyx_t_5 = __pyx_t_8(__pyx_t_6);
-      if (unlikely(!__pyx_t_5)) {
-        PyObject* exc_type = PyErr_Occurred();
-        if (exc_type) {
-          if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-          else __PYX_ERR(0, 93, __pyx_L1_error)
-        }
-        break;
-      }
-      __Pyx_GOTREF(__pyx_t_5);
-    }
-    __Pyx_XDECREF_SET(__pyx_v_t, __pyx_t_5);
-    __pyx_t_5 = 0;
-    __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_t); if (unlikely(__pyx_t_2 < 0)) __PYX_ERR(0, 93, __pyx_L1_error)
-    if (__pyx_t_2) {
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_4, (PyObject*)__pyx_v_t))) __PYX_ERR(0, 93, __pyx_L1_error)
-    }
-  }
-  __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-  __pyx_t_2 = (__Pyx_PyString_Equals(__pyx_kp_s_measurement, PyList_GET_ITEM(__pyx_t_4, 0), Py_EQ)); if (unlikely(__pyx_t_2 < 0)) __PYX_ERR(0, 93, __pyx_L1_error)
+  __pyx_t_2 = (__Pyx_PyString_Equals(__pyx_t_4, __pyx_kp_s_measurement_2, Py_EQ)); if (unlikely(__pyx_t_2 < 0)) __PYX_ERR(0, 109, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   __pyx_t_1 = __pyx_t_2;
   __pyx_L4_bool_binop_done:;
 
-  /* "influxgraph/ext/templates.pyx":92
- *     cdef Py_ssize_t measurement_found = 0
+  /* "influxgraph/ext/templates.pyx":108
+ *     cdef bint measurement_found = 0
  *     cdef Py_ssize_t i
  *     if not tags_values and separator in measurement and \             # <<<<<<<<<<<<<<
- *        'measurement*' == [t for t in template.values() if t][0]:
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':
  *         for i, measurement in enumerate(measurement.split(separator)):
  */
   if (__pyx_t_1) {
 
-    /* "influxgraph/ext/templates.pyx":94
+    /* "influxgraph/ext/templates.pyx":110
  *     if not tags_values and separator in measurement and \
- *        'measurement*' == [t for t in template.values() if t][0]:
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':
  *         for i, measurement in enumerate(measurement.split(separator)):             # <<<<<<<<<<<<<<
  *             split_path.append((i, measurement))
  *         return
  */
-    __pyx_t_7 = 0;
+    __pyx_t_5 = 0;
     if (unlikely(__pyx_v_measurement == Py_None)) {
       PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "split");
-      __PYX_ERR(0, 94, __pyx_L1_error)
+      __PYX_ERR(0, 110, __pyx_L1_error)
     }
-    __pyx_t_4 = PyUnicode_Split(__pyx_v_measurement, __pyx_v_separator, -1L); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 94, __pyx_L1_error)
+    __pyx_t_4 = PyUnicode_Split(__pyx_v_measurement, __pyx_v_separator, -1L); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 110, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
-    __pyx_t_6 = __pyx_t_4; __Pyx_INCREF(__pyx_t_6); __pyx_t_9 = 0;
+    __pyx_t_6 = __pyx_t_4; __Pyx_INCREF(__pyx_t_6); __pyx_t_7 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     for (;;) {
-      if (__pyx_t_9 >= PyList_GET_SIZE(__pyx_t_6)) break;
+      if (__pyx_t_7 >= PyList_GET_SIZE(__pyx_t_6)) break;
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-      __pyx_t_4 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_9); __Pyx_INCREF(__pyx_t_4); __pyx_t_9++; if (unlikely(0 < 0)) __PYX_ERR(0, 94, __pyx_L1_error)
+      __pyx_t_4 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_7); __Pyx_INCREF(__pyx_t_4); __pyx_t_7++; if (unlikely(0 < 0)) __PYX_ERR(0, 110, __pyx_L1_error)
       #else
-      __pyx_t_4 = PySequence_ITEM(__pyx_t_6, __pyx_t_9); __pyx_t_9++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 94, __pyx_L1_error)
+      __pyx_t_4 = PySequence_ITEM(__pyx_t_6, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 110, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       #endif
-      if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 94, __pyx_L1_error)
+      if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 110, __pyx_L1_error)
       __Pyx_DECREF_SET(__pyx_v_measurement, ((PyObject*)__pyx_t_4));
       __pyx_t_4 = 0;
-      __pyx_v_i = __pyx_t_7;
-      __pyx_t_7 = (__pyx_t_7 + 1);
+      __pyx_v_i = __pyx_t_5;
+      __pyx_t_5 = (__pyx_t_5 + 1);
 
-      /* "influxgraph/ext/templates.pyx":95
- *        'measurement*' == [t for t in template.values() if t][0]:
+      /* "influxgraph/ext/templates.pyx":111
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':
  *         for i, measurement in enumerate(measurement.split(separator)):
  *             split_path.append((i, measurement))             # <<<<<<<<<<<<<<
  *         return
- *     cdef unicode tag_key
+ *     # Measurement without tags
  */
       if (unlikely(__pyx_v_split_path == Py_None)) {
         PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
-        __PYX_ERR(0, 95, __pyx_L1_error)
+        __PYX_ERR(0, 111, __pyx_L1_error)
       }
-      __pyx_t_4 = PyInt_FromSsize_t(__pyx_v_i); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 95, __pyx_L1_error)
+      __pyx_t_4 = PyInt_FromSsize_t(__pyx_v_i); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 111, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_5 = PyTuple_New(2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 95, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_5);
+      __pyx_t_8 = PyTuple_New(2); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 111, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_8);
       __Pyx_GIVEREF(__pyx_t_4);
-      PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_4);
+      PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_4);
       __Pyx_INCREF(__pyx_v_measurement);
       __Pyx_GIVEREF(__pyx_v_measurement);
-      PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_v_measurement);
+      PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_v_measurement);
       __pyx_t_4 = 0;
-      __pyx_t_10 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_5); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 95, __pyx_L1_error)
-      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_8); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 111, __pyx_L1_error)
+      __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-      /* "influxgraph/ext/templates.pyx":94
+      /* "influxgraph/ext/templates.pyx":110
  *     if not tags_values and separator in measurement and \
- *        'measurement*' == [t for t in template.values() if t][0]:
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':
  *         for i, measurement in enumerate(measurement.split(separator)):             # <<<<<<<<<<<<<<
  *             split_path.append((i, measurement))
  *         return
@@ -2897,25 +3117,78 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
     }
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-    /* "influxgraph/ext/templates.pyx":96
+    /* "influxgraph/ext/templates.pyx":112
  *         for i, measurement in enumerate(measurement.split(separator)):
  *             split_path.append((i, measurement))
+ *         return             # <<<<<<<<<<<<<<
+ *     # Measurement without tags
+ *     if not tags_values:
+ */
+    goto __pyx_L0;
+
+    /* "influxgraph/ext/templates.pyx":108
+ *     cdef bint measurement_found = 0
+ *     cdef Py_ssize_t i
+ *     if not tags_values and separator in measurement and \             # <<<<<<<<<<<<<<
+ *       _get_first_not_none_tmpl_val(template) == 'measurement*':
+ *         for i, measurement in enumerate(measurement.split(separator)):
+ */
+  }
+
+  /* "influxgraph/ext/templates.pyx":114
+ *         return
+ *     # Measurement without tags
+ *     if not tags_values:             # <<<<<<<<<<<<<<
+ *         split_path.append((_get_measurement_idx(template), measurement))
+ *         return
+ */
+  __pyx_t_1 = (__pyx_v_tags_values != Py_None) && (PyList_GET_SIZE(__pyx_v_tags_values) != 0);
+  __pyx_t_2 = ((!__pyx_t_1) != 0);
+  if (__pyx_t_2) {
+
+    /* "influxgraph/ext/templates.pyx":115
+ *     # Measurement without tags
+ *     if not tags_values:
+ *         split_path.append((_get_measurement_idx(template), measurement))             # <<<<<<<<<<<<<<
+ *         return
+ *     cdef unicode tag_key
+ */
+    if (unlikely(__pyx_v_split_path == Py_None)) {
+      PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
+      __PYX_ERR(0, 115, __pyx_L1_error)
+    }
+    __pyx_t_6 = __pyx_f_11influxgraph_3ext_9templates__get_measurement_idx(__pyx_v_template); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 115, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_6);
+    __pyx_t_8 = PyTuple_New(2); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 115, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_8);
+    __Pyx_GIVEREF(__pyx_t_6);
+    PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_6);
+    __Pyx_INCREF(__pyx_v_measurement);
+    __Pyx_GIVEREF(__pyx_v_measurement);
+    PyTuple_SET_ITEM(__pyx_t_8, 1, __pyx_v_measurement);
+    __pyx_t_6 = 0;
+    __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_8); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 115, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+
+    /* "influxgraph/ext/templates.pyx":116
+ *     if not tags_values:
+ *         split_path.append((_get_measurement_idx(template), measurement))
  *         return             # <<<<<<<<<<<<<<
  *     cdef unicode tag_key
  *     cdef unicode tag_val
  */
     goto __pyx_L0;
 
-    /* "influxgraph/ext/templates.pyx":92
- *     cdef Py_ssize_t measurement_found = 0
- *     cdef Py_ssize_t i
- *     if not tags_values and separator in measurement and \             # <<<<<<<<<<<<<<
- *        'measurement*' == [t for t in template.values() if t][0]:
- *         for i, measurement in enumerate(measurement.split(separator)):
+    /* "influxgraph/ext/templates.pyx":114
+ *         return
+ *     # Measurement without tags
+ *     if not tags_values:             # <<<<<<<<<<<<<<
+ *         split_path.append((_get_measurement_idx(template), measurement))
+ *         return
  */
   }
 
-  /* "influxgraph/ext/templates.pyx":99
+  /* "influxgraph/ext/templates.pyx":119
  *     cdef unicode tag_key
  *     cdef unicode tag_val
  *     for (tag_key, tag_val) in tags_values:             # <<<<<<<<<<<<<<
@@ -2924,19 +3197,19 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  */
   if (unlikely(__pyx_v_tags_values == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 99, __pyx_L1_error)
+    __PYX_ERR(0, 119, __pyx_L1_error)
   }
-  __pyx_t_6 = __pyx_v_tags_values; __Pyx_INCREF(__pyx_t_6); __pyx_t_7 = 0;
+  __pyx_t_8 = __pyx_v_tags_values; __Pyx_INCREF(__pyx_t_8); __pyx_t_5 = 0;
   for (;;) {
-    if (__pyx_t_7 >= PyList_GET_SIZE(__pyx_t_6)) break;
+    if (__pyx_t_5 >= PyList_GET_SIZE(__pyx_t_8)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_5 = PyList_GET_ITEM(__pyx_t_6, __pyx_t_7); __Pyx_INCREF(__pyx_t_5); __pyx_t_7++; if (unlikely(0 < 0)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __pyx_t_6 = PyList_GET_ITEM(__pyx_t_8, __pyx_t_5); __Pyx_INCREF(__pyx_t_6); __pyx_t_5++; if (unlikely(0 < 0)) __PYX_ERR(0, 119, __pyx_L1_error)
     #else
-    __pyx_t_5 = PySequence_ITEM(__pyx_t_6, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 99, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_5);
+    __pyx_t_6 = PySequence_ITEM(__pyx_t_8, __pyx_t_5); __pyx_t_5++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 119, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_6);
     #endif
-    if ((likely(PyTuple_CheckExact(__pyx_t_5))) || (PyList_CheckExact(__pyx_t_5))) {
-      PyObject* sequence = __pyx_t_5;
+    if ((likely(PyTuple_CheckExact(__pyx_t_6))) || (PyList_CheckExact(__pyx_t_6))) {
+      PyObject* sequence = __pyx_t_6;
       #if !CYTHON_COMPILING_IN_PYPY
       Py_ssize_t size = Py_SIZE(sequence);
       #else
@@ -2945,54 +3218,54 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
       if (unlikely(size != 2)) {
         if (size > 2) __Pyx_RaiseTooManyValuesError(2);
         else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-        __PYX_ERR(0, 99, __pyx_L1_error)
+        __PYX_ERR(0, 119, __pyx_L1_error)
       }
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
       if (likely(PyTuple_CheckExact(sequence))) {
         __pyx_t_4 = PyTuple_GET_ITEM(sequence, 0); 
-        __pyx_t_11 = PyTuple_GET_ITEM(sequence, 1); 
+        __pyx_t_10 = PyTuple_GET_ITEM(sequence, 1); 
       } else {
         __pyx_t_4 = PyList_GET_ITEM(sequence, 0); 
-        __pyx_t_11 = PyList_GET_ITEM(sequence, 1); 
+        __pyx_t_10 = PyList_GET_ITEM(sequence, 1); 
       }
       __Pyx_INCREF(__pyx_t_4);
-      __Pyx_INCREF(__pyx_t_11);
+      __Pyx_INCREF(__pyx_t_10);
       #else
-      __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 99, __pyx_L1_error)
+      __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 119, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
-      __pyx_t_11 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 99, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_11);
+      __pyx_t_10 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 119, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
       #endif
-      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     } else {
       Py_ssize_t index = -1;
-      __pyx_t_12 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 99, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_12);
-      __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-      __pyx_t_13 = Py_TYPE(__pyx_t_12)->tp_iternext;
-      index = 0; __pyx_t_4 = __pyx_t_13(__pyx_t_12); if (unlikely(!__pyx_t_4)) goto __pyx_L14_unpacking_failed;
-      __Pyx_GOTREF(__pyx_t_4);
-      index = 1; __pyx_t_11 = __pyx_t_13(__pyx_t_12); if (unlikely(!__pyx_t_11)) goto __pyx_L14_unpacking_failed;
+      __pyx_t_11 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 119, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_11);
-      if (__Pyx_IternextUnpackEndCheck(__pyx_t_13(__pyx_t_12), 2) < 0) __PYX_ERR(0, 99, __pyx_L1_error)
-      __pyx_t_13 = NULL;
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      goto __pyx_L15_unpacking_done;
-      __pyx_L14_unpacking_failed:;
-      __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-      __pyx_t_13 = NULL;
+      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+      __pyx_t_12 = Py_TYPE(__pyx_t_11)->tp_iternext;
+      index = 0; __pyx_t_4 = __pyx_t_12(__pyx_t_11); if (unlikely(!__pyx_t_4)) goto __pyx_L12_unpacking_failed;
+      __Pyx_GOTREF(__pyx_t_4);
+      index = 1; __pyx_t_10 = __pyx_t_12(__pyx_t_11); if (unlikely(!__pyx_t_10)) goto __pyx_L12_unpacking_failed;
+      __Pyx_GOTREF(__pyx_t_10);
+      if (__Pyx_IternextUnpackEndCheck(__pyx_t_12(__pyx_t_11), 2) < 0) __PYX_ERR(0, 119, __pyx_L1_error)
+      __pyx_t_12 = NULL;
+      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+      goto __pyx_L13_unpacking_done;
+      __pyx_L12_unpacking_failed:;
+      __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+      __pyx_t_12 = NULL;
       if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-      __PYX_ERR(0, 99, __pyx_L1_error)
-      __pyx_L15_unpacking_done:;
+      __PYX_ERR(0, 119, __pyx_L1_error)
+      __pyx_L13_unpacking_done:;
     }
-    if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 99, __pyx_L1_error)
-    if (!(likely(PyUnicode_CheckExact(__pyx_t_11))||((__pyx_t_11) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_11)->tp_name), 0))) __PYX_ERR(0, 99, __pyx_L1_error)
+    if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 119, __pyx_L1_error)
+    if (!(likely(PyUnicode_CheckExact(__pyx_t_10))||((__pyx_t_10) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_10)->tp_name), 0))) __PYX_ERR(0, 119, __pyx_L1_error)
     __Pyx_XDECREF_SET(__pyx_v_tag_key, ((PyObject*)__pyx_t_4));
     __pyx_t_4 = 0;
-    __Pyx_XDECREF_SET(__pyx_v_tag_val, ((PyObject*)__pyx_t_11));
-    __pyx_t_11 = 0;
+    __Pyx_XDECREF_SET(__pyx_v_tag_val, ((PyObject*)__pyx_t_10));
+    __pyx_t_10 = 0;
 
-    /* "influxgraph/ext/templates.pyx":100
+    /* "influxgraph/ext/templates.pyx":120
  *     cdef unicode tag_val
  *     for (tag_key, tag_val) in tags_values:
  *         for i, tmpl_tag_key in template.items():             # <<<<<<<<<<<<<<
@@ -3001,52 +3274,52 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  */
     if (unlikely(__pyx_v_template == Py_None)) {
       PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "items");
-      __PYX_ERR(0, 100, __pyx_L1_error)
+      __PYX_ERR(0, 120, __pyx_L1_error)
     }
-    __pyx_t_5 = __Pyx_PyDict_Items(__pyx_v_template); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 100, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_5);
-    if (likely(PyList_CheckExact(__pyx_t_5)) || PyTuple_CheckExact(__pyx_t_5)) {
-      __pyx_t_11 = __pyx_t_5; __Pyx_INCREF(__pyx_t_11); __pyx_t_9 = 0;
-      __pyx_t_8 = NULL;
+    __pyx_t_6 = __Pyx_PyDict_Items(__pyx_v_template); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 120, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_6);
+    if (likely(PyList_CheckExact(__pyx_t_6)) || PyTuple_CheckExact(__pyx_t_6)) {
+      __pyx_t_10 = __pyx_t_6; __Pyx_INCREF(__pyx_t_10); __pyx_t_7 = 0;
+      __pyx_t_13 = NULL;
     } else {
-      __pyx_t_9 = -1; __pyx_t_11 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 100, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_11);
-      __pyx_t_8 = Py_TYPE(__pyx_t_11)->tp_iternext; if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 100, __pyx_L1_error)
+      __pyx_t_7 = -1; __pyx_t_10 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 120, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_10);
+      __pyx_t_13 = Py_TYPE(__pyx_t_10)->tp_iternext; if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 120, __pyx_L1_error)
     }
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     for (;;) {
-      if (likely(!__pyx_t_8)) {
-        if (likely(PyList_CheckExact(__pyx_t_11))) {
-          if (__pyx_t_9 >= PyList_GET_SIZE(__pyx_t_11)) break;
+      if (likely(!__pyx_t_13)) {
+        if (likely(PyList_CheckExact(__pyx_t_10))) {
+          if (__pyx_t_7 >= PyList_GET_SIZE(__pyx_t_10)) break;
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-          __pyx_t_5 = PyList_GET_ITEM(__pyx_t_11, __pyx_t_9); __Pyx_INCREF(__pyx_t_5); __pyx_t_9++; if (unlikely(0 < 0)) __PYX_ERR(0, 100, __pyx_L1_error)
+          __pyx_t_6 = PyList_GET_ITEM(__pyx_t_10, __pyx_t_7); __Pyx_INCREF(__pyx_t_6); __pyx_t_7++; if (unlikely(0 < 0)) __PYX_ERR(0, 120, __pyx_L1_error)
           #else
-          __pyx_t_5 = PySequence_ITEM(__pyx_t_11, __pyx_t_9); __pyx_t_9++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 100, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_5);
+          __pyx_t_6 = PySequence_ITEM(__pyx_t_10, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 120, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_6);
           #endif
         } else {
-          if (__pyx_t_9 >= PyTuple_GET_SIZE(__pyx_t_11)) break;
+          if (__pyx_t_7 >= PyTuple_GET_SIZE(__pyx_t_10)) break;
           #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-          __pyx_t_5 = PyTuple_GET_ITEM(__pyx_t_11, __pyx_t_9); __Pyx_INCREF(__pyx_t_5); __pyx_t_9++; if (unlikely(0 < 0)) __PYX_ERR(0, 100, __pyx_L1_error)
+          __pyx_t_6 = PyTuple_GET_ITEM(__pyx_t_10, __pyx_t_7); __Pyx_INCREF(__pyx_t_6); __pyx_t_7++; if (unlikely(0 < 0)) __PYX_ERR(0, 120, __pyx_L1_error)
           #else
-          __pyx_t_5 = PySequence_ITEM(__pyx_t_11, __pyx_t_9); __pyx_t_9++; if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 100, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_5);
+          __pyx_t_6 = PySequence_ITEM(__pyx_t_10, __pyx_t_7); __pyx_t_7++; if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 120, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_6);
           #endif
         }
       } else {
-        __pyx_t_5 = __pyx_t_8(__pyx_t_11);
-        if (unlikely(!__pyx_t_5)) {
+        __pyx_t_6 = __pyx_t_13(__pyx_t_10);
+        if (unlikely(!__pyx_t_6)) {
           PyObject* exc_type = PyErr_Occurred();
           if (exc_type) {
             if (likely(exc_type == PyExc_StopIteration || PyErr_GivenExceptionMatches(exc_type, PyExc_StopIteration))) PyErr_Clear();
-            else __PYX_ERR(0, 100, __pyx_L1_error)
+            else __PYX_ERR(0, 120, __pyx_L1_error)
           }
           break;
         }
-        __Pyx_GOTREF(__pyx_t_5);
+        __Pyx_GOTREF(__pyx_t_6);
       }
-      if ((likely(PyTuple_CheckExact(__pyx_t_5))) || (PyList_CheckExact(__pyx_t_5))) {
-        PyObject* sequence = __pyx_t_5;
+      if ((likely(PyTuple_CheckExact(__pyx_t_6))) || (PyList_CheckExact(__pyx_t_6))) {
+        PyObject* sequence = __pyx_t_6;
         #if !CYTHON_COMPILING_IN_PYPY
         Py_ssize_t size = Py_SIZE(sequence);
         #else
@@ -3055,73 +3328,73 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
         if (unlikely(size != 2)) {
           if (size > 2) __Pyx_RaiseTooManyValuesError(2);
           else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
-          __PYX_ERR(0, 100, __pyx_L1_error)
+          __PYX_ERR(0, 120, __pyx_L1_error)
         }
         #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
         if (likely(PyTuple_CheckExact(sequence))) {
           __pyx_t_4 = PyTuple_GET_ITEM(sequence, 0); 
-          __pyx_t_12 = PyTuple_GET_ITEM(sequence, 1); 
+          __pyx_t_11 = PyTuple_GET_ITEM(sequence, 1); 
         } else {
           __pyx_t_4 = PyList_GET_ITEM(sequence, 0); 
-          __pyx_t_12 = PyList_GET_ITEM(sequence, 1); 
+          __pyx_t_11 = PyList_GET_ITEM(sequence, 1); 
         }
         __Pyx_INCREF(__pyx_t_4);
-        __Pyx_INCREF(__pyx_t_12);
+        __Pyx_INCREF(__pyx_t_11);
         #else
-        __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 100, __pyx_L1_error)
+        __pyx_t_4 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 120, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_4);
-        __pyx_t_12 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 100, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_12);
+        __pyx_t_11 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 120, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_11);
         #endif
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
       } else {
         Py_ssize_t index = -1;
-        __pyx_t_14 = PyObject_GetIter(__pyx_t_5); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 100, __pyx_L1_error)
+        __pyx_t_14 = PyObject_GetIter(__pyx_t_6); if (unlikely(!__pyx_t_14)) __PYX_ERR(0, 120, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_14);
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-        __pyx_t_13 = Py_TYPE(__pyx_t_14)->tp_iternext;
-        index = 0; __pyx_t_4 = __pyx_t_13(__pyx_t_14); if (unlikely(!__pyx_t_4)) goto __pyx_L18_unpacking_failed;
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+        __pyx_t_12 = Py_TYPE(__pyx_t_14)->tp_iternext;
+        index = 0; __pyx_t_4 = __pyx_t_12(__pyx_t_14); if (unlikely(!__pyx_t_4)) goto __pyx_L16_unpacking_failed;
         __Pyx_GOTREF(__pyx_t_4);
-        index = 1; __pyx_t_12 = __pyx_t_13(__pyx_t_14); if (unlikely(!__pyx_t_12)) goto __pyx_L18_unpacking_failed;
-        __Pyx_GOTREF(__pyx_t_12);
-        if (__Pyx_IternextUnpackEndCheck(__pyx_t_13(__pyx_t_14), 2) < 0) __PYX_ERR(0, 100, __pyx_L1_error)
-        __pyx_t_13 = NULL;
+        index = 1; __pyx_t_11 = __pyx_t_12(__pyx_t_14); if (unlikely(!__pyx_t_11)) goto __pyx_L16_unpacking_failed;
+        __Pyx_GOTREF(__pyx_t_11);
+        if (__Pyx_IternextUnpackEndCheck(__pyx_t_12(__pyx_t_14), 2) < 0) __PYX_ERR(0, 120, __pyx_L1_error)
+        __pyx_t_12 = NULL;
         __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
-        goto __pyx_L19_unpacking_done;
-        __pyx_L18_unpacking_failed:;
+        goto __pyx_L17_unpacking_done;
+        __pyx_L16_unpacking_failed:;
         __Pyx_DECREF(__pyx_t_14); __pyx_t_14 = 0;
-        __pyx_t_13 = NULL;
+        __pyx_t_12 = NULL;
         if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
-        __PYX_ERR(0, 100, __pyx_L1_error)
-        __pyx_L19_unpacking_done:;
+        __PYX_ERR(0, 120, __pyx_L1_error)
+        __pyx_L17_unpacking_done:;
       }
-      __pyx_t_15 = __Pyx_PyIndex_AsSsize_t(__pyx_t_4); if (unlikely((__pyx_t_15 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 100, __pyx_L1_error)
+      __pyx_t_15 = __Pyx_PyIndex_AsSsize_t(__pyx_t_4); if (unlikely((__pyx_t_15 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 120, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
       __pyx_v_i = __pyx_t_15;
-      __Pyx_XDECREF_SET(__pyx_v_tmpl_tag_key, __pyx_t_12);
-      __pyx_t_12 = 0;
+      __Pyx_XDECREF_SET(__pyx_v_tmpl_tag_key, __pyx_t_11);
+      __pyx_t_11 = 0;
 
-      /* "influxgraph/ext/templates.pyx":101
+      /* "influxgraph/ext/templates.pyx":121
  *     for (tag_key, tag_val) in tags_values:
  *         for i, tmpl_tag_key in template.items():
  *             if not tmpl_tag_key:             # <<<<<<<<<<<<<<
  *                 continue
  *             if tag_key == tmpl_tag_key:
  */
-      __pyx_t_1 = __Pyx_PyObject_IsTrue(__pyx_v_tmpl_tag_key); if (unlikely(__pyx_t_1 < 0)) __PYX_ERR(0, 101, __pyx_L1_error)
-      __pyx_t_2 = ((!__pyx_t_1) != 0);
-      if (__pyx_t_2) {
+      __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_v_tmpl_tag_key); if (unlikely(__pyx_t_2 < 0)) __PYX_ERR(0, 121, __pyx_L1_error)
+      __pyx_t_1 = ((!__pyx_t_2) != 0);
+      if (__pyx_t_1) {
 
-        /* "influxgraph/ext/templates.pyx":102
+        /* "influxgraph/ext/templates.pyx":122
  *         for i, tmpl_tag_key in template.items():
  *             if not tmpl_tag_key:
  *                 continue             # <<<<<<<<<<<<<<
  *             if tag_key == tmpl_tag_key:
  *                 split_path.append((i, tag_val))
  */
-        goto __pyx_L16_continue;
+        goto __pyx_L14_continue;
 
-        /* "influxgraph/ext/templates.pyx":101
+        /* "influxgraph/ext/templates.pyx":121
  *     for (tag_key, tag_val) in tags_values:
  *         for i, tmpl_tag_key in template.items():
  *             if not tmpl_tag_key:             # <<<<<<<<<<<<<<
@@ -3130,17 +3403,17 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  */
       }
 
-      /* "influxgraph/ext/templates.pyx":103
+      /* "influxgraph/ext/templates.pyx":123
  *             if not tmpl_tag_key:
  *                 continue
  *             if tag_key == tmpl_tag_key:             # <<<<<<<<<<<<<<
  *                 split_path.append((i, tag_val))
  *             elif 'measurement' in tmpl_tag_key and not measurement_found:
  */
-      __pyx_t_2 = (__Pyx_PyUnicode_Equals(__pyx_v_tag_key, __pyx_v_tmpl_tag_key, Py_EQ)); if (unlikely(__pyx_t_2 < 0)) __PYX_ERR(0, 103, __pyx_L1_error)
-      if (__pyx_t_2) {
+      __pyx_t_1 = (__Pyx_PyUnicode_Equals(__pyx_v_tag_key, __pyx_v_tmpl_tag_key, Py_EQ)); if (unlikely(__pyx_t_1 < 0)) __PYX_ERR(0, 123, __pyx_L1_error)
+      if (__pyx_t_1) {
 
-        /* "influxgraph/ext/templates.pyx":104
+        /* "influxgraph/ext/templates.pyx":124
  *                 continue
  *             if tag_key == tmpl_tag_key:
  *                 split_path.append((i, tag_val))             # <<<<<<<<<<<<<<
@@ -3149,51 +3422,51 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  */
         if (unlikely(__pyx_v_split_path == Py_None)) {
           PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
-          __PYX_ERR(0, 104, __pyx_L1_error)
+          __PYX_ERR(0, 124, __pyx_L1_error)
         }
-        __pyx_t_5 = PyInt_FromSsize_t(__pyx_v_i); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 104, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_5);
-        __pyx_t_12 = PyTuple_New(2); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 104, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_12);
-        __Pyx_GIVEREF(__pyx_t_5);
-        PyTuple_SET_ITEM(__pyx_t_12, 0, __pyx_t_5);
+        __pyx_t_6 = PyInt_FromSsize_t(__pyx_v_i); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 124, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __pyx_t_11 = PyTuple_New(2); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 124, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_11);
+        __Pyx_GIVEREF(__pyx_t_6);
+        PyTuple_SET_ITEM(__pyx_t_11, 0, __pyx_t_6);
         __Pyx_INCREF(__pyx_v_tag_val);
         __Pyx_GIVEREF(__pyx_v_tag_val);
-        PyTuple_SET_ITEM(__pyx_t_12, 1, __pyx_v_tag_val);
-        __pyx_t_5 = 0;
-        __pyx_t_10 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_12); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 104, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        PyTuple_SET_ITEM(__pyx_t_11, 1, __pyx_v_tag_val);
+        __pyx_t_6 = 0;
+        __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_11); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 124, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
-        /* "influxgraph/ext/templates.pyx":103
+        /* "influxgraph/ext/templates.pyx":123
  *             if not tmpl_tag_key:
  *                 continue
  *             if tag_key == tmpl_tag_key:             # <<<<<<<<<<<<<<
  *                 split_path.append((i, tag_val))
  *             elif 'measurement' in tmpl_tag_key and not measurement_found:
  */
-        goto __pyx_L21;
+        goto __pyx_L19;
       }
 
-      /* "influxgraph/ext/templates.pyx":105
+      /* "influxgraph/ext/templates.pyx":125
  *             if tag_key == tmpl_tag_key:
  *                 split_path.append((i, tag_val))
  *             elif 'measurement' in tmpl_tag_key and not measurement_found:             # <<<<<<<<<<<<<<
  *                 measurement_found = 1
  *                 split_path.append((i, measurement))
  */
-      __pyx_t_1 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_measurement_2, __pyx_v_tmpl_tag_key, Py_EQ)); if (unlikely(__pyx_t_1 < 0)) __PYX_ERR(0, 105, __pyx_L1_error)
-      __pyx_t_3 = (__pyx_t_1 != 0);
+      __pyx_t_2 = (__Pyx_PySequence_ContainsTF(__pyx_n_s_measurement, __pyx_v_tmpl_tag_key, Py_EQ)); if (unlikely(__pyx_t_2 < 0)) __PYX_ERR(0, 125, __pyx_L1_error)
+      __pyx_t_3 = (__pyx_t_2 != 0);
       if (__pyx_t_3) {
       } else {
-        __pyx_t_2 = __pyx_t_3;
-        goto __pyx_L22_bool_binop_done;
+        __pyx_t_1 = __pyx_t_3;
+        goto __pyx_L20_bool_binop_done;
       }
       __pyx_t_3 = ((!(__pyx_v_measurement_found != 0)) != 0);
-      __pyx_t_2 = __pyx_t_3;
-      __pyx_L22_bool_binop_done:;
-      if (__pyx_t_2) {
+      __pyx_t_1 = __pyx_t_3;
+      __pyx_L20_bool_binop_done:;
+      if (__pyx_t_1) {
 
-        /* "influxgraph/ext/templates.pyx":106
+        /* "influxgraph/ext/templates.pyx":126
  *                 split_path.append((i, tag_val))
  *             elif 'measurement' in tmpl_tag_key and not measurement_found:
  *                 measurement_found = 1             # <<<<<<<<<<<<<<
@@ -3202,31 +3475,31 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  */
         __pyx_v_measurement_found = 1;
 
-        /* "influxgraph/ext/templates.pyx":107
+        /* "influxgraph/ext/templates.pyx":127
  *             elif 'measurement' in tmpl_tag_key and not measurement_found:
  *                 measurement_found = 1
  *                 split_path.append((i, measurement))             # <<<<<<<<<<<<<<
  * 
- * cdef void _add_fields_to_paths(list fields, list split_path, list series,
+ * 
  */
         if (unlikely(__pyx_v_split_path == Py_None)) {
           PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
-          __PYX_ERR(0, 107, __pyx_L1_error)
+          __PYX_ERR(0, 127, __pyx_L1_error)
         }
-        __pyx_t_12 = PyInt_FromSsize_t(__pyx_v_i); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 107, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_12);
-        __pyx_t_5 = PyTuple_New(2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 107, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_5);
-        __Pyx_GIVEREF(__pyx_t_12);
-        PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_12);
+        __pyx_t_11 = PyInt_FromSsize_t(__pyx_v_i); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 127, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_11);
+        __pyx_t_6 = PyTuple_New(2); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 127, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_6);
+        __Pyx_GIVEREF(__pyx_t_11);
+        PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_t_11);
         __Pyx_INCREF(__pyx_v_measurement);
         __Pyx_GIVEREF(__pyx_v_measurement);
-        PyTuple_SET_ITEM(__pyx_t_5, 1, __pyx_v_measurement);
-        __pyx_t_12 = 0;
-        __pyx_t_10 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_5); if (unlikely(__pyx_t_10 == -1)) __PYX_ERR(0, 107, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+        PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_v_measurement);
+        __pyx_t_11 = 0;
+        __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_split_path, __pyx_t_6); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 127, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
 
-        /* "influxgraph/ext/templates.pyx":105
+        /* "influxgraph/ext/templates.pyx":125
  *             if tag_key == tmpl_tag_key:
  *                 split_path.append((i, tag_val))
  *             elif 'measurement' in tmpl_tag_key and not measurement_found:             # <<<<<<<<<<<<<<
@@ -3234,20 +3507,20 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  *                 split_path.append((i, measurement))
  */
       }
-      __pyx_L21:;
+      __pyx_L19:;
 
-      /* "influxgraph/ext/templates.pyx":100
+      /* "influxgraph/ext/templates.pyx":120
  *     cdef unicode tag_val
  *     for (tag_key, tag_val) in tags_values:
  *         for i, tmpl_tag_key in template.items():             # <<<<<<<<<<<<<<
  *             if not tmpl_tag_key:
  *                 continue
  */
-      __pyx_L16_continue:;
+      __pyx_L14_continue:;
     }
-    __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
+    __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
 
-    /* "influxgraph/ext/templates.pyx":99
+    /* "influxgraph/ext/templates.pyx":119
  *     cdef unicode tag_key
  *     cdef unicode tag_val
  *     for (tag_key, tag_val) in tags_values:             # <<<<<<<<<<<<<<
@@ -3255,10 +3528,10 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
  *             if not tmpl_tag_key:
  */
   }
-  __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+  __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
 
-  /* "influxgraph/ext/templates.pyx":87
- *     return [], template
+  /* "influxgraph/ext/templates.pyx":103
+ * 
  * 
  * cpdef void _make_path_from_template(list split_path, unicode measurement,             # <<<<<<<<<<<<<<
  *                                     dict template, list tags_values,
@@ -3269,17 +3542,16 @@ static void __pyx_f_11influxgraph_3ext_9templates__make_path_from_template(PyObj
   goto __pyx_L0;
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_4);
-  __Pyx_XDECREF(__pyx_t_5);
   __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_XDECREF(__pyx_t_10);
   __Pyx_XDECREF(__pyx_t_11);
-  __Pyx_XDECREF(__pyx_t_12);
   __Pyx_XDECREF(__pyx_t_14);
   __Pyx_WriteUnraisable("influxgraph.ext.templates._make_path_from_template", __pyx_clineno, __pyx_lineno, __pyx_filename, 0, 0);
   __pyx_L0:;
   __Pyx_XDECREF(__pyx_v_tag_key);
   __Pyx_XDECREF(__pyx_v_tag_val);
   __Pyx_XDECREF(__pyx_v_tmpl_tag_key);
-  __Pyx_XDECREF(__pyx_v_t);
   __Pyx_XDECREF(__pyx_v_measurement);
   __Pyx_RefNannyFinishContext();
 }
@@ -3297,7 +3569,7 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_5_make_path_from_templat
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("_make_path_from_template (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_split_path,&__pyx_n_s_measurement_2,&__pyx_n_s_template,&__pyx_n_s_tags_values,&__pyx_n_s_separator,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_split_path,&__pyx_n_s_measurement,&__pyx_n_s_template,&__pyx_n_s_tags_values,&__pyx_n_s_separator,0};
     PyObject* values[5] = {0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
@@ -3317,28 +3589,28 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_5_make_path_from_templat
         if (likely((values[0] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_split_path)) != 0)) kw_args--;
         else goto __pyx_L5_argtuple_error;
         case  1:
-        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_measurement_2)) != 0)) kw_args--;
+        if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_measurement)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 1); __PYX_ERR(0, 87, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 1); __PYX_ERR(0, 103, __pyx_L3_error)
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_template)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 2); __PYX_ERR(0, 87, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 2); __PYX_ERR(0, 103, __pyx_L3_error)
         }
         case  3:
         if (likely((values[3] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_tags_values)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 3); __PYX_ERR(0, 87, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 3); __PYX_ERR(0, 103, __pyx_L3_error)
         }
         case  4:
         if (likely((values[4] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_separator)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 4); __PYX_ERR(0, 87, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, 4); __PYX_ERR(0, 103, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "_make_path_from_template") < 0)) __PYX_ERR(0, 87, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "_make_path_from_template") < 0)) __PYX_ERR(0, 103, __pyx_L3_error)
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 5) {
       goto __pyx_L5_argtuple_error;
@@ -3357,17 +3629,17 @@ static PyObject *__pyx_pw_11influxgraph_3ext_9templates_5_make_path_from_templat
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 87, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("_make_path_from_template", 1, 5, 5, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 103, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("influxgraph.ext.templates._make_path_from_template", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_split_path), (&PyList_Type), 1, "split_path", 1))) __PYX_ERR(0, 87, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_measurement), (&PyUnicode_Type), 1, "measurement", 1))) __PYX_ERR(0, 87, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_template), (&PyDict_Type), 1, "template", 1))) __PYX_ERR(0, 88, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_tags_values), (&PyList_Type), 1, "tags_values", 1))) __PYX_ERR(0, 88, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_separator), (&PyString_Type), 1, "separator", 1))) __PYX_ERR(0, 89, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_split_path), (&PyList_Type), 1, "split_path", 1))) __PYX_ERR(0, 103, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_measurement), (&PyUnicode_Type), 1, "measurement", 1))) __PYX_ERR(0, 103, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_template), (&PyDict_Type), 1, "template", 1))) __PYX_ERR(0, 104, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_tags_values), (&PyList_Type), 1, "tags_values", 1))) __PYX_ERR(0, 104, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_separator), (&PyString_Type), 1, "separator", 1))) __PYX_ERR(0, 105, __pyx_L1_error)
   __pyx_r = __pyx_pf_11influxgraph_3ext_9templates_4_make_path_from_template(__pyx_self, __pyx_v_split_path, __pyx_v_measurement, __pyx_v_template, __pyx_v_tags_values, __pyx_v_separator);
 
   /* function exit code */
@@ -3385,7 +3657,7 @@ static PyObject *__pyx_pf_11influxgraph_3ext_9templates_4_make_path_from_templat
   PyObject *__pyx_t_1 = NULL;
   __Pyx_RefNannySetupContext("_make_path_from_template", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_void_to_None(__pyx_f_11influxgraph_3ext_9templates__make_path_from_template(__pyx_v_split_path, __pyx_v_measurement, __pyx_v_template, __pyx_v_tags_values, __pyx_v_separator, 0)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 87, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_void_to_None(__pyx_f_11influxgraph_3ext_9templates__make_path_from_template(__pyx_v_split_path, __pyx_v_measurement, __pyx_v_template, __pyx_v_tags_values, __pyx_v_separator, 0)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 103, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -3402,8 +3674,8 @@ static PyObject *__pyx_pf_11influxgraph_3ext_9templates_4_make_path_from_templat
   return __pyx_r;
 }
 
-/* "influxgraph/ext/templates.pyx":109
- *                 split_path.append((i, measurement))
+/* "influxgraph/ext/templates.pyx":130
+ * 
  * 
  * cdef void _add_fields_to_paths(list fields, list split_path, list series,             # <<<<<<<<<<<<<<
  *                                str separator):
@@ -3426,7 +3698,7 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
   int __pyx_t_9;
   __Pyx_RefNannySetupContext("_add_fields_to_paths", 0);
 
-  /* "influxgraph/ext/templates.pyx":114
+  /* "influxgraph/ext/templates.pyx":135
  *     cdef list field_keys
  *     cdef unicode f
  *     for field_key in fields:             # <<<<<<<<<<<<<<
@@ -3435,71 +3707,71 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  */
   if (unlikely(__pyx_v_fields == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 114, __pyx_L1_error)
+    __PYX_ERR(0, 135, __pyx_L1_error)
   }
   __pyx_t_1 = __pyx_v_fields; __Pyx_INCREF(__pyx_t_1); __pyx_t_2 = 0;
   for (;;) {
     if (__pyx_t_2 >= PyList_GET_SIZE(__pyx_t_1)) break;
     #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_2); __Pyx_INCREF(__pyx_t_3); __pyx_t_2++; if (unlikely(0 < 0)) __PYX_ERR(0, 114, __pyx_L1_error)
+    __pyx_t_3 = PyList_GET_ITEM(__pyx_t_1, __pyx_t_2); __Pyx_INCREF(__pyx_t_3); __pyx_t_2++; if (unlikely(0 < 0)) __PYX_ERR(0, 135, __pyx_L1_error)
     #else
-    __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_2); __pyx_t_2++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 114, __pyx_L1_error)
+    __pyx_t_3 = PySequence_ITEM(__pyx_t_1, __pyx_t_2); __pyx_t_2++; if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 135, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     #endif
-    if (!(likely(PyUnicode_CheckExact(__pyx_t_3))||((__pyx_t_3) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 114, __pyx_L1_error)
+    if (!(likely(PyUnicode_CheckExact(__pyx_t_3))||((__pyx_t_3) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_3)->tp_name), 0))) __PYX_ERR(0, 135, __pyx_L1_error)
     __Pyx_XDECREF_SET(__pyx_v_field_key, ((PyObject*)__pyx_t_3));
     __pyx_t_3 = 0;
 
-    /* "influxgraph/ext/templates.pyx":115
+    /* "influxgraph/ext/templates.pyx":136
  *     cdef unicode f
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)             # <<<<<<<<<<<<<<
  *                       if f != 'value']
  *         if len(field_keys) > 0:
  */
-    __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 115, __pyx_L1_error)
+    __pyx_t_3 = PyList_New(0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 136, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     if (unlikely(__pyx_v_field_key == Py_None)) {
       PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "split");
-      __PYX_ERR(0, 115, __pyx_L1_error)
+      __PYX_ERR(0, 136, __pyx_L1_error)
     }
-    __pyx_t_4 = PyUnicode_Split(__pyx_v_field_key, __pyx_v_separator, -1L); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
+    __pyx_t_4 = PyUnicode_Split(__pyx_v_field_key, __pyx_v_separator, -1L); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 136, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_4);
     __pyx_t_5 = __pyx_t_4; __Pyx_INCREF(__pyx_t_5); __pyx_t_6 = 0;
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
     for (;;) {
       if (__pyx_t_6 >= PyList_GET_SIZE(__pyx_t_5)) break;
       #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
-      __pyx_t_4 = PyList_GET_ITEM(__pyx_t_5, __pyx_t_6); __Pyx_INCREF(__pyx_t_4); __pyx_t_6++; if (unlikely(0 < 0)) __PYX_ERR(0, 115, __pyx_L1_error)
+      __pyx_t_4 = PyList_GET_ITEM(__pyx_t_5, __pyx_t_6); __Pyx_INCREF(__pyx_t_4); __pyx_t_6++; if (unlikely(0 < 0)) __PYX_ERR(0, 136, __pyx_L1_error)
       #else
-      __pyx_t_4 = PySequence_ITEM(__pyx_t_5, __pyx_t_6); __pyx_t_6++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 115, __pyx_L1_error)
+      __pyx_t_4 = PySequence_ITEM(__pyx_t_5, __pyx_t_6); __pyx_t_6++; if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 136, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_4);
       #endif
-      if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 115, __pyx_L1_error)
+      if (!(likely(PyUnicode_CheckExact(__pyx_t_4))||((__pyx_t_4) == Py_None)||(PyErr_Format(PyExc_TypeError, "Expected %.16s, got %.200s", "unicode", Py_TYPE(__pyx_t_4)->tp_name), 0))) __PYX_ERR(0, 136, __pyx_L1_error)
       __Pyx_XDECREF_SET(__pyx_v_f, ((PyObject*)__pyx_t_4));
       __pyx_t_4 = 0;
 
-      /* "influxgraph/ext/templates.pyx":116
+      /* "influxgraph/ext/templates.pyx":137
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']             # <<<<<<<<<<<<<<
  *         if len(field_keys) > 0:
  *             series.append(split_path + field_keys)
  */
-      __pyx_t_7 = (__Pyx_PyUnicode_Equals(__pyx_v_f, __pyx_n_s_value, Py_NE)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 116, __pyx_L1_error)
+      __pyx_t_7 = (__Pyx_PyUnicode_Equals(__pyx_v_f, __pyx_n_s_value, Py_NE)); if (unlikely(__pyx_t_7 < 0)) __PYX_ERR(0, 137, __pyx_L1_error)
       __pyx_t_8 = (__pyx_t_7 != 0);
       if (__pyx_t_8) {
 
-        /* "influxgraph/ext/templates.pyx":115
+        /* "influxgraph/ext/templates.pyx":136
  *     cdef unicode f
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)             # <<<<<<<<<<<<<<
  *                       if f != 'value']
  *         if len(field_keys) > 0:
  */
-        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_f))) __PYX_ERR(0, 115, __pyx_L1_error)
+        if (unlikely(__Pyx_ListComp_Append(__pyx_t_3, (PyObject*)__pyx_v_f))) __PYX_ERR(0, 136, __pyx_L1_error)
 
-        /* "influxgraph/ext/templates.pyx":116
+        /* "influxgraph/ext/templates.pyx":137
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']             # <<<<<<<<<<<<<<
@@ -3508,7 +3780,7 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  */
       }
 
-      /* "influxgraph/ext/templates.pyx":115
+      /* "influxgraph/ext/templates.pyx":136
  *     cdef unicode f
  *     for field_key in fields:
  *         field_keys = [f for f in field_key.split(separator)             # <<<<<<<<<<<<<<
@@ -3520,31 +3792,31 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
     __Pyx_XDECREF_SET(__pyx_v_field_keys, ((PyObject*)__pyx_t_3));
     __pyx_t_3 = 0;
 
-    /* "influxgraph/ext/templates.pyx":117
+    /* "influxgraph/ext/templates.pyx":138
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']
  *         if len(field_keys) > 0:             # <<<<<<<<<<<<<<
  *             series.append(split_path + field_keys)
  */
-    __pyx_t_6 = PyList_GET_SIZE(__pyx_v_field_keys); if (unlikely(__pyx_t_6 == -1)) __PYX_ERR(0, 117, __pyx_L1_error)
+    __pyx_t_6 = PyList_GET_SIZE(__pyx_v_field_keys); if (unlikely(__pyx_t_6 == -1)) __PYX_ERR(0, 138, __pyx_L1_error)
     __pyx_t_8 = ((__pyx_t_6 > 0) != 0);
     if (__pyx_t_8) {
 
-      /* "influxgraph/ext/templates.pyx":118
+      /* "influxgraph/ext/templates.pyx":139
  *                       if f != 'value']
  *         if len(field_keys) > 0:
  *             series.append(split_path + field_keys)             # <<<<<<<<<<<<<<
  */
       if (unlikely(__pyx_v_series == Py_None)) {
         PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%s'", "append");
-        __PYX_ERR(0, 118, __pyx_L1_error)
+        __PYX_ERR(0, 139, __pyx_L1_error)
       }
-      __pyx_t_3 = PyNumber_Add(__pyx_v_split_path, __pyx_v_field_keys); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 118, __pyx_L1_error)
+      __pyx_t_3 = PyNumber_Add(__pyx_v_split_path, __pyx_v_field_keys); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 139, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_series, __pyx_t_3); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 118, __pyx_L1_error)
+      __pyx_t_9 = __Pyx_PyList_Append(__pyx_v_series, __pyx_t_3); if (unlikely(__pyx_t_9 == -1)) __PYX_ERR(0, 139, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
-      /* "influxgraph/ext/templates.pyx":117
+      /* "influxgraph/ext/templates.pyx":138
  *         field_keys = [f for f in field_key.split(separator)
  *                       if f != 'value']
  *         if len(field_keys) > 0:             # <<<<<<<<<<<<<<
@@ -3552,7 +3824,7 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
  */
     }
 
-    /* "influxgraph/ext/templates.pyx":114
+    /* "influxgraph/ext/templates.pyx":135
  *     cdef list field_keys
  *     cdef unicode f
  *     for field_key in fields:             # <<<<<<<<<<<<<<
@@ -3562,8 +3834,8 @@ static void __pyx_f_11influxgraph_3ext_9templates__add_fields_to_paths(PyObject 
   }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
-  /* "influxgraph/ext/templates.pyx":109
- *                 split_path.append((i, measurement))
+  /* "influxgraph/ext/templates.pyx":130
+ * 
  * 
  * cdef void _add_fields_to_paths(list fields, list split_path, list series,             # <<<<<<<<<<<<<<
  *                                str separator):
@@ -3631,8 +3903,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_logging, __pyx_k_logging, sizeof(__pyx_k_logging), 0, 0, 1, 1},
   {&__pyx_n_s_main, __pyx_k_main, sizeof(__pyx_k_main), 0, 0, 1, 1},
   {&__pyx_n_s_match_split_path, __pyx_k_match_split_path, sizeof(__pyx_k_match_split_path), 0, 0, 1, 1},
-  {&__pyx_kp_s_measurement, __pyx_k_measurement, sizeof(__pyx_k_measurement), 0, 0, 1, 0},
-  {&__pyx_n_s_measurement_2, __pyx_k_measurement_2, sizeof(__pyx_k_measurement_2), 0, 0, 1, 1},
+  {&__pyx_n_s_measurement, __pyx_k_measurement, sizeof(__pyx_k_measurement), 0, 0, 1, 1},
+  {&__pyx_kp_s_measurement_2, __pyx_k_measurement_2, sizeof(__pyx_k_measurement_2), 0, 0, 1, 0},
   {&__pyx_n_s_paths, __pyx_k_paths, sizeof(__pyx_k_paths), 0, 0, 1, 1},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
   {&__pyx_n_s_separator, __pyx_k_separator, sizeof(__pyx_k_separator), 0, 0, 1, 1},
@@ -3647,9 +3919,9 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {0, 0, 0, 0, 0, 0, 0}
 };
 static int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 30, __pyx_L1_error)
-  __pyx_builtin_KeyError = __Pyx_GetBuiltinName(__pyx_n_s_KeyError); if (!__pyx_builtin_KeyError) __PYX_ERR(0, 50, __pyx_L1_error)
-  __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(0, 94, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 31, __pyx_L1_error)
+  __pyx_builtin_KeyError = __Pyx_GetBuiltinName(__pyx_n_s_KeyError); if (!__pyx_builtin_KeyError) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(0, 110, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
@@ -3659,14 +3931,14 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__Pyx_InitCachedConstants", 0);
 
-  /* "influxgraph/ext/templates.pyx":60
+  /* "influxgraph/ext/templates.pyx":63
  *     cdef list split_path = []
  *     cdef dict template = None
  *     cdef list tags_values = [p.split('=') for p in paths[1:]]             # <<<<<<<<<<<<<<
  *     cdef Py_ssize_t field_inds
  *     cdef Py_ssize_t num_tmpl_items
  */
-  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s__2); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 60, __pyx_L1_error)
+  __pyx_tuple__3 = PyTuple_Pack(1, __pyx_kp_s__2); if (unlikely(!__pyx_tuple__3)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__3);
   __Pyx_GIVEREF(__pyx_tuple__3);
 
@@ -3675,7 +3947,7 @@ static int __Pyx_InitCachedConstants(void) {
  * 
  * logger = logging.getLogger('influxgraph')             # <<<<<<<<<<<<<<
  * 
- * cpdef list heapsort(list iterable):
+ * 
  */
   __pyx_tuple__4 = PyTuple_Pack(1, __pyx_n_s_influxgraph); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__4);
@@ -3834,7 +4106,7 @@ PyMODINIT_FUNC PyInit_templates(void)
  * 
  * logger = logging.getLogger('influxgraph')             # <<<<<<<<<<<<<<
  * 
- * cpdef list heapsort(list iterable):
+ * 
  */
   __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_logging); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
@@ -4676,8 +4948,205 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
     return __Pyx_GetItemInt_Generic(o, PyInt_FromSsize_t(i));
 }
 
+/* PyObjectCallNoArg */
+      #if CYTHON_COMPILING_IN_CPYTHON
+static CYTHON_INLINE PyObject* __Pyx_PyObject_CallNoArg(PyObject *func) {
+#if CYTHON_FAST_PYCALL
+    if (PyFunction_Check(func)) {
+        return __Pyx_PyFunction_FastCall(func, NULL, 0);
+    }
+#endif
+#ifdef __Pyx_CyFunction_USED
+    if (likely(PyCFunction_Check(func) || PyObject_TypeCheck(func, __pyx_CyFunctionType))) {
+#else
+    if (likely(PyCFunction_Check(func))) {
+#endif
+        if (likely(PyCFunction_GET_FLAGS(func) & METH_NOARGS)) {
+            return __Pyx_PyObject_CallMethO(func, NULL);
+        }
+    }
+    return __Pyx_PyObject_Call(func, __pyx_empty_tuple, NULL);
+}
+#endif
+
+/* PyObjectCallMethod0 */
+        static PyObject* __Pyx_PyObject_CallMethod0(PyObject* obj, PyObject* method_name) {
+    PyObject *method, *result = NULL;
+    method = __Pyx_PyObject_GetAttrStr(obj, method_name);
+    if (unlikely(!method)) goto bad;
+#if CYTHON_UNPACK_METHODS
+    if (likely(PyMethod_Check(method))) {
+        PyObject *self = PyMethod_GET_SELF(method);
+        if (likely(self)) {
+            PyObject *function = PyMethod_GET_FUNCTION(method);
+            result = __Pyx_PyObject_CallOneArg(function, self);
+            Py_DECREF(method);
+            return result;
+        }
+    }
+#endif
+    result = __Pyx_PyObject_CallNoArg(method);
+    Py_DECREF(method);
+bad:
+    return result;
+}
+
+/* UnpackTupleError */
+        static void __Pyx_UnpackTupleError(PyObject *t, Py_ssize_t index) {
+    if (t == Py_None) {
+      __Pyx_RaiseNoneNotIterableError();
+    } else if (PyTuple_GET_SIZE(t) < index) {
+      __Pyx_RaiseNeedMoreValuesError(PyTuple_GET_SIZE(t));
+    } else {
+      __Pyx_RaiseTooManyValuesError(index);
+    }
+}
+
+/* UnpackTuple2 */
+        static CYTHON_INLINE int __Pyx_unpack_tuple2(PyObject* tuple, PyObject** pvalue1, PyObject** pvalue2,
+                                             int is_tuple, int has_known_size, int decref_tuple) {
+    Py_ssize_t index;
+    PyObject *value1 = NULL, *value2 = NULL, *iter = NULL;
+    if (!is_tuple && unlikely(!PyTuple_Check(tuple))) {
+        iternextfunc iternext;
+        iter = PyObject_GetIter(tuple);
+        if (unlikely(!iter)) goto bad;
+        if (decref_tuple) { Py_DECREF(tuple); tuple = NULL; }
+        iternext = Py_TYPE(iter)->tp_iternext;
+        value1 = iternext(iter); if (unlikely(!value1)) { index = 0; goto unpacking_failed; }
+        value2 = iternext(iter); if (unlikely(!value2)) { index = 1; goto unpacking_failed; }
+        if (!has_known_size && unlikely(__Pyx_IternextUnpackEndCheck(iternext(iter), 2))) goto bad;
+        Py_DECREF(iter);
+    } else {
+        if (!has_known_size && unlikely(PyTuple_GET_SIZE(tuple) != 2)) {
+            __Pyx_UnpackTupleError(tuple, 2);
+            goto bad;
+        }
+#if CYTHON_COMPILING_IN_PYPY
+        value1 = PySequence_ITEM(tuple, 0);
+        if (unlikely(!value1)) goto bad;
+        value2 = PySequence_ITEM(tuple, 1);
+        if (unlikely(!value2)) goto bad;
+#else
+        value1 = PyTuple_GET_ITEM(tuple, 0);
+        value2 = PyTuple_GET_ITEM(tuple, 1);
+        Py_INCREF(value1);
+        Py_INCREF(value2);
+#endif
+        if (decref_tuple) { Py_DECREF(tuple); }
+    }
+    *pvalue1 = value1;
+    *pvalue2 = value2;
+    return 0;
+unpacking_failed:
+    if (!has_known_size && __Pyx_IterFinish() == 0)
+        __Pyx_RaiseNeedMoreValuesError(index);
+bad:
+    Py_XDECREF(iter);
+    Py_XDECREF(value1);
+    Py_XDECREF(value2);
+    if (decref_tuple) { Py_XDECREF(tuple); }
+    return -1;
+}
+
+/* dict_iter */
+        static CYTHON_INLINE PyObject* __Pyx_dict_iterator(PyObject* iterable, int is_dict, PyObject* method_name,
+                                                   Py_ssize_t* p_orig_length, int* p_source_is_dict) {
+    is_dict = is_dict || likely(PyDict_CheckExact(iterable));
+    *p_source_is_dict = is_dict;
+#if !CYTHON_COMPILING_IN_PYPY
+    if (is_dict) {
+        *p_orig_length = PyDict_Size(iterable);
+        Py_INCREF(iterable);
+        return iterable;
+    }
+#endif
+    *p_orig_length = 0;
+    if (method_name) {
+        PyObject* iter;
+        iterable = __Pyx_PyObject_CallMethod0(iterable, method_name);
+        if (!iterable)
+            return NULL;
+#if !CYTHON_COMPILING_IN_PYPY
+        if (PyTuple_CheckExact(iterable) || PyList_CheckExact(iterable))
+            return iterable;
+#endif
+        iter = PyObject_GetIter(iterable);
+        Py_DECREF(iterable);
+        return iter;
+    }
+    return PyObject_GetIter(iterable);
+}
+static CYTHON_INLINE int __Pyx_dict_iter_next(
+        PyObject* iter_obj, CYTHON_NCP_UNUSED Py_ssize_t orig_length, CYTHON_NCP_UNUSED Py_ssize_t* ppos,
+        PyObject** pkey, PyObject** pvalue, PyObject** pitem, int source_is_dict) {
+    PyObject* next_item;
+#if !CYTHON_COMPILING_IN_PYPY
+    if (source_is_dict) {
+        PyObject *key, *value;
+        if (unlikely(orig_length != PyDict_Size(iter_obj))) {
+            PyErr_SetString(PyExc_RuntimeError, "dictionary changed size during iteration");
+            return -1;
+        }
+        if (unlikely(!PyDict_Next(iter_obj, ppos, &key, &value))) {
+            return 0;
+        }
+        if (pitem) {
+            PyObject* tuple = PyTuple_New(2);
+            if (unlikely(!tuple)) {
+                return -1;
+            }
+            Py_INCREF(key);
+            Py_INCREF(value);
+            PyTuple_SET_ITEM(tuple, 0, key);
+            PyTuple_SET_ITEM(tuple, 1, value);
+            *pitem = tuple;
+        } else {
+            if (pkey) {
+                Py_INCREF(key);
+                *pkey = key;
+            }
+            if (pvalue) {
+                Py_INCREF(value);
+                *pvalue = value;
+            }
+        }
+        return 1;
+    } else if (PyTuple_CheckExact(iter_obj)) {
+        Py_ssize_t pos = *ppos;
+        if (unlikely(pos >= PyTuple_GET_SIZE(iter_obj))) return 0;
+        *ppos = pos + 1;
+        next_item = PyTuple_GET_ITEM(iter_obj, pos);
+        Py_INCREF(next_item);
+    } else if (PyList_CheckExact(iter_obj)) {
+        Py_ssize_t pos = *ppos;
+        if (unlikely(pos >= PyList_GET_SIZE(iter_obj))) return 0;
+        *ppos = pos + 1;
+        next_item = PyList_GET_ITEM(iter_obj, pos);
+        Py_INCREF(next_item);
+    } else
+#endif
+    {
+        next_item = PyIter_Next(iter_obj);
+        if (unlikely(!next_item)) {
+            return __Pyx_IterFinish();
+        }
+    }
+    if (pitem) {
+        *pitem = next_item;
+    } else if (pkey && pvalue) {
+        if (__Pyx_unpack_tuple2(next_item, pkey, pvalue, source_is_dict, source_is_dict, 1))
+            return -1;
+    } else if (pkey) {
+        *pkey = next_item;
+    } else {
+        *pvalue = next_item;
+    }
+    return 1;
+}
+
 /* BytesEquals */
-      static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
+        static CYTHON_INLINE int __Pyx_PyBytes_Equals(PyObject* s1, PyObject* s2, int equals) {
 #if CYTHON_COMPILING_IN_PYPY
     return PyObject_RichCompareBool(s1, s2, equals);
 #else
@@ -4715,7 +5184,7 @@ static CYTHON_INLINE PyObject *__Pyx_GetItemInt_Fast(PyObject *o, Py_ssize_t i, 
 }
 
 /* UnicodeEquals */
-      static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals) {
+        static CYTHON_INLINE int __Pyx_PyUnicode_Equals(PyObject* s1, PyObject* s2, int equals) {
 #if CYTHON_COMPILING_IN_PYPY
     return PyObject_RichCompareBool(s1, s2, equals);
 #else
@@ -4799,7 +5268,7 @@ return_ne:
 }
 
 /* PyErrFetchRestore */
-      #if CYTHON_FAST_THREAD_STATE
+        #if CYTHON_FAST_THREAD_STATE
 static CYTHON_INLINE void __Pyx_ErrRestoreInState(PyThreadState *tstate, PyObject *type, PyObject *value, PyObject *tb) {
     PyObject *tmp_type, *tmp_value, *tmp_tb;
     tmp_type = tstate->curexc_type;
@@ -4823,7 +5292,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 #endif
 
 /* WriteUnraisableException */
-      static void __Pyx_WriteUnraisable(const char *name, CYTHON_UNUSED int clineno,
+        static void __Pyx_WriteUnraisable(const char *name, CYTHON_UNUSED int clineno,
                                   CYTHON_UNUSED int lineno, CYTHON_UNUSED const char *filename,
                                   int full_traceback, CYTHON_UNUSED int nogil) {
     PyObject *old_exc, *old_val, *old_tb;
@@ -4865,7 +5334,7 @@ static CYTHON_INLINE void __Pyx_ErrFetchInState(PyThreadState *tstate, PyObject 
 }
 
 /* Import */
-      static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
+        static PyObject *__Pyx_Import(PyObject *name, PyObject *from_list, int level) {
     PyObject *empty_list = 0;
     PyObject *module = 0;
     PyObject *global_dict = 0;
@@ -4939,7 +5408,7 @@ bad:
 }
 
 /* ImportFrom */
-      static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name) {
+        static PyObject* __Pyx_ImportFrom(PyObject* module, PyObject* name) {
     PyObject* value = __Pyx_PyObject_GetAttrStr(module, name);
     if (unlikely(!value) && PyErr_ExceptionMatches(PyExc_AttributeError)) {
         PyErr_Format(PyExc_ImportError,
@@ -4953,7 +5422,7 @@ bad:
 }
 
 /* CodeObjectCache */
-      static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int count, int code_line) {
+        static int __pyx_bisect_code_objects(__Pyx_CodeObjectCacheEntry* entries, int count, int code_line) {
     int start = 0, mid = 0, end = count - 1;
     if (end >= 0 && code_line > entries[end].code_line) {
         return count;
@@ -5033,7 +5502,7 @@ static void __pyx_insert_code_object(int code_line, PyCodeObject* code_object) {
 }
 
 /* AddTraceback */
-      #include "compile.h"
+        #include "compile.h"
 #include "frameobject.h"
 #include "traceback.h"
 static PyCodeObject* __Pyx_CreateCodeObjectForTraceback(
@@ -5114,7 +5583,7 @@ bad:
 }
 
 /* CIntToPy */
-      static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+        static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
     const long neg_one = (long) -1, const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
     if (is_unsigned) {
@@ -5145,7 +5614,7 @@ bad:
 }
 
 /* CIntFromPyVerify */
-      #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
+        #define __PYX_VERIFY_RETURN_INT(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 0)
 #define __PYX_VERIFY_RETURN_INT_EXC(target_type, func_type, func_value)\
     __PYX__VERIFY_RETURN_INT(target_type, func_type, func_value, 1)
@@ -5167,7 +5636,7 @@ bad:
     }
 
 /* CIntFromPy */
-      static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
+        static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *x) {
     const long neg_one = (long) -1, const_zero = (long) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -5356,7 +5825,7 @@ raise_neg_overflow:
 }
 
 /* CIntFromPy */
-      static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
+        static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *x) {
     const int neg_one = (int) -1, const_zero = (int) 0;
     const int is_unsigned = neg_one > const_zero;
 #if PY_MAJOR_VERSION < 3
@@ -5545,7 +6014,7 @@ raise_neg_overflow:
 }
 
 /* CheckBinaryVersion */
-      static int __Pyx_check_binary_version(void) {
+        static int __Pyx_check_binary_version(void) {
     char ctversion[4], rtversion[4];
     PyOS_snprintf(ctversion, 4, "%d.%d", PY_MAJOR_VERSION, PY_MINOR_VERSION);
     PyOS_snprintf(rtversion, 4, "%s", Py_GetVersion());
@@ -5561,7 +6030,7 @@ raise_neg_overflow:
 }
 
 /* InitStrings */
-      static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
+        static int __Pyx_InitStrings(__Pyx_StringTabEntry *t) {
     while (t->p) {
         #if PY_MAJOR_VERSION < 3
         if (t->is_unicode) {

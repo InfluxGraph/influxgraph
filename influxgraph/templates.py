@@ -250,6 +250,12 @@ def _get_first_not_none_tmpl_val(template):
             return t
 
 
+def _get_measurement_idx(template):
+    for key in template:
+        if template[key] == 'measurement':
+            return key
+
+
 def _make_path_from_template(split_path, measurement, template, tags_values,
                              separator='.'):
     if not tags_values and separator in measurement and \
@@ -258,6 +264,10 @@ def _make_path_from_template(split_path, measurement, template, tags_values,
             split_path.append((i, measurement))
         return
     measurement_found = False
+    # Measurement without tags
+    if not tags_values:
+        split_path.append((_get_measurement_idx(template), measurement))
+        return
     for (tag_key, tag_val) in tags_values:
         for i, tmpl_tag_key in template.items():
             if not tmpl_tag_key:

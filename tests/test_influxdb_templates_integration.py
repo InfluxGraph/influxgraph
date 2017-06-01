@@ -51,6 +51,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             'templates': [
                 self.template,
                 ],
+            'log_level': 0,
             },
             }
         self.client = InfluxDBClient(database=self.db_name)
@@ -730,6 +731,65 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 self.assertTrue(data[metric][-1] == fields['.'.join(metric.split('.')[-2:])])
             else:
                 self.assertTrue(data[metric][-1] == fields[metric.split('.')[-1]])
+
+    def test_multi_measurement_no_tag_field(self):
+        template = "measurement.field"
+        measurements = ['m1', 'm2']
+        fields = lambda: {'f1': self.randval(),
+                          'f2': self.randval(),}
+        m1_fields = fields()
+        m2_fields = fields()
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data([measurements[0]], {}, m1_fields)
+        self.write_data([measurements[1]], {}, m2_fields)
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        metrics = ['.'.join([m, f])
+                   for m in measurements
+                   for f in list(m1_fields.keys())]
+        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(
+            path, self.finder.reader)
+                 for path in metrics]
+        data = self._test_data_in_nodes(nodes)
+        for metric in data:
+            _fields = m1_fields if metric.startswith('m1') else m2_fields
+            field = 'f1' if metric.endswith('f1') else 'f2'
+            self.assertEqual(data[metric][-1], _fields[field])
+
+    def test_multi_measurement_multi_tag_non_greedy_field(self):
+        template = "measurement.tag.field"
+        measurements = ['m1', 'm2']
+        fields = lambda: {'f1': self.randval(),
+                          'f2': self.randval(),}
+        m1_t1_fields = fields()
+        m1_t2_fields = fields()
+        m2_t1_fields = fields()
+        m2_t2_fields = fields()
+        tags1 = {'tag': 't1',}
+        tags2 = {'tag': 't2',}
+        metrics = ['.'.join([m, t['tag'], f])
+                   for m in measurements
+                   for t in [tags1, tags2]
+                   for f in list(m1_t1_fields.keys())]
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data([measurements[0]], tags1, m1_t1_fields)
+        self.write_data([measurements[1]], tags1, m2_t1_fields)
+        self.write_data([measurements[0]], tags2, m1_t2_fields)
+        self.write_data([measurements[1]], tags2, m2_t2_fields)
+        self.config['influxdb']['templates'] = [template]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        paths = ['m1.t1.f1', 'm2.t2.f2']
+        nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(
+            path, self.finder.reader)
+                 for path in paths]
+        data = self._test_data_in_nodes(nodes)
+        for metric in data:
+            if metric.endswith('f1'):
+                self.assertEqual(data[metric][-1], m1_t1_fields['f1'])
+            elif metric.endswith('f2'):
+                self.assertEqual(data[metric][-1], m2_t2_fields['f2'])
 
     def test_multi_tag_values_multi_measurement_single_field(self):
         template = "env.host.measurement.field*"

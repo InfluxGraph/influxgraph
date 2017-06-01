@@ -60,6 +60,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.steps = int(round((int(self.end_time.strftime("%s")) - \
                                 int(self.start_time.strftime("%s"))) * 1.0 / self.step)) + 1
         self.config = { 'influxdb': { 'db' : self.db_name,
+                                      'log_level': 0,
                                       },
                         'statsd': { 'host': 'localhost' },
                         'search_index': 'index',
@@ -94,6 +95,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             # Set data interval to 1 second for queries
             # of one hour or less
             'deltas' : {3600: 1},
+            'log_level': 0,
             }}
         finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.deltas)
@@ -440,6 +442,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                                  'ttl' : 60,
                                                  'max_value': 20,
                                                  },
+                                  'log_level': 0,
                                   },}
         try:
             _memcache = memcache.Client([config['influxdb']['memcache']['host']])
@@ -476,6 +479,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                                  'ttl' : 60,
                                                  'max_value': 20,
                                                  },
+                                  'log_level': 0,
                                   },}
         finder = influxgraph.InfluxDBFinder(config)
         time.sleep(_reindex_interval)
@@ -507,6 +511,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
                                                  'max_value' : 20},
+                                  'log_level': 0,
                                   },}
         try:
             _memcache = memcache.Client([config['influxdb']['memcache']['host']])
@@ -602,6 +607,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'pass' : 'root',
                                   'db' : self.db_name,
                                   'memcache' : { 'host': 'localhost'},
+                                  'log_level': 0,
                                   },}
         finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.memcache)
@@ -654,6 +660,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
                                                  'max_value' : 20},
+                                  'log_level': 0,
                                   },}
         try:
             _memcache = memcache.Client([config['influxdb']['memcache']['host']])
@@ -724,6 +731,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                       3600: 1800,
                                               },
                                   'retention_policies' : retention_policies,
+                                  'log_level': 0,
                                   }}
         self.client.create_retention_policy('10m', '1d', 1, database=self.db_name, default=False)
         self.client.create_retention_policy('30m', '1d', 1, database=self.db_name, default=False)
@@ -796,6 +804,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                  'user' : 'root',
                                  'pass' : 'root',
                                  'db' : self.db_name,
+                                 'log_level': 0,
                                  },
                         'statsd': {'host': 'localhost' },
                         'search_index': bad_index_path,
@@ -829,6 +838,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                  'pass' : 'root',
                                  'db' : self.db_name,
                                  'reindex_interval': 1,
+                                 'log_level': 0,
                                  },
                    }
         finder = influxgraph.InfluxDBFinder(config)
@@ -885,6 +895,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'db' : self.db_name,
                                   'loader_limit': 1,
                                   'series_loader_interval': 1,
+                                  'log_level': 0,
                                   'memcache' : { 'host': 'localhost',
                                                  'ttl' : 60,
                                                  },

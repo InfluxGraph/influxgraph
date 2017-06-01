@@ -205,7 +205,7 @@ def read_influxdb_values(influxdb_data, paths, measurement_data):
     for infl_data in influxdb_data:
         for infl_keys in infl_data.keys():
             measurement = infl_keys[0]
-            tags = infl_keys[1]
+            tags = infl_keys[1] if infl_keys[1] is not None else {}
             if not measurement_data:
                 _read_measurement_metric_values(infl_data, measurement,
                                                 paths, _data)
@@ -216,6 +216,9 @@ def read_influxdb_values(influxdb_data, paths, measurement_data):
                 seen_measurements = set(
                     tuple(seen_measurements) + (measurement,))
                 m_path_ind = 0
+            elif len(measurement_data[measurement]['paths']) == 0:
+                # No paths left for measurement
+                continue
             elif m_path_ind >= len(measurement_data[measurement]['paths']):
                 m_path_ind = 0
             metric = measurement_data[measurement]['paths'][m_path_ind]

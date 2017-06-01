@@ -384,7 +384,8 @@ class InfluxDBFinder(object):
                 # Found template match for path, append query data and
                 # remove matched paths so we do not try to match them again
                 measurements.extend(_measurements)
-                tags.append(_tags)
+                if _tags:
+                    tags.append(_tags)
                 fields = fields.union(_fields)
                 for path in matched_paths:
                     del paths[paths.index(path)]
