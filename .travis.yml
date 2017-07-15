@@ -9,7 +9,7 @@ python:
   - 3.4
   - 3.5
   - 3.6
-  - pypy
+#  - pypy
 env:
   - INFLUXDB_VERSION=1.2.2
 matrix:
@@ -26,7 +26,6 @@ install:
   - python setup.py build_ext --inplace
 script:
   - nosetests --with-coverage --cover-package=influxgraph
-  - pip install statsd
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
   # Test integration with pure Python code
   - find influxgraph -type f -name '*.so' -exec rm -f {} +
