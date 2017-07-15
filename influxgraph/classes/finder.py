@@ -80,7 +80,7 @@ class InfluxDBFinder(object):
             memcache_host, memcache_max_value=memcache_conf.get('max_value', 1))
         self.aggregation_functions = _compile_aggregation_patterns(
             influxdb_config.get('aggregation_functions', DEFAULT_AGGREGATIONS))
-        self.fill_param = influxdb_config.get('fill', 'previous')
+        self.fill_param = influxdb_config.get('fill', 'null')
         if self.fill_param not in FILL_PARAMS and not (
                 isinstance(self.fill_param, int) or isinstance(
                     self.fill_param, float)):

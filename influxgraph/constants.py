@@ -40,7 +40,7 @@ MEMCACHE_SERIES_DEFAULT_TTL = 1800
 LOADER_LIMIT = 100000
 # Fill params like 'null' that leave gaps are not valid for use with Graphite
 # API and are purposefully not included here
-FILL_PARAMS = ['previous', 'linear']
+FILL_PARAMS = ['previous', 'linear', 'null']
 
 # Memcache key for field keys list
 _MEMCACHE_FIELDS_KEY = 'infl_fields_key'

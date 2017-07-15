@@ -52,6 +52,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                 self.template,
                 ],
             'log_level': 0,
+            'fill': 'previous',
             },
             }
         self.client = InfluxDBClient(database=self.db_name)
