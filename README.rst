@@ -23,7 +23,7 @@ This project started as a re-write of `graphite influxdb <https://github.com/vim
 Installation
 =============
 
-::
+.. code-block:: shell
 
   pip install influxgraph
 
@@ -33,10 +33,10 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
 
 ``/etc/graphite-api.yaml``
 
-::
+.. code-block:: yaml
 
-    finders:
-      - influxgraph.InfluxDBFinder
+  finders:
+    - influxgraph.InfluxDBFinder
 
 See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for details.
 
@@ -45,7 +45,7 @@ See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configura
 Docker Image
 -------------
 
-::
+.. code-block:: shell
 
   docker pull ikuosu/influxgraph
   docker create  --name=influxgraph -p 8000:80 ikuosu/influxgraph
@@ -56,6 +56,10 @@ There will now be a Graphite-API running on ``localhost:8000`` from the containe
 The image will use a supplied ``graphite-api.yaml`` on build, when ``docker build`` is called on an InfluxGraph image.
 
 `Docker file <https://github.com/InfluxGraph/influxgraph/blob/master/docker/Dockerfile>`_ used to build container can be found under ``docker`` directory of the repository.
+
+.. note::
+
+  If having issues with the container accessing the host's InfluxDB service then either use ``--network="host"`` when launching the container or build a new image with a new configuration file containing the correct `InfluxDB host:port <https://github.com/InfluxGraph/influxgraph/blob/master/docker/graphite-api.yaml#L4>`_ destination.
 
 Main features
 ==============
@@ -132,19 +136,23 @@ By default, the storage plugin makes no assumptions that data is tagged, per Inf
 Retention policy configuration
 ==============================
 
-Pending implementation of a feature request that will allow InfluxDB to select and/or merge results from down-sampled data as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies. ::
+Pending implementation of a feature request that will allow InfluxDB to select and/or merge results from down-sampled data as appropriate, retention policy configuration is needed to support the use-case of down-sampled data being present in non default retention policies:
+
+.. code-block:: yaml
 
   retention_policies:
       <time interval of query>: <retention policy name>
 
-For example, to make a query with a group by interval of one minute or less, interval above one and less than thirty minutes and interval thirty minutes or above use the retention policies named ``default``, ``10min`` and ``30min`` respectively::
+For example, to make a query with a group by interval of one minute or less, interval above one and less than thirty minutes and interval thirty minutes or above use the retention policies named ``default``, ``10min`` and ``30min`` respectively:
+
+.. code-block:: yaml
 
   retention_policies:
       60: default
       600: 10min
       1800: 30min
 
-While not required, retention policy interval is best kept close to or identical to ``deltas`` interval.
+While not required, retention policy interval is best kept close to or identical to ``deltas`` interval for best influx query performance.
 
 See `Full Configuration Example`_ file for additional details.
 
@@ -154,16 +162,19 @@ Configuration
 Minimal Configuration
 ----------------------
 
-In graphite-api config file at ``/etc/graphite-api.yaml``::
+In graphite-api config file at ``/etc/graphite-api.yaml``:
 
-    finders:
-      - influxgraph.InfluxDBFinder
+.. code-block:: yaml
 
-The folowing default Graphite-API configuration is used if not provided::
+  finders:
+    - influxgraph.InfluxDBFinder
 
-    influxdb:
-       db: graphite
+The folowing default Graphite-API configuration is used if not provided:
 
+.. code-block:: yaml
+
+  influxdb:
+     db: graphite
 
 Full Configuration Example
 ---------------------------
@@ -177,7 +188,9 @@ The finder supports configurable aggregation and selector functions to use per m
 
 Default aggregation function used is ``mean`` if no configuration provided nor any matching configuration.
 
-InfluxGraph has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely ::
+InfluxGraph has pre-defined aggregation configuration matching ``carbon-cache`` defaults, namely:
+
+.. code-block:: yaml
 
   aggregation_functions:
       \.min$ : min
@@ -218,7 +231,7 @@ For a query spanning one month, a fifteen minute group by interval is used by de
 Calculated intervals
 --------------------
 
-A data ``group by`` interval is automatically calculated depending on the date/time range of the query. This keeps data size in check regardless of query date/time range size and speeds up graph generation for large ranges.
+A data ``group by`` interval is automatically calculated depending on the date/time range of the query. This keeps data size in check regardless of query range and speeds up graph generation for large ranges.
 
 Default configuration mirrors what `Grafana`_ uses with the native InfluxDB API.
 
@@ -237,9 +250,11 @@ The intention is for a local (to InfluxDB) Varnish service to cache frequently a
 
 InfluxGraph configuration should use Varnish port to connect to InfluxDB.
 
-Unfortunately, given that clients like Grafana POST requests against the Graphite API, which cannot be cached, using Varnish in front of a Graphite-API webapp would have no effect. Multiple requests for the same dashboard/graph will therefore still hit Graphite-API, but with Varnish in front of InfluxDB the more sensitive DB is spared from duplicated queries.
+Unfortunately, given that clients like Grafana use POST requests for querying the Graphite API, which cannot be cached, using Varnish in front of a Graphite-API webapp would have no effect. Multiple requests for the same dashboard/graph will therefore still hit Graphite-API, but with Varnish in front of InfluxDB the more sensitive DB is spared from duplicated queries.
 
-Substitute the default ``8086`` backend port with the InfluxDB API port for your installation if needed  ::
+Substitute the default ``8086`` backend port with the InfluxDB API port for your installation if needed:
+
+.. code-block:: tcl
 
   backend default {
     .host = "127.0.0.1";
@@ -250,7 +265,9 @@ Substitute the default ``8086`` backend port with the InfluxDB API port for your
     unset req.http.cookie;
   }
 
-Graphite API example configuration ::
+Graphite API example configuration:
+
+.. code-block:: yaml
 
   finders:
     - influxgraph.InfluxDBFinder
@@ -276,6 +293,24 @@ There are two performance tests in the repository that can be used to see relati
 
 Known Limitations
 ===================
+
+Data *fill* parameter and counter values
+-----------------------------------------
+
+*Changed in version 1.3.6*
+
+As of version ``1.3.6``, the default *fill* parameter is **null** so as to not add values that do not exist in data - was ``previous`` in prior versions.
+
+This default will break derivative calculated counter values when data sampling rate exceeds configured interval for the query - see `Calculated intervals`_.
+
+For example, with a data sampling rate of sixty (60) seconds and default ``deltas`` configuration, queries of thirty (30) minutes and below will use a thirty (30) second interval and will contain null datapoints. This in turn causes Graphite functions like ``derivative`` and ``non_negative_derivative`` to only contain null datapoints.
+
+The fill parameter is configurable - see `Full Configuration Example`_ - but is currently common for all metric paths.
+
+For ``derivative`` and related functions to work, either set ``deltas`` configuration to not go below data sampling rate or set *fill* configuration to ``previous``.
+
+Index for Graphite metric paths
+--------------------------------
 
 The index implementation via native code extension releases Python's GIL as much as possible, however, there will still be a response time increase while index is being re-built.
 
