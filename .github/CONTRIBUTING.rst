@@ -89,14 +89,14 @@ reproduce the conditions that caused it. Most of the time this information
 will be from a Python traceback message, though some bugs might be in design,
 spelling or other errors on the documentation or code.
 
-    A) If the error is from a Python traceback, include it in the bug report.
+A) If the error is from a Python traceback, include it in the bug report.
 
-    B) We also need to know what platform you're running (Windows, macOS, Linux,
-       docker container, etc.), the version of your Python interpreter, and the 
-       version of InfluxGraph at the time of the error.
+B) We also need to know what platform you're running (Windows, macOS, Linux,
+   docker container, etc.), the version of your Python interpreter, and the 
+   version of InfluxGraph at the time of the error.
 
-    C) If at all possible, steps to reproduce including sample InfluxDB data are 
-       the best way to help fixing the issue as quickly as possible.
+C) If at all possible, steps to reproduce including sample InfluxDB data are 
+   the best way to help fixing the issue as quickly as possible.
 
 There is also an issue template to help with creating issues.
 
