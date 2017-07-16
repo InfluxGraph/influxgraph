@@ -27,7 +27,7 @@ Responsibilities
 * Write appropriate unit and/or integration tests for new features or changes in functionality - see existing tests for reference. Tests that *mock* external services in lieu of writing integration tests will not be accepted.
 * Changes should not adversely affect performance or scalability.
 * Changes should not reduce code test coverage - this is a required check when merging pull requests.
-* Be welcoming to newcomers and encourage diverse new contributors from all backgrounds. See the [Python Community Code of Conduct](https://www.python.org/psf/codeofconduct/).
+* Be welcoming to newcomers and encourage diverse new contributors from all backgrounds. See the `Python Community Code of Conduct <https://www.python.org/psf/codeofconduct/>`_.
 
 Unit or integration test?
 --------------------------
