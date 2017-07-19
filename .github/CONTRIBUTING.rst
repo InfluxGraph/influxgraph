@@ -15,6 +15,19 @@ Please do not use the issue tracker for support questions. Use the `mail group`_
 .. contents::
     :local:
 
+First Contributions
+====================
+
+Want to contribute but not sure where to start? Documentation is always a good place to start, especially if you are not a developer or do not want to write any code (yet!) and as is common with open source projects, documentation is most often lacking.
+
+If you have a use case to share, consider writing it up as example code or Docker image to share. Not everyone's use cases are the same and people may benefit from a use case they had not thought of before. May also consider writing tutorials for the project.
+
+Beyond that, have a look at open issues on the issue tracker, particularly ones labelled as `PR wanted <https://github.com/InfluxGraph/influxgraph/issues?q=is%3Aissue+is%3Aopen+label%3A%22PR+wanted%22>`_.
+
+For help in making pull requests, please see http://makeapullrequest.com/ and http://www.firsttimersonly.com/.
+
+When a pull request is ready to be merged, the source branch containing your changes may need to be updated - *rebased* - because of conflicts with other changes to the code. See `Forking and setting up the repository`_ for details on how to do that.
+
 Ground Rules
 ============
 
@@ -39,17 +52,6 @@ The rule of thumb of unit test or integration test is:
 * Is the code only used internally? Unit test.
 
 In some cases, both unit and integration testing is needed to cover all usage of the functionality. For example and of particular importance to InfluxGraph, the Graphite metric path index functionality is one such case. It has both unit tests for its internal use and integration tests via its use in ``InfluxDBFinder``.
-
-First Contributions
-====================
-
-Want to contribute but not sure where to start? Documentation is always a good place to start, especially if you are not a developer or do not want to write any code (yet!) and as is common with open source projects, documentation is most often lacking.
-
-Beyond that, have a look at open issues on the issue tracker, particularly ones labelled as `PR wanted <https://github.com/InfluxGraph/influxgraph/issues?q=is%3Aissue+is%3Aopen+label%3A%22PR+wanted%22>`_.
-
-For help in making pull requests, please see http://makeapullrequest.com/ and http://www.firsttimersonly.com/.
-
-When a pull request is ready to be merged, the source branch containing your changes may need to be updated - *rebased* - because of conflicts with other changes to the code. See `Forking and setting up the repository`_ for details on how to do that.
 
 .. _reporting-bugs:
 
@@ -184,7 +186,7 @@ Please follow installation procedures for InfluxDB and Memcached for your
 distribution or have a look at `automated installation steps for InfluxDB
 used by Travis-CI builds <https://github.com/InfluxGraph/influxgraph/blob/master/.travis.yml#L20-L22>`_.
 
-Official Docker images `are also available for easilly running InfluxDB <https://hub.docker.com/r/influxdata/influxdb/>`_.
+Official Docker images `are also available for easily running InfluxDB <https://hub.docker.com/r/influxdata/influxdb/>`_.
 
 Running the unit test suite
 ---------------------------
@@ -276,7 +278,7 @@ Running the tests on all supported Python versions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All supported Python versions are tested by Travis-CI via test targets. For 
-Travis-CI to run tests on a forked repository Travis-CI integration will need
+Travis-CI to run tests on a forked repository, Travis-CI integration will need
 to be enabled on that repository.
 
 Building the documentation
@@ -284,12 +286,14 @@ Building the documentation
 
 Documentation is based on Sphinx, which needs to be installed to build it.
 
+In root directory of repository:
+
 .. code-block:: shell
 
    pip install sphinx
    (cd docs; rm -rf _build; make html)
 
-After building succeeds the documentation is available at ``_build/html``.
+After building succeeds the documentation is available at ``doc/_build/html``.
 
 .. _contributing-verify:
 
@@ -383,8 +387,8 @@ Travis-CI based integration tests and is required for builds to pass.
 
   See existing documentation strings for reference.
 
-* Docstrings for internal functions - ones starting with ``_`` or ``__`` are 
-  not required.
+* Docstrings for internal functions - ones starting with ``_`` or ``__`` - 
+  are not required.
 
 * Lines should not exceed 80 columns.
 
@@ -451,5 +455,9 @@ jobs initiated by the InfluxGraph GitHub project - forks
 cannot deploy to PyPi or publish documentation to Read The Docs.
 
 Documentation is published to Read The Docs from both tags and master branch.
+
+Docker images are also auto-generated on every new tag and from master branch.
+
+Docker images are tagged with a version number, in the case of new tags/releases, or have the `latest` tag in the case of master branch builds.
 
 .. _`mail group`: https://groups.google.com/forum/#!forum/influxgraph

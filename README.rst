@@ -40,8 +40,6 @@ Mimimal configuration for Graphite-API is below. See `Full Configuration Example
 
 See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for details.
 
-.. contents:: Table of Contents
-
 Docker Image
 -------------
 
@@ -60,6 +58,8 @@ The image will use a supplied ``graphite-api.yaml`` on build, when ``docker buil
 .. note::
 
   If having issues with the container accessing the host's InfluxDB service then either use ``--network="host"`` when launching the container or build a new image with a new configuration file containing the correct `InfluxDB host:port <https://github.com/InfluxGraph/influxgraph/blob/master/docker/graphite-api.yaml#L4>`_ destination.
+
+.. contents:: Table of Contents
 
 Main features
 ==============
