@@ -104,7 +104,8 @@ class InfluxDBFinder(object):
         self._start_loader(series_loader_interval)
         self.index = None
         self.index_path = config.get('search_index')
-        self.index_lock = FileLock(FILE_LOCK)
+        self.index_lock = FileLock(influxdb_config.get('index_lock_file',
+                                                       FILE_LOCK))
         self.reader = InfluxDBReader(
             self.client, None,
             aggregation_functions=self.aggregation_functions,

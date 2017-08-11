@@ -1,3 +1,8 @@
+## (Optional) Index Configuration
+# The location of the search index used for searching metrics.
+# Note that it needs to be a file that is writable by the Graphite-API process.
+# search_index: /srv/graphite/index
+#
 finders:
   - influxgraph.InfluxDBFinder
 influxdb:
@@ -220,3 +225,9 @@ influxdb:
   # with `1`.
   # 
   # fill: previous
+
+  #
+  ## Index builder configuration
+  #
+  # The location of the index lock file used for building an index.
+  # index_lock_file: /tmp/influxgraph_index.lock
