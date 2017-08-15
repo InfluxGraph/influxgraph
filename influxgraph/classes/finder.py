@@ -67,7 +67,7 @@ class InfluxDBFinder(object):
         self.client = InfluxDBClient(influxdb_config.get('host', 'localhost'),
                                      influxdb_config.get('port', '8086'),
                                      influxdb_config.get('user', 'root'),
-                                     influxdb_config.get('passw', 'root'),
+                                     influxdb_config.get('pass', 'root'),
                                      influxdb_config.get('db', 'graphite'),
                                      influxdb_config.get('ssl', 'false'),)
         self._setup_logger(influxdb_config.get('log_level', 'info'),
