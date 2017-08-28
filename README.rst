@@ -15,6 +15,10 @@ An `InfluxDB`_ storage plugin for `Graphite-API`_. Graphite with InfluxDB data s
 .. image:: https://readthedocs.org/projects/influxgraph/badge/?version=latest
   :target: http://influxgraph.readthedocs.io/en/latest/?badge=latest
   :alt: Documentation Status
+.. image:: https://img.shields.io/pypi/wheel/influxgraph.svg
+   :target: https://pypi.python.org/pypi/influxgraph
+.. image:: https://img.shields.io/pypi/pyversions/influxgraph.svg
+   :target: https://pypi.python.org/pypi/influxgraph
 
 
 This project started as a re-write of `graphite influxdb <https://github.com/vimeo/graphite-influxdb>`_, now a separate project.

@@ -4,7 +4,6 @@ sudo: required
 notifications:
   email: false
 python:
-  - 2.6
   - 2.7
   - 3.4
   - 3.5
@@ -12,9 +11,77 @@ python:
 #  - pypy
 env:
   - INFLUXDB_VERSION=1.2.2
-matrix:
-  allow_failures:
-    - python: 2.6
+jobs:
+  include:
+    - os: osx
+      branches:
+        # Hopefully this will work in future.
+        only:
+          - master
+          - /^\d+\.\d+(\.\d+)?(-\S*)?$/
+      before_install: skip
+      install:
+        - pip install -U delocate twine wheel pip setuptools
+        - python setup.py bdist_wheel
+      script:
+        - delocate-listdeps --all dist/*.whl
+        - delocate-wheel -v dist/*.whl
+        - delocate-listdeps --all dist/*.whl
+        - ls -l dist/
+        - pip install -v dist/*.whl
+        - pwd; mkdir temp; cd temp; pwd
+        - python -c "from influxgraph.ext.nodetrie import Node; Node()"
+        - cd ..; pwd
+      after_success:
+        - if [[ ! -z "$TRAVIS_TAG" ]]; then
+              twine upload -u $PYPI_U -p $PYPI_P dist/*.whl;
+          fi
+      language: generic
+      python: skip
+    - stage: build wheels
+      os: linux
+      python: 3.6
+      before_install: skip
+      install:
+        - pip install twine
+      script:
+        - if [[ ! -z "$TRAVIS_TAG" ]]; then
+            echo "Building wheels for tag ${TRAVIS_TAG}" &&
+            docker pull quay.io/pypa/manylinux1_x86_64 &&
+            docker run --rm -v `pwd`:/io quay.io/pypa/manylinux1_x86_64 /io/ci/build-wheels.sh &&
+            ls wheelhouse;
+          fi
+      after_success:
+        - if [[ ! -z "$TRAVIS_TAG" ]]; then
+            twine upload -u $PYPI_U -p $PYPI_P wheelhouse/*.whl;
+          fi
+    - stage: deploy PyPi
+      before_install: skip
+      install: skip
+      script: skip
+      deploy:
+        provider: pypi
+        on:
+          tags: true
+        repo: InfluxGraph/influxgraph
+        distributions: sdist
+        user: pkittenis
+        password:
+          secure: YjKb3mcrgeUmNFVzlJxBQcvTE//X8dERdVqQyqPYgNNMo/NZgR6++gzdYSB25AP14hlFXalGuRZ5x5/t0ngv+eDE2YeCczPtAWGS2KG+Tym6XaIMfLesQsfrJhIB+7pj5iWzXYxhyChKBjWLkM1sz3GhCPSMBngBim4uH24Fja3xIuCCi9dmCMxV/j2laCPwW870Lc/gR5kLLsS9Lf9tZmGz0t6yujRqfW3wtzbQZX0VVun5LaUo01l9Q6tIhEOLswjJt/jVjSqvG7NGap3EzIFtIIgiyx9yFRnpDdxeVEIbp/jyZJgWXM6Wx9VaGzQDBIJUHpF9ro5pEiFCXWrSE19L/Y+mVoZy6SwhI/RwVhmEoYuOguxbDtyQTewl0ldDo3nZ7H0v5xo2DEWqdcVOTGIBd9FErhXNOP3Nz35AiJj+ovnEl9jxJEQgZGXCQnFks/cHDjmENhXjPiqX6FJNohCp+hZmbx4OCZ5x98Zema9K8zN/UPNpxxZwA8zdR6rrQe8iVHZ34aber9gg0mmHkvw1zj9QxKjKDhZR7wvI2eBcUSYGyrqIXCOlTF5rXAIbJ/XGBuebkrMQStE/aPyv6NZQbCtszgPL6BTKgT69ADOm50twgjdews1lIlymI8cwasvoPkOLXebrjjiyAO6Xr/IiBdFQBpQ5aJR/pRnKje0=
+        skip_upload_docs: true
+        after_deploy:
+          - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
+            cd docker &&
+            docker build -t ikuosu/influxgraph:${TRAVIS_TAG} . &&
+            docker push ikuosu/influxgraph:${TRAVIS_TAG};
+      after_success:
+        - coveralls
+        - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+            docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
+            cd docker &&
+            docker build -t ikuosu/influxgraph:latest . &&
+            docker push ikuosu/influxgraph:latest;
+          fi
 before_install:
   - pip install -U pip setuptools wheel
   - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
@@ -34,26 +101,3 @@ script:
 services:
   - memcached
   - docker
-deploy:
-  provider: pypi
-  on:
-    tags: true
-    repo: InfluxGraph/influxgraph
-  distributions: sdist
-  user: pkittenis
-  password:
-    secure: YjKb3mcrgeUmNFVzlJxBQcvTE//X8dERdVqQyqPYgNNMo/NZgR6++gzdYSB25AP14hlFXalGuRZ5x5/t0ngv+eDE2YeCczPtAWGS2KG+Tym6XaIMfLesQsfrJhIB+7pj5iWzXYxhyChKBjWLkM1sz3GhCPSMBngBim4uH24Fja3xIuCCi9dmCMxV/j2laCPwW870Lc/gR5kLLsS9Lf9tZmGz0t6yujRqfW3wtzbQZX0VVun5LaUo01l9Q6tIhEOLswjJt/jVjSqvG7NGap3EzIFtIIgiyx9yFRnpDdxeVEIbp/jyZJgWXM6Wx9VaGzQDBIJUHpF9ro5pEiFCXWrSE19L/Y+mVoZy6SwhI/RwVhmEoYuOguxbDtyQTewl0ldDo3nZ7H0v5xo2DEWqdcVOTGIBd9FErhXNOP3Nz35AiJj+ovnEl9jxJEQgZGXCQnFks/cHDjmENhXjPiqX6FJNohCp+hZmbx4OCZ5x98Zema9K8zN/UPNpxxZwA8zdR6rrQe8iVHZ34aber9gg0mmHkvw1zj9QxKjKDhZR7wvI2eBcUSYGyrqIXCOlTF5rXAIbJ/XGBuebkrMQStE/aPyv6NZQbCtszgPL6BTKgT69ADOm50twgjdews1lIlymI8cwasvoPkOLXebrjjiyAO6Xr/IiBdFQBpQ5aJR/pRnKje0=
-  skip_upload_docs: true
-after_deploy:
-  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-    cd docker &&
-    docker build -t ikuosu/influxgraph:${TRAVIS_TAG} . &&
-    docker push ikuosu/influxgraph:${TRAVIS_TAG};
-after_success:
-  - coveralls
-  - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-      cd docker &&
-      docker build -t ikuosu/influxgraph:latest . &&
-      docker push ikuosu/influxgraph:latest;
-    fi
