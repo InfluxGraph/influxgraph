@@ -118,6 +118,9 @@ influxdb:
     # Memcache (compressed) max value length in MB. The default of 1MB is
     # the memcached server's default - this value should match server's value.
     # max_value: 1
+    # Memcache key names for fields and series loader mutex
+    # series_loader_mutex_key: influxgraph_series_loader
+    # fields_key: infl_fields_key
   
   ## (Optional) Aggregation function configuration
   # 

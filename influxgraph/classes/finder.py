@@ -58,6 +58,7 @@ class InfluxDBFinder(object):
     __fetch_multi__ = 'influxdb'
     __slots__ = ('client', 'aggregation_functions',
                  'memcache', 'memcache_host', 'memcache_ttl',
+                 'memcache_series_loader_mutex_key', 'memcache_fields_key',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path', 'graphite_templates',
                  'loader_limit', 'fill_param')
@@ -76,6 +77,10 @@ class InfluxDBFinder(object):
         memcache_host = memcache_conf.get('host')
         self.memcache_ttl = memcache_conf.get(
             'ttl', MEMCACHE_SERIES_DEFAULT_TTL)
+        self.memcache_series_loader_mutex_key = memcache_conf.get(
+            'series_loader_mutex_key', SERIES_LOADER_MUTEX_KEY)
+        self.memcache_fields_key = memcache_conf.get(
+            'fields_key', _MEMCACHE_FIELDS_KEY)
         self.memcache = make_memcache_client(
             memcache_host, memcache_max_value=memcache_conf.get('max_value', 1))
         self.aggregation_functions = _compile_aggregation_patterns(
@@ -121,15 +126,15 @@ class InfluxDBFinder(object):
         # requests to be served before series loader has completed at
         # least once.
         if _SERIES_LOADER_LOCK.acquire(block=False):
-            if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
+            if self.memcache.get(self.memcache_series_loader_mutex_key):
                 logger.debug("Series loader mutex exists %s - "
                              "skipping series load",
-                             SERIES_LOADER_MUTEX_KEY)
+                             self.memcache_series_loader_mutex_key)
             else:
                 logger.info("Starting initial series list load - this may "
                             "take several minutes on databases with a large "
                             "number of series..")
-                self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1,
+                self.memcache.set(self.memcache_series_loader_mutex_key, 1,
                                   time=series_loader_interval)
                 try:
                     if self.graphite_templates:
@@ -280,13 +285,14 @@ class InfluxDBFinder(object):
             time.sleep(interval)
             if _SERIES_LOADER_LOCK.acquire(block=False):
                 _SERIES_LOADER_LOCK.release()
-                if self.memcache.get(SERIES_LOADER_MUTEX_KEY):
+                if self.memcache.get(self.memcache_series_loader_mutex_key):
                     logger.debug("Series loader mutex exists %s - "
                                  "skipping series load",
-                                 SERIES_LOADER_MUTEX_KEY)
+                                 self.memcache_series_loader_mutex_key)
                     time.sleep(interval)
                     continue
-            self.memcache.set(SERIES_LOADER_MUTEX_KEY, 1, time=interval)
+            self.memcache.set(self.memcache_series_loader_mutex_key, 1,
+                              time=interval)
             start_time = datetime.datetime.now()
             logger.debug("Starting series list loader..")
             _SERIES_LOADER_LOCK.acquire()
@@ -613,8 +619,8 @@ class InfluxDBFinder(object):
 
     def get_field_keys(self):
         """Get field keys for all measurements"""
-        field_keys = self.memcache.get(_MEMCACHE_FIELDS_KEY) if self.memcache \
-            else None
+        field_keys = self.memcache.get(self.memcache_fields_key) \
+            if self.memcache else None
         if field_keys:
             logger.debug("Found cached field keys")
             return field_keys
@@ -624,7 +630,7 @@ class InfluxDBFinder(object):
         for ((key, _), vals) in data.items():
             field_keys[key] = [val['fieldKey'] for val in vals]
         if self.memcache:
-            if not self.memcache.set(_MEMCACHE_FIELDS_KEY, field_keys,
+            if not self.memcache.set(self.memcache_fields_key, field_keys,
                                      time=self.memcache_ttl,
                                      min_compress_len=1):
                 logger.error("Could not add field key list to memcache - "
