@@ -234,3 +234,7 @@ influxdb:
   #
   # The location of the index lock file used for building an index.
   # index_lock_file: /tmp/influxgraph_index.lock
+
+  # How often to re-build index. Note that newly written metrics will not be
+  # able to be graphed or queried until index has been re-built.
+  # reindex_interval: 900

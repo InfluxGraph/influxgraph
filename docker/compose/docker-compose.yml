@@ -1,0 +1,35 @@
+version: '3'
+services:
+  grafana:
+    image: "grafana/grafana"
+    ports:
+      - "3000:3000"
+    links:
+      - influxdb:influxdb
+    volumes:
+      - /var/lib/grafana:/var/lib/grafana
+  influxgraph:
+    build: .
+    links:
+      - influxdb:influxdb
+    ports:
+      - "80:80"
+  influxdb:
+    environment:
+      INFLUXDB_REPORTING_DISABLED: "true"
+      INFLUXDB_GRAPHITE_ENABLED: "true"
+      INFLUXDB_GRAPHITE_TEMPLATES: "measurement.field*"
+      INFLUXDB_GRAPHITE_DATABASE: "telegraf"
+    image: "influxdb"
+    ports:
+      - "8086:8086"
+      - "2003:2003"
+    volumes:
+      - /var/lib/influxdb:/var/lib/influxdb
+  telegraf:
+    hostname: apphost
+    links:
+      - influxdb:influxdb
+    image: "telegraf"
+    volumes:
+      - ${PWD}/telegraf.conf:/etc/telegraf/telegraf.conf:ro

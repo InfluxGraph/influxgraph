@@ -1,0 +1,18 @@
+finders:
+  - influxgraph.InfluxDBFinder
+influxdb:
+  host: influxdb
+  memcache:
+    host: localhost
+  log_level: info
+  reindex_interval: 60
+  db: telegraf
+  templates:
+    # Default telegraf agent measurement types
+    - "*.diskio. host.measurement.name.field*"
+    - "*.disk. host.measurement.path.fstype.field*"
+    - "*.cpu. host.measurement.cpu.field*"
+    # Catch all for host.metric.<fields>
+    - host.measurement.field*
+    # Catch-all for any metric with at least one or more fields
+    - measurement.field*

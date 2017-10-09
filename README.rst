@@ -27,22 +27,25 @@ This project started as a re-write of `graphite influxdb <https://github.com/vim
 Installation
 =============
 
+Docker Compose
+---------------
+
+In `compose directory <https://github.com/InfluxGraph/influxgraph/tree/master/docker/compose>`_ can be found docker-compose configuration that will spawn all necessary services for a complete monitoring solution with:
+
+* InfluxDB
+* Telegraf
+* Graphite API with InfluxGraph
+* Grafana dashboard
+
+To use, within compose directory run:
+
 .. code-block:: shell
 
-  pip install influxgraph
+   docker-compose up
 
-Use of a local `memcached` service is highly recommended - see configuration section on how to enable.
+Grafana will be running on ``http://localhost:3000`` with Graphite datasource for InfluxDB data available at ``http://localhost``. Add a new Graphite datasource to Grafana - default Grafana user/pass is admin/admin - to create dashboards with.
 
-Mimimal configuration for Graphite-API is below. See `Full Configuration Example`_ for all possible configuration options.
-
-``/etc/graphite-api.yaml``
-
-.. code-block:: yaml
-
-  finders:
-    - influxgraph.InfluxDBFinder
-
-See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for details.
+See `compose configuration readme <https://github.com/InfluxGraph/influxgraph/tree/master/docker/compose>`_ for more details.
 
 Docker Image
 -------------
@@ -61,7 +64,27 @@ The image will use a supplied ``graphite-api.yaml`` on build, when ``docker buil
 
 .. note::
 
-  If having issues with the container accessing the host's InfluxDB service then either use ``--network="host"`` when launching the container or build a new image with a new configuration file containing the correct `InfluxDB host:port <https://github.com/InfluxGraph/influxgraph/blob/master/docker/graphite-api.yaml#L4>`_ destination.
+  If having issues with the container accessing the host's InfluxDB service then either use ``--network="host"`` when launching the container or build a new image with a provided configuration file containing the correct `InfluxDB host:port <https://github.com/InfluxGraph/influxgraph/blob/master/docker/graphite-api.yaml#L4>`_ destination.
+
+Manual Installation
+---------------------
+
+.. code-block:: shell
+
+  pip install influxgraph
+
+Use of a local `memcached` service is highly recommended - see configuration section on how to enable.
+
+Mimimal configuration for Graphite-API is below. See `Full Configuration Example`_ for all possible configuration options.
+
+``/etc/graphite-api.yaml``
+
+.. code-block:: yaml
+
+  finders:
+    - influxgraph.InfluxDBFinder
+
+See the `Wiki <https://github.com/InfluxGraph/influxgraph/wiki>`_ and `Configuration`_ section for details.
 
 .. contents:: Table of Contents
 
