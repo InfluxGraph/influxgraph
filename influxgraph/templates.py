@@ -22,6 +22,8 @@ import logging
 from collections import deque
 from heapq import heappush, heappop
 
+from .constants import ENCODING
+
 
 logger = logging.getLogger('influxgraph')
 
@@ -282,7 +284,7 @@ def _make_path_from_template(split_path, measurement, template, tags_values,
 def _add_fields_to_paths(fields, split_path, series,
                          separator='.'):
     for field_key in fields:
-        field_keys = [f for f in field_key.split(separator)
+        field_keys = [f for f in field_key.split(separator.decode(ENCODING))
                       if f != 'value']
         if len(field_keys) > 0:
             series.append(split_path + field_keys)

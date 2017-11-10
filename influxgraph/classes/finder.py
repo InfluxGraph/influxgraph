@@ -34,12 +34,16 @@ from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
      DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS, FILE_LOCK
-from ..utils import calculate_interval, read_influxdb_values, \
+from ..utils import calculate_interval, \
      get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     get_retention_policy, _compile_aggregation_patterns, parse_series, \
+     get_retention_policy, _compile_aggregation_patterns, \
      make_memcache_client
 from ..templates import parse_influxdb_graphite_templates, apply_template, \
      TemplateMatchError
+try:
+    from ..ext.templates import parse_series, read_influxdb_values
+except ImportError:
+    from ..utils import parse_series, read_influxdb_values
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
@@ -540,7 +544,7 @@ class InfluxDBFinder(object):
             save_thread = threading.Thread(target=self.save_index)
             save_thread.start()
 
-    def build_index(self, data=None, separator='.'):
+    def build_index(self, data=None, separator=b'.'):
         """Build new node tree index
 
         :param data: (Optional) data to use to build index

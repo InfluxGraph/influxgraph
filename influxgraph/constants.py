@@ -45,3 +45,4 @@ FILL_PARAMS = ['previous', 'linear', 'null']
 # Memcache key for field keys list
 _MEMCACHE_FIELDS_KEY = 'infl_fields_key'
 FILE_LOCK = '/tmp/influxgraph_index.lock'
+ENCODING = 'utf-8'

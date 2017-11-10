@@ -23,16 +23,18 @@ ext = 'pyx' if USING_CYTHON else 'c'
 
 extensions = [Extension("influxgraph.ext.templates",
                         ["influxgraph/ext/templates.%s" % (ext,)],
-                        extra_compile_args=["-O3"],
+                        depends=["nodetrie/nodetrie_c/src/node.h"],
+                        include_dirs=["nodetrie/nodetrie_c/src"],
+                        extra_compile_args=["-std=c99", "-O3"]
                         ),
               Extension("influxgraph.ext.nodetrie",
                         ["nodetrie/nodetrie/nodetrie.c",
                          "nodetrie/nodetrie_c/src/node.c",],
-                         depends=["nodetrie/nodetrie_c/src/node.h"],
-                         include_dirs=["nodetrie/nodetrie_c/src"],
-                         extra_compile_args=["-std=c99", "-O3"],
-                         ),
-             ]
+                        depends=["nodetrie/nodetrie_c/src/node.h"],
+                        include_dirs=["nodetrie/nodetrie_c/src"],
+                        extra_compile_args=["-std=c99", "-O3"],
+              ),
+]
 
 if USING_CYTHON:
     extensions = cythonize(

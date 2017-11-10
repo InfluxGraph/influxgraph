@@ -16,6 +16,7 @@
 """InfluxGraph utility functions"""
 
 from __future__ import absolute_import, print_function
+
 import datetime
 import sys
 import re
@@ -253,7 +254,7 @@ def make_memcache_client(memcache_host, memcache_max_value=1):
         server_max_value_length=1024**2*memcache_max_value)
 
 
-def parse_series(series, fields, graphite_templates, separator='.'):
+def parse_series(series, fields, graphite_templates, separator=b'.'):
     """Parses series and fields with/without graphite templates
     and returns built Index
 

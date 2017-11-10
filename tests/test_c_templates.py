@@ -2,7 +2,8 @@ import unittest
 from string import ascii_letters
 from random import choice
 from influxgraph.templates import parse_influxdb_graphite_templates
-from influxgraph.utils import parse_series
+from influxgraph.utils import parse_series as py_parse_series
+from influxgraph.ext.templates import parse_series
 
 class TemplatesCExtTestCase(unittest.TestCase):
 
@@ -28,7 +29,7 @@ class TemplatesCExtTestCase(unittest.TestCase):
         self.series = [u'%s,test_type=%s,host=%s,env=%s,region=%s' % (
             m, self.tags[self.paths[0]], self.tags[self.paths[1]],
             self.tags['env'], self.tags['region'],) for m in self.measurements]
-        self.graphite_series = ["%s" % (".".join(
+        self.graphite_series = [u"%s" % (u".".join(
             [self.tags[p] for p in self.paths] + [m])) for m in self.measurements]
 
     def test_parse_series_missing_fields(self):
@@ -36,11 +37,12 @@ class TemplatesCExtTestCase(unittest.TestCase):
             ['measurement.field*'])
         paths = [u'series1,id=1', u'series2,id=1']
         fields = {}
+        py_parse_series(paths, fields, templates)
         series = parse_series(paths, fields, templates)
         self.assertTrue(len(series.children) == 0)
 
     def test_template_parse(self):
-        measurements = [''.join([choice(ascii_letters) for _ in range(10)]) for _ in range(10)]
+        measurements = [u''.join([choice(ascii_letters) for _ in range(10)]) for _ in range(10)]
         series = [u'%s,a=1,b=2,c=3,d=4,e=5,f=6,g=7,m=8,n=9,j=10' % (m,) for m in measurements]
         field_names = [u'f1', u'f2', u'f3', u'f4', u'f5', u'f6', u'f7', u'f8', u'f9', u'f10']
         fields = {}
@@ -48,6 +50,7 @@ class TemplatesCExtTestCase(unittest.TestCase):
             fields[m] = [u'f1', u'f2', u'f3', u'f4', u'f5', u'f6', u'f7', u'f8', u'f9', u'f10']
         templates = parse_influxdb_graphite_templates(
             ["a.b.c.d.e.f.g.m.n.j.measurement.field* env=int,region=the_west"])
+        py_parse_series(series, fields, templates)
         index = parse_series(series, fields, templates)
         self.assertTrue(index is not None)
         self.assertEqual([n[0] for n in index.query('*')], [u'1'])
@@ -64,10 +67,12 @@ class TemplatesCExtTestCase(unittest.TestCase):
                          sorted([u'1.2.3.4.5.6.7.8.9.10.%s.%s' % (measurements[0], f,) for f in field_names]))
 
     def test_templated_index_find(self):
+        py_parse_series(self.series, self.all_fields, self.templates)
         index = parse_series(self.series, self.all_fields, self.templates)
         query = '*'
         nodes = [n[0] for n in index.query(query)]
         expected = [self.metric_prefix]
+        # import ipdb; ipdb.set_trace()
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))

@@ -1,0 +1,1 @@
+../../nodetrie/nodetrie/nodetrie.pxd

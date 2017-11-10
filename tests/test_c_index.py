@@ -1,10 +1,7 @@
 import sys
 import unittest
 
-try:
-    from influxgraph.ext.classes.tree import NodeTreeIndex
-except ImportError:
-    from influxgraph.classes.tree import NodeTreeIndex
+from influxgraph.ext.nodetrie import Node as NodeTreeIndex
 from influxgraph.utils import Query
 
 
@@ -64,9 +61,3 @@ class CIndexTreeTestCase(unittest.TestCase):
         self.assertTrue(result[0][0] == 'b1.b1.b1.b1.leaf1')
         result = list(self.index.query('fakey*'))
         self.assertFalse(result)
-
-    def test_to_from_array(self):
-        index2 = NodeTreeIndex.from_array(self.index.to_array())
-        self.assertEqual(index2.to_array(), self.index.to_array())
-        self.assertEqual([path for (path, _) in self.index.query('*')],
-                         [path for (path, _) in index2.query('*')])

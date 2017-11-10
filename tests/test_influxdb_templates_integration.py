@@ -5,14 +5,23 @@ import os
 import unittest
 import datetime
 import time
-from random import randint
+import logging
+from string import ascii_letters
+from random import randint, choice
+
 import influxdb.exceptions
+
 import influxgraph
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, _MEMCACHE_FIELDS_KEY
 from influxdb import InfluxDBClient
 from influxgraph.templates import InvalidTemplateError
+from influxgraph.classes.finder import logger as finder_logger
+
+finder_logger.setLevel(logging.DEBUG)
+logging.basicConfig()
+
 
 os.environ['TZ'] = 'UTC'
 
@@ -1169,6 +1178,28 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         for metric in cpu_data:
             self.assertTrue(cpu_data[metric][-1] == fields[metric.split('.')[-1]])
 
+    def test_multi_fields(self):
+        del self.finder
+        template = "host.measurement.field*"
+        self.config['influxdb']['templates'] = [template]
+        fields_num = 39
+        measurements = ['m%s' %(n,) for n in range(20)]
+        field_names = [u'.'.join([u''.join([choice(ascii_letters) for _ in range(8)])
+                                  for _ in range(50)])
+                       for _ in range(fields_num)]
+        tags = {'host': 'my_host'}
+        fields = {f: self.randval() for f in field_names}
+        self.write_data(measurements, tags, fields)
+        self.finder = influxgraph.InfluxDBFinder(self.config)
+        nodes = list(self.finder.find_nodes(Query('*')))
+        expected = [tags['host']]
+        self.assertEqual([n.name for n in nodes], expected)
+        nodes = list(self.finder.find_nodes(Query('*.*')))
+        expected = sorted(measurements)
+        self.assertEqual(sorted([n.name for n in nodes]), expected)
+        nodes = list(self.finder.find_nodes(Query('*.*.*')))
+        expected_num = len(measurements) * fields_num
+        self.assertEqual(len(nodes), expected_num)
 
 if __name__ == '__main__':
     unittest.main()
