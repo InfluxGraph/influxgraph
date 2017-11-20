@@ -14,11 +14,7 @@ env:
 jobs:
   include:
     - os: osx
-      branches:
-        # Hopefully this will work in future.
-        only:
-          - master
-          - /^\d+\.\d+(\.\d+)?(-\S*)?$/
+      if: tag IS present
       before_install: skip
       install:
         - pip install -U delocate twine wheel pip setuptools
@@ -75,7 +71,6 @@ jobs:
             docker build -t ikuosu/influxgraph:${TRAVIS_TAG} . &&
             docker push ikuosu/influxgraph:${TRAVIS_TAG};
       after_success:
-        - coveralls
         - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
             docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
             cd docker &&
@@ -89,7 +84,7 @@ before_install:
   - sudo /etc/init.d/influxdb start
 install:
   - pip install -r requirements.txt
-  - pip install coverage coveralls flake8
+  - pip install coverage codecov flake8
   - python setup.py build_ext --inplace
 script:
   - nosetests --with-coverage --cover-package=influxgraph
@@ -98,6 +93,8 @@ script:
   - find influxgraph -type f -name '*.so' -exec rm -f {} +
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py
   - flake8 influxgraph
+after_success:
+  - codecov
 services:
   - memcached
   - docker

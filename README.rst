@@ -9,9 +9,8 @@ An `InfluxDB`_ storage plugin for `Graphite-API`_. Graphite with InfluxDB data s
 .. image:: https://travis-ci.org/InfluxGraph/influxgraph.svg?branch=master
   :target: https://travis-ci.org/InfluxGraph/influxgraph
   :alt: CI status
-.. image:: https://coveralls.io/repos/InfluxGraph/influxgraph/badge.png?branch=master
-  :target: https://coveralls.io/r/InfluxGraph/influxgraph?branch=master
-  :alt: Coverage
+.. image:: https://codecov.io/gh/InfluxGraph/influxgraph/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/InfluxGraph/influxgraph
 .. image:: https://readthedocs.org/projects/influxgraph/badge/?version=latest
   :target: http://influxgraph.readthedocs.io/en/latest/?badge=latest
   :alt: Documentation Status
