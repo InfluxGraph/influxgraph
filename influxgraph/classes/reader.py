@@ -78,6 +78,10 @@ class InfluxDBReader(object):
                      self.path, _query)
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
         logger.debug("fetch() path=%s returned data: %s", self.path, data)
+        try:
+            data = data[0]['series']
+        except (IndexError, KeyError):
+            return time_info, []
         data = read_influxdb_values(data, [self.path], None)
         if self.memcache:
             self.memcache.set(

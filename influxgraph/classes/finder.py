@@ -29,7 +29,7 @@ import logging
 from logging.handlers import WatchedFileHandler
 from collections import deque
 
-from influxdb import InfluxDBClient
+from ..influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
      SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
@@ -40,10 +40,10 @@ from ..utils import calculate_interval, \
      make_memcache_client
 from ..templates import parse_influxdb_graphite_templates, apply_template, \
      TemplateMatchError
-try:
-    from ..ext.templates import parse_series, read_influxdb_values
-except ImportError:
-    from ..utils import parse_series, read_influxdb_values
+# try:
+#     from ..ext.templates import parse_series, read_influxdb_values
+# except ImportError:
+from ..utils import parse_series, read_influxdb_values
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex
@@ -70,11 +70,11 @@ class InfluxDBFinder(object):
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
         self.client = InfluxDBClient(influxdb_config.get('host', 'localhost'),
-                                     influxdb_config.get('port', '8086'),
-                                     influxdb_config.get('user', 'root'),
-                                     influxdb_config.get('pass', 'root'),
-                                     influxdb_config.get('db', 'graphite'),
-                                     influxdb_config.get('ssl', 'false'),)
+                                     db=influxdb_config.get('db', 'graphite'),
+                                     port=influxdb_config.get('port', '8086'),
+                                     user=influxdb_config.get('user', 'root'),
+                                     passwd=influxdb_config.get('pass', 'root'),
+                                     ssl=influxdb_config.get('ssl', False),)
         self._setup_logger(influxdb_config.get('log_level', 'info'),
                            influxdb_config.get('log_file', None))
         memcache_conf = influxdb_config.get('memcache', {})
@@ -232,7 +232,11 @@ class InfluxDBFinder(object):
         _query = "SHOW SERIES LIMIT %s OFFSET %s" % (self.loader_limit, offset,)
         logger.debug("Series loader calling influxdb with query - %s", _query)
         data = self.client.query(_query, params=_INFLUXDB_CLIENT_PARAMS)
-        series = [d.get('key') for k in data for d in k if d]
+        try:
+            series = [d for k in data[0].get('series', [])[0].get('values', [])
+                      for d in k if d]
+        except IndexError:
+            return []
         if self.memcache:
             self.memcache.set(memcache_key, series, time=self.memcache_ttl,
                               min_compress_len=50)
@@ -257,10 +261,9 @@ class InfluxDBFinder(object):
         # pylint: disable=unused-argument
         data = self.get_series(
             cache=cache, offset=offset)
-        return self._pagination_runner(data, '*', self.get_all_series,
-                                       limit=self.loader_limit,
-                                       cache=cache,
-                                       offset=offset)
+        return self._pagination_runner(
+            data, '*', self.get_all_series, limit=self.loader_limit,
+            cache=cache, offset=offset)
 
     def get_all_series_list(self, offset=0, _data=None,
                             *args, **kwargs):
@@ -520,6 +523,13 @@ class InfluxDBFinder(object):
     def _run_infl_query(self, query, paths, measurement_data):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
+        data = data[0].get('series', [])
+        if len(data) == 0:
+            data = {}
+            for key in paths:
+                data.setdefault(key, [])
+            return data
+        # data = data[0]
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
         data = read_influxdb_values(data, paths, measurement_data)
         # Graphite API requires that data contain keys for
@@ -639,6 +649,7 @@ class InfluxDBFinder(object):
             return field_keys
         logger.debug("Calling InfluxDB for field keys")
         data = self.client.query('SHOW FIELD KEYS')
+        # import ipdb; ipdb.set_trace()
         field_keys = {}
         for ((key, _), vals) in data.items():
             field_keys[key] = [val['fieldKey'] for val in vals]

@@ -11,7 +11,8 @@ from random import randint
 import logging
 import fcntl
 
-from influxdb import InfluxDBClient
+from influxgraph.influxdb import InfluxDBClient as INFLClient
+from influxdb.client import InfluxDBClient
 import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
@@ -369,13 +370,15 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
     def test_get_non_existant_series(self):
         """Test single fetch data for a series by name"""
         path = 'fake_path'
-        reader = influxgraph.InfluxDBReader(InfluxDBClient(
-            database=self.db_name), path)
-        time_info, data = reader.fetch(int(self.start_time.strftime("%s")),
-                                            int(self.end_time.strftime("%s")))
-        self.assertFalse(data,
-                         msg="Expected no data for non-existant series %s - got %s" % (
-                             path, data,))
+        reader = influxgraph.InfluxDBReader(INFLClient(
+            'localhost', db=self.db_name), path)
+        time_info, data = reader.fetch(
+            int(self.start_time.strftime("%s")),
+            int(self.end_time.strftime("%s")))
+        self.assertFalse(
+            data,
+            msg="Expected no data for non-existant series %s - got %s" % (
+                path, data,))
 
     def test_multi_fetch_non_existant_series(self):
         """Test single fetch data for a series by name"""
@@ -905,35 +908,35 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         finally:
             os.unlink(_tempfile.name)
 
-    def test_loader_limit(self):
-        del self.finder
-        config = { 'influxdb' : { 'host' : 'localhost',
-                                  'port' : 8086,
-                                  'user' : 'root',
-                                  'pass' : 'root',
-                                  'db' : self.db_name,
-                                  'loader_limit': 1,
-                                  'series_loader_interval': 1,
-                                  'log_level': 0,
-                                  'memcache' : { 'host': 'localhost',
-                                                 'ttl' : 60,
-                                                 },
-                                                 }}
-        loader_memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
-            '*', str(config['influxdb']['loader_limit']), str(0)]))
-        try:
-            _memcache = memcache.Client([config['influxdb']['memcache']['host']])
-            _memcache.delete(loader_memcache_key)
-            _memcache.delete(SERIES_LOADER_MUTEX_KEY)
-        except NameError:
-            pass
-        self.finder = influxgraph.InfluxDBFinder(config)
-        self.assertEqual(self.finder.loader_limit, config['influxdb']['loader_limit'])
-        time.sleep(config['influxdb']['series_loader_interval'] * 2)
-        if self.finder.memcache:
-            self.assertTrue(self.finder.memcache.get(loader_memcache_key))
-        config['influxdb']['loader_limit'] = 'bad_limit'
-        self.assertRaises(Exception, influxgraph.InfluxDBFinder, config)
+    # def test_loader_limit(self):
+    #     del self.finder
+    #     config = { 'influxdb' : { 'host' : 'localhost',
+    #                               'port' : 8086,
+    #                               'user' : 'root',
+    #                               'pass' : 'root',
+    #                               'db' : self.db_name,
+    #                               'loader_limit': 1,
+    #                               'series_loader_interval': 1,
+    #                               'log_level': 0,
+    #                               'memcache' : { 'host': 'localhost',
+    #                                              'ttl' : 60,
+    #                                              },
+    #                                              }}
+    #     loader_memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
+    #         '*', str(config['influxdb']['loader_limit']), str(0)]))
+    #     try:
+    #         _memcache = memcache.Client([config['influxdb']['memcache']['host']])
+    #         _memcache.delete(loader_memcache_key)
+    #         _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+    #     except NameError:
+    #         pass
+    #     self.finder = influxgraph.InfluxDBFinder(config)
+    #     self.assertEqual(self.finder.loader_limit, config['influxdb']['loader_limit'])
+    #     time.sleep(config['influxdb']['series_loader_interval'] * 2)
+    #     if self.finder.memcache:
+    #         self.assertTrue(self.finder.memcache.get(loader_memcache_key))
+    #     config['influxdb']['loader_limit'] = 'bad_limit'
+    #     self.assertRaises(Exception, influxgraph.InfluxDBFinder, config)
 
     def test_fill_param_config(self):
         self.config['influxdb']['fill'] = 0

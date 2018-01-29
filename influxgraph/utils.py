@@ -203,13 +203,17 @@ def read_influxdb_values(influxdb_data, paths, measurement_data):
         influxdb_data = [influxdb_data]
     m_path_ind = 0
     seen_measurements = set()
+    # import ipdb; ipdb.set_trace()
     for infl_data in influxdb_data:
-        for infl_keys in infl_data.keys():
-            measurement = infl_keys[0]
-            tags = infl_keys[1] if infl_keys[1] is not None else {}
+        # for infl_keys in infl_data.keys():
+            measurement = infl_data['name']
+            # tags = infl_keys[1] if infl_keys[1] is not None else {}
+            tags = [d for d in infl_data['columns']
+                    if d not in  ('time','value')]
             if not measurement_data:
-                _read_measurement_metric_values(infl_data, measurement,
-                                                paths, _data)
+                _data[measurement] = [d for _, d in infl_data['values']]
+                # _read_measurement_metric_values(
+                #     infl_data, measurement, paths, _data)
                 continue
             elif measurement not in measurement_data:
                 continue
