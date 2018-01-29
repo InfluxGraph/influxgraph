@@ -1,4 +1,6 @@
 import unittest
+from random import randint
+import datetime
 
 from influxgraph.influxdb import InfluxDBClient
 
@@ -27,10 +29,10 @@ class InfluxDBClientTest(unittest.TestCase):
         data = self.client.query(
             "SELECT * FROM measure where time > now() - 10m")
         self.assertIsNotNone(data)
-        self.assertEqual(len(data['results']), 1)
-        self.assertEqual(len(data['results'][0]['series']), 1)
-        self.assertEqual(len(data['results'][0]['series'][0]['values']), 1)
-        self.assertEqual(len(data['results'][0]['series'][0]['values'][0]), 3)
-        _time, field, tag = data['results'][0]['series'][0]['values'][0]
+        self.assertEqual(len(data), 1)
+        self.assertEqual(len(data[0]['series']), 1)
+        self.assertEqual(len(data[0]['series'][0]['values']), 1)
+        self.assertEqual(len(data[0]['series'][0]['values'][0]), 3)
+        _time, field, tag = data[0]['series'][0]['values'][0]
         self.assertEqual(field, field_val)
         self.assertEqual(tag, tag_val)

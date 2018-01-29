@@ -19,10 +19,10 @@ import ujson
 class InfluxDBClient(object):
     """High performance, minimal InfluxDB client.
 
-    Write data in native line protocol for fast insertion.
-    Query data using `ujson` JSON serializer for fastest performance."""
+    Query data using ``ujson`` JSON serializer for fastest performance.
+    Write data in native line protocol for fast insertion."""
 
-    def __init__(self, host, db, port=8086, user='root', passwd='root',
+    def __init__(self, host, db=None, port=8086, user='root', passwd='root',
                  ssl=False):
         self.headers = {'Content-Encoding': 'application/json'}
         self.params = {'u': user, 'p': passwd}
@@ -36,13 +36,18 @@ class InfluxDBClient(object):
         resp.raise_for_status()
         return resp
 
-    def query(self, query, params=None, chunked=False):
+    def query(self, query, db=None, params=None, chunked=False):
+        db = db if db is not None else self.db
+        if db is None:
+            raise ValueError(
+                "Database name must be provided either on this function or "
+                "the client object")
         params = params if params is not None else self.params
         params.update(self.params)
         params['q'] = query
         params['db'] = self.db
         resp = self._run_query(params)
-        return ujson.loads(resp.content)
+        return ujson.loads(resp.content).get('results', [])
 
     def create_database(self, db):
         query = 'CREATE DATABASE "%s"' % db
