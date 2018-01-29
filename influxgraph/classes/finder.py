@@ -110,7 +110,8 @@ class InfluxDBFinder(object):
         templates = influxdb_config.get('templates')
         self.graphite_templates = parse_influxdb_graphite_templates(templates) \
             if templates else None
-        self._start_loader(series_loader_interval)
+        loader_startup_block = influxdb_config.get('loader_startup_block', True)
+        self._start_loader(series_loader_interval, loader_startup_block)
         self.index = None
         self.index_path = config.get('search_index')
         self.index_lock = FileLock(influxdb_config.get('index_lock_file',
@@ -122,34 +123,42 @@ class InfluxDBFinder(object):
             deltas=self.deltas)
         self._start_reindexer(reindex_interval)
 
-    def _start_loader(self, series_loader_interval):
+    def _start_loader(self, series_loader_interval, loader_startup_block):
         # No memcached configured? Cannot use series loader
         if not self.memcache:
             return
         # Run series loader in main thread if due to run to not allow
         # requests to be served before series loader has completed at
         # least once.
-        if _SERIES_LOADER_LOCK.acquire(block=False):
-            if self.memcache.get(self.memcache_series_loader_mutex_key):
-                logger.debug("Series loader mutex exists %s - "
-                             "skipping series load",
-                             self.memcache_series_loader_mutex_key)
-            else:
-                logger.info("Starting initial series list load - this may "
-                            "take several minutes on databases with a large "
-                            "number of series..")
-                self.memcache.set(self.memcache_series_loader_mutex_key, 1,
-                                  time=series_loader_interval)
-                try:
-                    if self.graphite_templates:
-                        self.get_field_keys()
-                    for _ in self.get_all_series_list():
-                        pass
-                except Exception as ex:
-                    logger.error("Error calling InfluxDB from initial series "
-                                 "and field list load - %s", ex)
-                finally:
-                    _SERIES_LOADER_LOCK.release()
+        if loader_startup_block and _SERIES_LOADER_LOCK.acquire(block=False):
+            try:
+                if self.memcache.get(self.memcache_series_loader_mutex_key):
+                    logger.debug("Series loader mutex exists %s - "
+                                 "skipping series load",
+                                 self.memcache_series_loader_mutex_key)
+                else:
+                    logger.info(
+                        "Starting initial series list load - this may "
+                        "take several minutes on databases with a large "
+                        "number of series..")
+                    self.memcache.set(self.memcache_series_loader_mutex_key, 1,
+                                      time=series_loader_interval)
+                    try:
+                        if self.graphite_templates:
+                            self.get_field_keys()
+                        for _ in self.get_all_series_list():
+                            pass
+                    except Exception as ex:
+                        logger.error(
+                            "Error calling InfluxDB from initial series "
+                            "and field list load - %s", ex)
+            finally:
+                _SERIES_LOADER_LOCK.release()
+        else:
+            logger.warning(
+                "Configured to not block at startup while loading index. "
+                "No data will be returned until index is built for the "
+                "first time.")
         loader = threading.Thread(target=self._series_loader,
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True

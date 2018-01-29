@@ -218,16 +218,14 @@ influxdb:
   ## Fill function parameter to use on data queries
   # 
   # Valid values are integers, floats and parameters like 'previous' or 
-  # 'linear' as defined in influxgraph.constants.FILL_PARAMS
-  # 
-  # Parameters like `null` or `none` that leave gaps in data are not accepted
-  # due to Graphite API requirements.
+  # 'linear' as defined in influxgraph.constants.FILL_PARAMS or 'null',
+  # the default.
   # 
   # For example, with `fill: 1` all queries will use 
   # 'SELECT <..> fill(1)' and missing data values will be filled 
   # with `1`.
   # 
-  # fill: previous
+  # fill: "null"
 
   #
   ## Index builder configuration
@@ -238,3 +236,15 @@ influxdb:
   # How often to re-build index. Note that newly written metrics will not be
   # able to be graphed or queried until index has been re-built.
   # reindex_interval: 900
+
+  # Whether or not to block requests on startup until index is built for
+  # the first time. Defaults to true.
+  # 
+  # With this flag disabled requests will not be blocked but will be empty
+  # while index is being built.
+  # 
+  # This is mostly useful for use with application servers like gunicorn
+  # which recycle workers that do not respond at startup and a large
+  # number of series in the DB leading to index times that can be longer
+  # than application server timeout.
+  # loader_startup_block: true

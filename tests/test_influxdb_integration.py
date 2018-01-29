@@ -20,7 +20,8 @@ from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func, \
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, DEFAULT_AGGREGATIONS, \
      _INFLUXDB_CLIENT_PARAMS, FILE_LOCK
-from influxgraph.classes.finder import logger as finder_logger
+from influxgraph.classes.finder import logger as finder_logger, \
+    _SERIES_LOADER_LOCK
 import memcache
 
 finder_logger.setLevel(logging.DEBUG)
@@ -468,6 +469,14 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         if finder.memcache:
             self.assertTrue(finder.memcache.get(loader_memcache_key))
         del finder
+        config['influxdb']['loader_startup_block'] = False
+        finder = influxgraph.InfluxDBFinder(config)
+        try:
+            self.assertTrue(_SERIES_LOADER_LOCK.acquire(block=False))
+        except:
+            pass
+        else:
+            _SERIES_LOADER_LOCK.release()
 
     def test_reindex(self):
         del self.finder
