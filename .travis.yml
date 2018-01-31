@@ -84,7 +84,7 @@ before_install:
   - sudo /etc/init.d/influxdb start
 install:
   - pip install -r requirements.txt
-  - pip install coverage codecov flake8
+  - pip install coverage codecov flake8 influxdb
   - python setup.py build_ext --inplace
 script:
   - nosetests --with-coverage --cover-package=influxgraph
