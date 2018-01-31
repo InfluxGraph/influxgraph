@@ -2,4 +2,5 @@ influxdb
 coverage
 flake8
 nose
+-r requirements.txt
 -e .
