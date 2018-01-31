@@ -83,9 +83,7 @@ before_install:
   - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
   - sudo /etc/init.d/influxdb start
 install:
-  - pip install -r requirements.txt
-  - pip install coverage codecov flake8 influxdb
-  - python setup.py build_ext --inplace
+  - pip install -r requirements_dev.txt
 script:
   - nosetests --with-coverage --cover-package=influxgraph
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
