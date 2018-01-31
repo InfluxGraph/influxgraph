@@ -231,7 +231,7 @@ cdef list c_get_series_with_tags(bytes measurement, char **tags_values,
         try:
             _add_fields_to_paths(
                 all_fields[measurement.decode(ENCODING)],
-                split_path, series, c_sep)
+                split_path, series)
             # _c_add_fields_to_paths(
             #     all_fields[measurement], split_path, series, c_sep)
         except KeyError:
@@ -242,13 +242,11 @@ cdef list c_get_series_with_tags(bytes measurement, char **tags_values,
 
 
 cpdef list get_series_with_tags(list paths, dict all_fields,
-                                list graphite_templates,
-                                bytes separator=b'.'):
+                                list graphite_templates):
     cdef list series = []
     cdef list split_path
     cdef dict template
-    split_path, template = _split_series_with_tags(paths, graphite_templates,
-                                                   separator)
+    split_path, template = _split_series_with_tags(paths, graphite_templates)
     if len(split_path) == 0:
         # No template match
         return series
@@ -256,7 +254,7 @@ cpdef list get_series_with_tags(list paths, dict all_fields,
     if 'field' in values or 'field*' in values:
         try:
             _add_fields_to_paths(
-                all_fields[paths[0]], split_path, series, separator)
+                all_fields[paths[0]], split_path, series)
         except KeyError:
             logger.warning("Measurement %s not in field list", paths[0])
         return series
@@ -360,18 +358,16 @@ cdef tuple c_make_path_with_tags(bytes measurement,
     return [], template
 
 
-cdef tuple _split_series_with_tags(list paths, list graphite_templates,
-                                   bytes separator):
+cdef tuple _split_series_with_tags(list paths, list graphite_templates):
     cdef list split_path = []
     cdef dict template = None
     cdef list tags_values = [p.split('=') for p in paths[1:]]
     cdef Py_ssize_t field_inds
     cdef Py_ssize_t num_tmpl_items
     cdef list path
-    # TODO - Configurable separator
     for (_filter, template, _, _) in graphite_templates:
         _make_path_from_template(
-            split_path, paths[0], template, tags_values, separator)
+            split_path, paths[0], template, tags_values)
         # Split path should be at least as large as number of wanted
         # template tags taking into account measurement and number of fields
         # in template
@@ -461,11 +457,10 @@ cdef int _c_make_path_from_template(list split_path,
 
 
 cpdef int _make_path_from_template(list split_path, unicode measurement,
-                                   dict template, list tags_values,
-                                   bytes separator) except -1:
+                                   dict template, list tags_values) except -1:
+    cdef unicode _separator = u'.'
     cdef bint measurement_found = 0
     cdef Py_ssize_t i
-    cdef unicode _separator = separator.decode(ENCODING)
     if not tags_values and _separator in measurement and \
       _get_first_not_none_tmpl_val(template) == 'measurement*':
         for i, measurement in enumerate(measurement.split(_separator)):
@@ -549,13 +544,14 @@ cpdef int _make_path_from_template(list split_path, unicode measurement,
 #         free(field_keys)
 
 
-cdef int _add_fields_to_paths(list fields, list split_path, list series,
-                              bytes separator) except -1:
+cdef int _add_fields_to_paths(list fields, list split_path,
+                              list series) except -1:
+    cdef unicode separator = u'.'
     cdef unicode field_key
     cdef list field_keys
     cdef unicode f
     for field_key in fields:
-        field_keys = [f for f in field_key.split(separator.decode(ENCODING))
+        field_keys = [f for f in field_key.split(separator)
                       if f != 'value']
         if len(field_keys) > 0:
             series.append(split_path + field_keys)
@@ -565,76 +561,73 @@ cdef int _add_fields_to_paths(list fields, list split_path, list series,
 ### Data parsing
 #
 def _retrieve_named_field_data(infl_data, measurement_data, measurement,
-                               tags, _data, bytes separator=b'.'):
+                               tags, _data):
     measurement_paths = measurement_data[measurement]['paths'][:]
     for field in measurement_data[measurement]['fields']:
+        field_data_i = infl_data['columns'].index(field)
+        if field_data_i < 0:
+            continue
         split_path = []
         _make_path_from_template(
             split_path, measurement,
-            measurement_data[measurement]['template'], list(tags.items()),
-            separator=separator)
+            measurement_data[measurement]['template'], list(tags.items()))
         split_path = [p[1] for p in heapsort(split_path)]
         split_path.append(field)
-        metric = separator.decode(ENCODING).join(split_path)
+        metric = u'.'.join(split_path)
         if metric not in measurement_paths:
             continue
         del measurement_paths[measurement_paths.index(metric)]
-        _data[metric] = [d[field]
-                         for d in infl_data.get_points(
-                                 measurement=measurement, tags=tags)]
+        _data[metric] = [d[field_data_i] for d in infl_data['values']]
     measurement_data[measurement]['paths'] = measurement_paths
 
 
 def _retrieve_field_data(infl_data, dict measurement_data, measurement,
                          metric, tags, _data):
+    cdef int field_i
     # Retrieve value field data
     if 'value' in measurement_data[measurement]['fields']:
-        _data[metric] = [d['value']
-                         for d in infl_data.get_points(
-                                 measurement=measurement, tags=tags)]
+        field_i = infl_data['columns'].index('value')
+        if field_i < 0:
+            return
+        _data[metric] = [d[field_i] for d in infl_data['values']]
         return
     # Retrieve non value named field data with fields from measurement_data
     _retrieve_named_field_data(infl_data, measurement_data,
                                measurement, tags, _data)
 
 
-def _read_measurement_metric_values(infl_data, measurement,
-                                    list paths, dict _data):
-    if measurement not in paths:
-        return
-    _data[measurement] = [d['value']
-                          for d in infl_data.get_points(
-                                  measurement=measurement)]
-
-
 def read_influxdb_values(influxdb_data, list paths, dict measurement_data):
     """Return metric path -> datapoints dict for values from InfluxDB data"""
-    _data = {}
-    if not isinstance(influxdb_data, list):
-        influxdb_data = [influxdb_data]
+    cdef dict _data = {}
     cdef size_t m_path_ind = 0
-    seen_measurements = set()
+    cdef set seen_measurements = set()
     for infl_data in influxdb_data:
-        for infl_keys in infl_data.keys():
-            measurement = infl_keys[0]
-            tags = infl_keys[1] if infl_keys[1] is not None else {}
-            if not measurement_data:
-                _read_measurement_metric_values(infl_data, measurement,
-                                                paths, _data)
-                continue
-            elif measurement not in measurement_data:
-                continue
-            if measurement not in seen_measurements:
-                seen_measurements = set(
-                    tuple(seen_measurements) + (measurement,))
-                m_path_ind = 0
-            elif len(measurement_data[measurement]['paths']) == 0:
-                # No paths left for measurement
-                continue
-            elif m_path_ind >= len(measurement_data[measurement]['paths']):
-                m_path_ind = 0
-            metric = measurement_data[measurement]['paths'][m_path_ind]
-            m_path_ind += 1
-            _retrieve_field_data(infl_data, measurement_data,
-                                 measurement, metric, tags, _data)
+        try:
+            measurement = infl_data['name']
+        except KeyError:
+            continue
+        # dict{tag_key: tag_val}
+        tags = {}
+        infl_tags = infl_data.get('tags', {})
+        for tag_key in infl_tags:
+            if len(infl_tags[tag_key]) != 0:
+                tags[tag_key] = infl_tags[tag_key]
+        if not measurement_data:
+            _data[measurement] = [d for _, d in infl_data['values']]
+            continue
+        elif measurement not in measurement_data:
+            continue
+        if measurement not in seen_measurements:
+            seen_measurements = set(
+                tuple(seen_measurements) + (measurement,))
+            m_path_ind = 0
+        elif len(measurement_data[measurement]['paths']) == 0:
+            # No paths left for measurement
+            continue
+        elif m_path_ind >= len(measurement_data[measurement]['paths']):
+            m_path_ind = 0
+        metric = measurement_data[measurement]['paths'][m_path_ind]
+        m_path_ind += 1
+        _retrieve_field_data(infl_data, measurement_data,
+                             measurement, metric, tags, _data)
     return _data

@@ -40,10 +40,10 @@ from ..utils import calculate_interval, \
     make_memcache_client
 from ..templates import parse_influxdb_graphite_templates, apply_template, \
     TemplateMatchError
-# try:
-#     from ..ext.templates import parse_series, read_influxdb_values
-# except ImportError:
-from ..utils import parse_series, read_influxdb_values
+try:
+    from ..ext.templates import parse_series, read_influxdb_values
+except ImportError:
+    from ..utils import parse_series, read_influxdb_values
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
 from .tree import NodeTreeIndex

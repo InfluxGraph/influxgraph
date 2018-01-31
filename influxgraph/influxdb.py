@@ -34,9 +34,8 @@ class InfluxDBClient(object):
 
     def _run_query(self, params):
         _url = "%s/query" % self.url
-        resp = self.session.request(method='GET',
-                                    auth=(self._user, self._password),
-                                    url=_url, params=params)
+        resp = self.session.get(
+            _url, auth=(self._user, self._password), params=params)
         resp.raise_for_status()
         return resp
 
@@ -72,7 +71,6 @@ class InfluxDBClient(object):
         params = params if params is not None else self.params
         params.update(self.params)
         params['db'] = self.db
-        resp = self.session.request(method='post', url=_url,
-                                    auth=(self._user, self._password),
-                                    data=data, params=params)
+        resp = self.session.post(
+            _url, auth=(self._user, self._password), data=data, params=params)
         resp.raise_for_status()

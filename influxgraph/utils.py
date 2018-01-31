@@ -155,7 +155,7 @@ def get_aggregation_func(path, aggregation_functions):
 
 
 def _retrieve_named_field_data(infl_data, measurement_data, measurement,
-                               tags, _data, separator=b'.'):
+                               tags, _data):
     measurement_paths = measurement_data[measurement]['paths'][:]
     for field in measurement_data[measurement]['fields']:
         field_data_i = infl_data['columns'].index(field)
@@ -164,11 +164,10 @@ def _retrieve_named_field_data(infl_data, measurement_data, measurement,
         split_path = []
         _make_path_from_template(
             split_path, measurement,
-            measurement_data[measurement]['template'], list(tags.items()),
-            separator=separator)
+            measurement_data[measurement]['template'], list(tags.items()))
         split_path = [p[1] for p in heapsort(split_path)]
         split_path.append(field)
-        metric = '.'.join(split_path)
+        metric = u'.'.join(split_path)
         if metric not in measurement_paths:
             continue
         del measurement_paths[measurement_paths.index(metric)]
@@ -193,8 +192,6 @@ def _retrieve_field_data(infl_data, measurement_data, measurement,
 def read_influxdb_values(influxdb_data, paths, measurement_data):
     """Return metric path -> datapoints dict for values from InfluxDB data"""
     _data = {}
-    if not isinstance(influxdb_data, list):
-        influxdb_data = [influxdb_data]
     m_path_ind = 0
     seen_measurements = set()
     for infl_data in influxdb_data:
@@ -278,8 +275,7 @@ def parse_series(series, fields, graphite_templates, separator=b'.'):
             serie_with_tags = serie.split(',')
             if graphite_templates:
                 for split_path in get_series_with_tags(
-                        serie_with_tags, fields, graphite_templates,
-                        separator=separator):
+                        serie_with_tags, fields, graphite_templates):
                     index.insert_split_path(split_path)
             # Series with tags and no templates,
             # add only measurement to index
