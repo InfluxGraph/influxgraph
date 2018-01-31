@@ -117,9 +117,10 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             int(self.end_time.strftime("%s")))
         for metric in [n.path for n in nodes]:
             datapoints = [v for v in data[metric] if v]
-            self.assertTrue(len(datapoints) == self.num_datapoints,
-                            msg="Expected %s datapoints for %s - got %s" % (
-                                self.num_datapoints, metric, len(datapoints),))
+            self.assertEqual(len(datapoints), self.num_datapoints,
+                             msg="Metric %s has %s, not %s data points" % (
+                                 metric, len(datapoints), self.num_datapoints)
+            )
         return data
 
     def test_templated_index_find(self):
@@ -236,6 +237,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         cpu_query = Query('%s.%s.*.*' % (tags[0]['host'], measurements[0],))
         diskio_query = Query('%s.%s.*.*' % (tags[1]['host'], measurements[1],))
         disk_query = Query('%s.%s.*.*' % (tags[2]['host'], measurements[2],))
+        ##
         cpu_nodes = list(self.finder.find_nodes(cpu_query))
         diskio_nodes = list(self.finder.find_nodes(diskio_query))
         disk_nodes = list(self.finder.find_nodes(disk_query))
@@ -244,6 +246,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             metrics = [metrics_cpu, metrics_diskio, metrics_disk][i]
             node_paths = [n.path for n in nodes]
             self.assertEqual(sorted(node_paths), sorted(metrics))
+        ##
         all_nodes = cpu_nodes + diskio_nodes + disk_nodes
         data = self._test_data_in_nodes(all_nodes)
         for metric in data:
@@ -1019,8 +1022,9 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         metrics = [n.path for n in cpu_nodes]
         for metric in metrics:
             datapoints = [v for v in data[metric] if v]
-            self.assertTrue(len(datapoints) == self.num_datapoints)
-            self.assertTrue(datapoints[-1] == fields['.'.join(metric.split('.')[-2:])])
+            self.assertEqual(len(datapoints), self.num_datapoints)
+            self.assertEqual(
+                datapoints[-1], fields['.'.join(metric.split('.')[-2:])])
         ##
         template = "env.host.measurement.field"
         self.config['influxdb']['templates'] = [template]

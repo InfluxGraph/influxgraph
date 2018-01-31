@@ -649,10 +649,15 @@ class InfluxDBFinder(object):
             return field_keys
         logger.debug("Calling InfluxDB for field keys")
         data = self.client.query('SHOW FIELD KEYS')
-        # import ipdb; ipdb.set_trace()
         field_keys = {}
-        for ((key, _), vals) in data.items():
-            field_keys[key] = [val['fieldKey'] for val in vals]
+        try:
+            data = data[0]['series']
+        except (KeyError, IndexError):
+            return field_keys
+        for field in data:
+            key = field['name']
+            val_i = field['columns'].index('fieldKey')
+            field_keys[key] = [val[val_i] for val in field['values']]
         if self.memcache:
             if not self.memcache.set(self.memcache_fields_key, field_keys,
                                      time=self.memcache_ttl,

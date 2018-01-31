@@ -125,7 +125,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertEqual(len(data), len(self.series))
         for i, path in enumerate(self.series):
             self.assertTrue(path in data)
-            self.assertTrue(data[path][-1] == self.series_values[i])
+            self.assertEqual(data[path][-1], self.series_values[i])
 
     def test_find_branch(self):
         """Test getting branch of metric path"""
