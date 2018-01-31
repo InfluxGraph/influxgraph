@@ -24,15 +24,19 @@ class InfluxDBClient(object):
 
     def __init__(self, host, db=None, port=8086, user='root', passwd='root',
                  ssl=False):
-        self.headers = {'Content-Encoding': 'application/json'}
         self.params = {'u': user, 'p': passwd}
         self.db = db
         prefix = 'https' if ssl else 'http'
         self.url = '%s://%s:%s' % (prefix, host, port)
+        self.session = requests.Session()
+        self._user = user
+        self._password = passwd
 
     def _run_query(self, params):
         _url = "%s/query" % self.url
-        resp = requests.post(_url, params=params)
+        resp = self.session.request(method='GET',
+                                    auth=(self._user, self._password),
+                                    url=_url, params=params)
         resp.raise_for_status()
         return resp
 
@@ -68,5 +72,7 @@ class InfluxDBClient(object):
         params = params if params is not None else self.params
         params.update(self.params)
         params['db'] = self.db
-        resp = requests.post(_url, data=data, params=params)
+        resp = self.session.request(method='post', url=_url,
+                                    auth=(self._user, self._password),
+                                    data=data, params=params)
         resp.raise_for_status()
