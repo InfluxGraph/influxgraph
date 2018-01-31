@@ -523,13 +523,13 @@ class InfluxDBFinder(object):
     def _run_infl_query(self, query, paths, measurement_data):
         logger.debug("Calling influxdb multi fetch with query - %s", query)
         data = self.client.query(query, params=_INFLUXDB_CLIENT_PARAMS)
-        data = data[0].get('series', [])
-        if len(data) == 0:
+        try:
+            data = data[0]['series']
+        except (KeyError, IndexError):
             data = {}
             for key in paths:
-                data.setdefault(key, [])
+                data[key] = []
             return data
-        # data = data[0]
         logger.debug('fetch_multi() - Retrieved %d result set(s)', len(data))
         data = read_influxdb_values(data, paths, measurement_data)
         # Graphite API requires that data contain keys for
@@ -596,8 +596,8 @@ class InfluxDBFinder(object):
         """Save index to file"""
         if not self.index_path:
             return
-        if not (hasattr(self, 'index') and self.index
-                and hasattr(self.index, 'to_array')):
+        if not (hasattr(self, 'index') and self.index and
+                hasattr(self.index, 'to_array')):
             return
         logger.info("Saving index to file %s", self.index_path,)
         start_time = datetime.datetime.now()
