@@ -10,7 +10,7 @@ python:
   - 3.6
 #  - pypy
 env:
-  - INFLUXDB_VERSION=1.2.2
+  - INFLUXDB_VERSION=1.4.2
 jobs:
   include:
     - os: osx
@@ -35,23 +35,23 @@ jobs:
       language: generic
       python: skip
     - stage: build wheels
+      if: tag IS present
       os: linux
       python: 3.6
       before_install: skip
       install:
         - pip install twine
       script:
-        - if [[ ! -z "$TRAVIS_TAG" ]]; then
-            echo "Building wheels for tag ${TRAVIS_TAG}" &&
-            docker pull quay.io/pypa/manylinux1_x86_64 &&
-            docker run --rm -v `pwd`:/io quay.io/pypa/manylinux1_x86_64 /io/ci/build-wheels.sh &&
-            ls wheelhouse;
-          fi
+        - echo "Building wheels for tag ${TRAVIS_TAG}"
+        - docker pull quay.io/pypa/manylinux1_x86_64
+        - docker run --rm -v `pwd`:/io quay.io/pypa/manylinux1_x86_64 /io/ci/build-wheels.sh
+        - ls wheelhouse
       after_success:
         - if [[ ! -z "$TRAVIS_TAG" ]]; then
             twine upload -u $PYPI_U -p $PYPI_P wheelhouse/*.whl;
           fi
     - stage: deploy PyPi
+      if: tag IS present
       before_install: skip
       install: skip
       script: skip

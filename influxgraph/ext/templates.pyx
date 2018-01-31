@@ -465,9 +465,10 @@ cpdef int _make_path_from_template(list split_path, unicode measurement,
                                    bytes separator) except -1:
     cdef bint measurement_found = 0
     cdef Py_ssize_t i
-    if not tags_values and separator.decode(ENCODING) in measurement and \
+    cdef unicode _separator = separator.decode(ENCODING)
+    if not tags_values and _separator in measurement and \
       _get_first_not_none_tmpl_val(template) == 'measurement*':
-        for i, measurement in enumerate(measurement.split(separator)):
+        for i, measurement in enumerate(measurement.split(_separator)):
             split_path.append((i, measurement))
         return 0
     # Measurement without tags

@@ -32,14 +32,14 @@ from collections import deque
 from ..influxdb import InfluxDBClient
 from graphite_api.node import BranchNode
 from ..constants import _INFLUXDB_CLIENT_PARAMS, \
-     SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
-     DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS, FILE_LOCK
+    SERIES_LOADER_MUTEX_KEY, LOADER_LIMIT, MEMCACHE_SERIES_DEFAULT_TTL, \
+    DEFAULT_AGGREGATIONS, _MEMCACHE_FIELDS_KEY, FILL_PARAMS, FILE_LOCK
 from ..utils import calculate_interval, \
-     get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
-     get_retention_policy, _compile_aggregation_patterns, \
-     make_memcache_client
+    get_aggregation_func, gen_memcache_key, gen_memcache_pattern_key, \
+    get_retention_policy, _compile_aggregation_patterns, \
+    make_memcache_client
 from ..templates import parse_influxdb_graphite_templates, apply_template, \
-     TemplateMatchError
+    TemplateMatchError
 # try:
 #     from ..ext.templates import parse_series, read_influxdb_values
 # except ImportError:

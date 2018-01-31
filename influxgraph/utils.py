@@ -155,7 +155,7 @@ def get_aggregation_func(path, aggregation_functions):
 
 
 def _retrieve_named_field_data(infl_data, measurement_data, measurement,
-                               tags, _data, separator='.'):
+                               tags, _data, separator=b'.'):
     measurement_paths = measurement_data[measurement]['paths'][:]
     for field in measurement_data[measurement]['fields']:
         field_data_i = infl_data['columns'].index(field)
