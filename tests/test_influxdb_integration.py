@@ -5,7 +5,6 @@ import sys
 import tempfile
 import datetime
 import time
-import json
 from gzip import GzipFile
 from random import randint
 import logging
@@ -310,7 +309,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_single_fetch_data(self):
         """Test single fetch data for a series by name"""
-        sleep(.1)
         node = list(self.finder.find_nodes(Query(self.series1)))[0]
         time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
@@ -845,70 +843,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             os.unlink(bad_index_path)
         except OSError:
             pass
-
-    @unittest.skipUnless(hasattr(Node, 'to_array'),
-                         "Index does not support dumping to array")
-    def test_index_save_load(self):
-        self.finder.index = None
-        try:
-            os.unlink(self.finder.index_path)
-        except OSError:
-            pass
-        del self.finder
-        config = { 'influxdb': { 'host' : 'localhost',
-                                 'port' : 8086,
-                                 'user' : 'root',
-                                 'pass' : 'root',
-                                 'db' : self.db_name,
-                                 'reindex_interval': 1,
-                                 'log_level': 0,
-                                 'fill': 'previous',
-                                 },
-                   }
-        finder = influxgraph.InfluxDBFinder(config)
-        finder.index_path = 'index'
-        finder.save_index()
-        index_path = finder.index_path
-        finder_index = Node.from_array(finder.index.to_array())
-        time.sleep(config['influxdb']['reindex_interval'] + 1)
-        del finder
-        self.assertTrue(os.path.isfile('index'))
-        # Reload index from file
-        index_fh = open(index_path, 'rt')
-        try:
-            index = Node.from_file(index_fh)
-        finally:
-            index_fh.close()
-        self.assertTrue(index is not None)
-        for query in ['*', '*.*', '*.*.*', '*.*.*.*']:
-            self.assertEqual([path for (path, _) in index.query(query)],
-                             [path for (path, _) in finder_index.query(query)])
-
-    def test_index_load_from_file(self):
-        values = [['carbon.relays.host.dispatcher1.wallTime_us'],
-                  ['carbon.relays.host.metricsReceived'],
-                  ['carbon.relays.host.metricsDropped'],
-                  ['carbon.relays.host.metricsQueued'],
-                  ]
-        data = {'results': [{'series': [{
-            'columns': ['key'],
-            'values': values,
-            }]}]}
-        _tempfile = tempfile.NamedTemporaryFile(mode='wt', delete=False)
-        try:
-            _tempfile.write(json.dumps(data))
-        except Exception:
-            os.unlink(_tempfile.name)
-            raise
-        else:
-            _tempfile.close()
-        expected = ['carbon']
-        try:
-            self.finder.index = None
-            self.finder.build_index(data=self.finder._read_static_data(_tempfile.name))
-            self.assertEqual([n.name for n in self.finder.find_nodes(Query('*'))], expected)
-        finally:
-            os.unlink(_tempfile.name)
 
     def test_loader_limit(self):
         del self.finder

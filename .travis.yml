@@ -91,6 +91,7 @@ script:
   - find influxgraph -type f -name '*.so' -exec rm -f {} +
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py
   - flake8 influxgraph
+  - (cd doc; make html)
 after_success:
   - codecov
 services:

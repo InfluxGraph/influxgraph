@@ -20,7 +20,6 @@ compatible API.
 """
 
 from __future__ import absolute_import, print_function
-import json
 import threading
 from multiprocessing import Lock as processLock
 import time
@@ -46,7 +45,6 @@ except ImportError:
     from ..utils import parse_series, read_influxdb_values
 from .reader import InfluxDBReader
 from .leaf import InfluxDBLeafNode
-from .tree import NodeTreeIndex
 from .lock import FileLock
 
 _SERIES_LOADER_LOCK = processLock()
@@ -165,17 +163,12 @@ class InfluxDBFinder(object):
         loader.start()
 
     def _start_reindexer(self, reindex_interval):
-        new_index = False
-        if not self.index:
-            self.load_index()
         if not self.index:
             self.build_index()
-            new_index = True
         logger.debug("Starting reindexer thread with interval %s",
                      reindex_interval)
         reindexer = threading.Thread(target=self._reindex,
-                                     kwargs={'interval': reindex_interval,
-                                             'new_index': new_index})
+                                     kwargs={'interval': reindex_interval})
         reindexer.daemon = True
         reindexer.start()
 
@@ -538,32 +531,16 @@ class InfluxDBFinder(object):
             data.setdefault(key, [])
         return data
 
-    def _read_static_data(self, data_file):
-        data = json.load(open(data_file))['results'][0]['series'][0]['values']
-        return [d for k in data for d in k if d]
-
-    def _reindex(self, new_index=False, interval=900):
+    def _reindex(self, interval=900):
         """Perform re-index"""
-        save_thread = threading.Thread(target=self.save_index)
-        if new_index:
-            save_thread.start()
-        del new_index
         while True:
             time.sleep(interval)
-            try:
-                save_thread.join()
-            except RuntimeError:
-                pass
-            finally:
-                del save_thread
             try:
                 self.build_index()
             except Exception as ex:
                 logger.error("Error occured in reindexing thread - %s", ex)
-            save_thread = threading.Thread(target=self.save_index)
-            save_thread.start()
 
-    def build_index(self, data=None, separator=b'.'):
+    def build_index(self, data=None):
         """Build new node tree index
 
         :param data: (Optional) data to use to build index
@@ -582,63 +559,10 @@ class InfluxDBFinder(object):
         with self.index_lock:
             logger.info("Building index..")
             start_time = datetime.datetime.now()
-            index = parse_series(data, all_fields, self.graphite_templates,
-                                 separator=separator)
+            index = parse_series(data, all_fields, self.graphite_templates)
             self.index = index
         logger.info("Finished building index in %s",
                     datetime.datetime.now() - start_time)
-
-    def _save_index_file(self, file_h):
-        """Dump tree contents to file handle"""
-        json.dump(self.index.to_array(), file_h)
-
-    def save_index(self):
-        """Save index to file"""
-        if not self.index_path:
-            return
-        if not (hasattr(self, 'index') and self.index and
-                hasattr(self.index, 'to_array')):
-            return
-        logger.info("Saving index to file %s", self.index_path,)
-        start_time = datetime.datetime.now()
-        try:
-            index_fh = open(self.index_path, 'wt')
-            self._save_index_file(index_fh)
-        except IOError as ex:
-            logger.error("Error writing to index file %s - %s",
-                         self.index_path, ex)
-            return
-        except Exception as ex:
-            logger.error("Error saving index file %s - %s",
-                         self.index_path, ex)
-            raise
-        else:
-            index_fh.close()
-        dt = datetime.datetime.now() - start_time
-        logger.info("Wrote index file to %s in %s", self.index_path, dt)
-
-    def load_index(self):
-        """Load index from file"""
-        if not self.index_path:
-            return
-        if not (self.index and hasattr(self.index, 'from_file')):
-            return
-        logger.info("Loading index from file %s", self.index_path,)
-        try:
-            index_fh = open(self.index_path, 'rt')
-        except Exception as ex:
-            logger.error("Error reading index file %s - %s",
-                         self.index_path, ex)
-            return
-        try:
-            index = NodeTreeIndex.from_file(index_fh)
-        except Exception as ex:
-            logger.error("Error loading index file - %s", ex)
-            return
-        finally:
-            index_fh.close()
-        self.index = index
-        logger.info("Loaded index from disk")
 
     def get_field_keys(self):
         """Get field keys for all measurements"""

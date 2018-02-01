@@ -2,5 +2,7 @@ influxdb
 coverage
 flake8
 nose
+sphinx
+sphinx_rtd_theme
 -r requirements.txt
 -e .

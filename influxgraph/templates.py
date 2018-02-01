@@ -76,7 +76,7 @@ def heapsort(iterable):
     """Perform heap sort on iterable
 
     :param iterable: Iterable with (index, value) tuple entries to sort
-    on index value. `index` must be integer, `value` can be anything
+      on index value. `index` must be integer, `value` can be anything
     :type iterable: `tupleiterator`"""
     h = []
     for value in iterable:
@@ -88,14 +88,14 @@ def parse_influxdb_graphite_templates(templates, separator='.'):
     """Parse InfluxDB template configuration and return parsed templates
 
     :param templates: Template patterns to parse. \
-    Format is [filter] <template> [tag1=value1,tag2=value2]
+      Format is [filter] <template> [tag1=value1,tag2=value2]
     :type templates: list(str)
     :param separator: (Optional) Separator to use when storing greedy
       matched columns
     :type separator: str
 
     :raises: :mod:`InvalidTemplateError` on invalid template format used in any
-    template pattern
+      template pattern
     """
     # Logic converted to Python from InfluxDB's Golang Graphite template parsing
     # Format is [filter] <template> [tag1=value1,tag2=value2]
@@ -195,7 +195,7 @@ def _generate_template_tag_index(template):
 
 
 def get_series_with_tags(paths, all_fields, graphite_templates,
-                         separator='.'):
+                         separator=b'.'):
     """Get list of metric paths from list of InfluxDB series with tags and
    configured graphite templates if any.
 

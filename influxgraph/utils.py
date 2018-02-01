@@ -251,9 +251,9 @@ def make_memcache_client(memcache_host, memcache_max_value=1):
         server_max_value_length=1024**2*memcache_max_value)
 
 
-def parse_series(series, fields, graphite_templates, separator=b'.'):
+def parse_series(series, fields, graphite_templates):
     """Parses series and fields with/without graphite templates
-    and returns built Index
+    and returns built Index.
 
     :param series: Series to load
     :type series: list(unicode str)
@@ -261,10 +261,11 @@ def parse_series(series, fields, graphite_templates, separator=b'.'):
     :type fields: dict(measurement: [field1, field2, ..])
     :param graphite_templates: Graphite templates to use to parse series
     and fields.
-    :type graphite_templates: list(tuple) as returned by \
-    :mod:`influxgraph.templates.parse_influxdb_graphite_templates`
+    :type graphite_templates: list(tuple) as returned by
+      :mod:`influxgraph.templates.parse_influxdb_graphite_templates`
 
-    :rtype: :mod:`influxgraph.classes.tree.NodeTreeIndex`
+    :rtype: :mod:`influxgraph.ext.nodetrie.Node` by default,
+      :mod:`influxgraph.classes.tree.NodeTreeIndex` when lacking extensions.
     """
     index = Node()
     for serie in series:

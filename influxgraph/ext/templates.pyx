@@ -153,7 +153,7 @@ cdef int _parse_serie_no_tags(char *measurement,
 
 
 def parse_series(list series, dict fields,
-                 list graphite_templates, bytes separator=b'.'):
+                 list graphite_templates):
     """Parses series and fields with/without graphite templates
     and returns built Index
 
@@ -174,7 +174,7 @@ def parse_series(list series, dict fields,
     cdef size_t split_tags_size = 1
     cdef Py_ssize_t series_size = len(series)
     cdef Py_ssize_t series_len = series_size + 1
-    cdef char *c_sep = separator
+    cdef char *c_sep = '.'
     cdef Node index = Node()
     # Allocate and use single array for paths once
     c_paths = <char **>malloc(series_len * sizeof(char *))
