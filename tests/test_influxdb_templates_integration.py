@@ -1201,5 +1201,19 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         expected_num = len(measurements) * fields_num
         self.assertEqual(len(nodes), expected_num)
 
+    def test_invalid_tag_chars(self):
+        del self.finder
+        templates = ["host.measurement.field*"]
+        measurements = ['cpu']
+        fields = {'usage': self.randval()}
+        env_tags = {'host': 'my_host1,my_host2'}
+        self.client.drop_database(self.db_name)
+        self.client.create_database(self.db_name)
+        self.write_data(measurements, env_tags, fields)
+        self.config['influxdb']['templates'] = templates
+        finder = influxgraph.InfluxDBFinder(self.config)
+        self.assertEqual(len(finder.index.children), 0)
+
+
 if __name__ == '__main__':
     unittest.main()

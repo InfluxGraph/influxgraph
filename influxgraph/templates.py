@@ -270,15 +270,18 @@ def _make_path_from_template(split_path, measurement, template, tags_values,
     if not tags_values:
         split_path.append((_get_measurement_idx(template), measurement))
         return
-    for (tag_key, tag_val) in tags_values:
-        for i, tmpl_tag_key in template.items():
-            if not tmpl_tag_key:
-                continue
-            if tag_key == tmpl_tag_key:
-                split_path.append((i, tag_val))
-            elif 'measurement' in tmpl_tag_key and not measurement_found:
-                measurement_found = True
-                split_path.append((i, measurement))
+    try:
+        for (tag_key, tag_val) in tags_values:
+            for i, tmpl_tag_key in template.items():
+                if not tmpl_tag_key:
+                    continue
+                elif tag_key == tmpl_tag_key:
+                    split_path.append((i, tag_val))
+                elif 'measurement' in tmpl_tag_key and not measurement_found:
+                    measurement_found = True
+                    split_path.append((i, measurement))
+    except ValueError:
+        return
 
 
 def _add_fields_to_paths(fields, split_path, series,

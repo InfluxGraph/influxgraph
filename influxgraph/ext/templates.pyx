@@ -192,6 +192,8 @@ def parse_series(list series, dict fields,
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if graphite_templates is not None or ',' in serie:
+                if serie.find(',') != serie.rfind(','):
+                    continue
                 c_split_tags = _parse_serie_with_tags(
                     c_split_tags, &split_tags_size, index, serie, fields,
                     graphite_templates, c_sep)
