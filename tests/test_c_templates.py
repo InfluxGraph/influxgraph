@@ -3,8 +3,15 @@ from string import ascii_letters
 from random import choice
 from influxgraph.templates import parse_influxdb_graphite_templates
 from influxgraph.utils import parse_series as py_parse_series
-from influxgraph.ext.templates import parse_series
+try:
+    from influxgraph.ext.templates import parse_series
+except ImportError:
+    NODE_TRIE = False
+else:
+    NODE_TRIE = True
 
+
+@unittest.skipUnless(NODE_TRIE, "NodeTrie extension not enabled")
 class TemplatesCExtTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -72,7 +79,6 @@ class TemplatesCExtTestCase(unittest.TestCase):
         query = '*'
         nodes = [n[0] for n in index.query(query)]
         expected = [self.metric_prefix]
-        # import ipdb; ipdb.set_trace()
         self.assertEqual(nodes, expected,
                          msg="Got root branch query result %s - wanted %s" % (
                              nodes, expected,))

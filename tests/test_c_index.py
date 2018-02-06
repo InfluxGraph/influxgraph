@@ -1,10 +1,16 @@
 import sys
 import unittest
 
-from influxgraph.ext.nodetrie import Node as NodeTreeIndex
+try:
+    from influxgraph.ext.nodetrie import Node as NodeTreeIndex
+except ImportError:
+    NODE_TRIE = False
+else:
+    NODE_TRIE = True
 from influxgraph.utils import Query
 
 
+@unittest.skipUnless(NODE_TRIE, "NodeTrie extension not enabled")
 class CIndexTreeTestCase(unittest.TestCase):
 
     def setUp(self):
