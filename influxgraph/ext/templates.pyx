@@ -20,7 +20,7 @@
 from heapq import heappush, heappop
 import logging
 
-from libc.string cimport strndup, strsep, strdup, strncmp, strcmp
+from libc.string cimport strndup, strsep, strdup, strncmp, strcmp, strchr
 from libc.stdlib cimport malloc, realloc, free
 
 from influxgraph.ext.nodetrie cimport Node, to_cstring_array, _encode_bytes
@@ -285,6 +285,10 @@ cdef tuple c_split_series_with_tags(bytes measurement, char **tags_values,
         raise MemoryError
     try:
         for tag_val in tags_values[:tags_size]:
+            if strchr(tag_val, '=') == NULL:
+                continue
+            elif strchr(tag_val, '\\') != NULL:
+                continue
             to_free = temp = strdup(tag_val)
             if to_free is NULL:
                 raise MemoryError
