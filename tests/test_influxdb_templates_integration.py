@@ -1203,10 +1203,11 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_invalid_tag_chars(self):
         del self.finder
-        templates = ["host.measurement.field*"]
+        templates = ["dc.host.measurement.field*"]
         measurements = ['cpu']
         fields = {'usage': self.randval()}
-        env_tags = {'host': 'my_host1,my_host2'}
+        env_tags = {'host': 'my_host1,my_host2',
+                    'dc': 'my_dc'}
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         self.write_data(measurements, env_tags, fields)

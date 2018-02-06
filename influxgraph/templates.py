@@ -221,7 +221,8 @@ def get_series_with_tags(paths, all_fields, graphite_templates,
 
 def _split_series_with_tags(paths, graphite_templates):
     split_path, template = deque(), None
-    tags_values = [p.split('=') for p in paths[1:]]
+    tags_values = [p.split('=') for p in paths[1:]
+                   if '=' in p and '\\' not in p]
     for (_filter, template, _, separator) in graphite_templates:
         _make_path_from_template(
             split_path, paths[0], template, tags_values, separator=separator)

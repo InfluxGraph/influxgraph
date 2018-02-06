@@ -20,7 +20,7 @@
 from heapq import heappush, heappop
 import logging
 
-from libc.string cimport strndup, strsep, strdup, strncmp, strcmp
+from libc.string cimport strndup, strsep, strdup, strncmp, strcmp, strchr
 from libc.stdlib cimport malloc, realloc, free
 
 from influxgraph.ext.nodetrie cimport Node, to_cstring_array, _encode_bytes
@@ -192,8 +192,6 @@ def parse_series(list series, dict fields,
             # pre-generate a correctly ordered split path for that metric
             # to be inserted into index
             if graphite_templates is not None or ',' in serie:
-                if serie.find(',') != serie.rfind(','):
-                    continue
                 c_split_tags = _parse_serie_with_tags(
                     c_split_tags, &split_tags_size, index, serie, fields,
                     graphite_templates, c_sep)
@@ -287,6 +285,10 @@ cdef tuple c_split_series_with_tags(bytes measurement, char **tags_values,
         raise MemoryError
     try:
         for tag_val in tags_values[:tags_size]:
+            if strchr(tag_val, '=') == NULL:
+                continue
+            elif strchr(tag_val, '\\') != NULL:
+                continue
             to_free = temp = strdup(tag_val)
             if to_free is NULL:
                 raise MemoryError
