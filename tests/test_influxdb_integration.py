@@ -82,7 +82,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                        ]
         self.series_values = [randint(1,100) for _ in self.series]
         self.setup_db()
-        self.finder = influxgraph.InfluxDBFinder(self.config)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
@@ -92,7 +91,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             pass
 
     def test_configured_deltas(self):
-        del self.finder
         config = { 'influxdb': {
             'db' : self.db_name,
             # Set data interval to 1 second for queries
@@ -116,6 +114,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                             3601, len(data[self.series1])))
 
     def test_multi_series_data(self):
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(
             path, self.finder.reader)
                  for path in reversed(self.series)]
@@ -129,6 +128,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_find_branch(self):
         """Test getting branch of metric path"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('fakeyfakeyfakefake')
         branches = list(self.finder.find_nodes(query))
         self.assertEqual(branches, [],
@@ -168,7 +168,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                                                expected,))
 
     def test_get_all_series(self):
-        """ """
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         series = self.finder.get_all_series(cache=True)
         self.assertTrue(len(series) == len(self.series),
@@ -177,6 +177,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_find_series(self):
         """Test finding a series by name"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = [node.name for node in self.finder.find_nodes(Query(self.series1))
                  if node.is_leaf]
         expected = [self.nodes[0]]
@@ -185,6 +186,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_find_series_wildcard(self):
         """Test finding metric prefix by wildcard"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = [node.name for node in self.finder.find_nodes(Query('*'))]
         self.assertTrue(self.metric_prefix in nodes,
                         msg="Node list does not contain prefix '%s' - %s" % (
@@ -192,6 +194,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_find_series_glob_expansion(self):
         """Test finding metric prefix by glob expansion"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('{%s}' % (self.metric_prefix))
         nodes = [node.name for node in self.finder.find_nodes(query)]
         self.assertTrue(self.metric_prefix in nodes,
@@ -222,6 +225,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.build_index()
         query = Query(".".join([prefix, "branch_node*",
                                 "sub_branch*", "sub_branch*", "sub_branch*",
@@ -264,6 +268,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.build_index()
         query = Query(prefix + '.*')
         nodes = list(self.finder.find_nodes(query))
@@ -289,6 +294,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_multi_fetch_data(self):
         """Test fetching data for a single series by name"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = list(self.finder.find_nodes(Query(self.series1)))
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
@@ -309,6 +315,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_single_fetch_data(self):
         """Test single fetch data for a series by name"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         node = list(self.finder.find_nodes(Query(self.series1)))[0]
         time_info, data = node.reader.fetch(int(self.start_time.strftime("%s")),
                                             int(self.end_time.strftime("%s")))
@@ -345,6 +352,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_multi_fetch_data_multi_series(self):
         """Test fetching data for multiple series by name"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".leaf*")))
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
@@ -389,6 +397,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             database=self.db_name), path2)
         nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(path1, reader1),
                  influxgraph.classes.leaf.InfluxDBLeafNode(path2, reader2)]
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         time_info, data = self.finder.fetch_multi(nodes,
                                                   int(self.start_time.strftime("%s")),
                                                   int(self.end_time.strftime("%s")))
@@ -404,6 +413,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_multi_fetch_data_multi_series_configured_aggregation_functions(self):
         """Test fetching data for multiple series with aggregation functions configured"""
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         nodes = list(self.finder.find_nodes(Query(self.metric_prefix + ".agg_path.*")))
         paths = [node.path for node in nodes]
         aggregation_funcs = sorted(list(set(influxgraph.utils.get_aggregation_func(
@@ -430,13 +440,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             self.assertTrue(data[series][-1] == self.series_values[i-4])
 
     def test_memcache_configuration_off_by_default(self):
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         self.assertFalse(self.finder.memcache)
 
     def test_series_loader(self):
         query = Query('*')
         loader_memcache_key = influxgraph.utils.gen_memcache_pattern_key("_".join([
             query.pattern, str(self.default_nodes_limit), str(0)]))
-        del self.finder
         _loader_interval = 2
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
@@ -482,7 +492,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             _SERIES_LOADER_LOCK.release()
 
     def test_reindex(self):
-        del self.finder
         _reindex_interval = 2
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
@@ -503,6 +512,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_get_series_pagination(self):
         query, limit = Query('*'), 5
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.loader_limit = limit
         series = self.finder.get_all_series(
             query)
@@ -518,7 +528,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                             limit,))
 
     def test_memcache_integration(self):
-        del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -610,14 +619,13 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_reader_memcache_integration(self):
         reader = influxgraph.InfluxDBReader(
-            InfluxDBClient(database=self.db_name),
+            INFLClient('localhost', db=self.db_name),
             self.series1,
             memcache=influxgraph.utils.make_memcache_client('localhost'))
         self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),
                                      int(self.end_time.strftime("%s"))))
 
     def test_memcache_default_config_values(self):
-        del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -637,6 +645,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                              1024**2*finder.memcache.server_max_value_length,))
 
     def test_named_branch_query(self):
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query(self.metric_prefix)
         nodes = list(self.finder.find_nodes(query))
         node_names = [n.name for n in nodes]
@@ -669,7 +678,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                 (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 ]]
         self.assertTrue(self.client.write_points(data))
-        del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -737,7 +745,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                              expected, found_leaves))
 
     def test_retention_policies(self):
-        del self.finder
         data_point_value = 5
         retention_policies = {60: 'default', 600: '10m', 1800: '30m'}
         config = { 'influxdb' : { 'host' : 'localhost',
@@ -806,8 +813,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                             len(data_points)))
 
     def test_index_save_load_failure(self):
-        del self.finder.index
-        del self.finder
         bad_index_path = 'bad_index'
         try:
             os.unlink(bad_index_path)
@@ -845,7 +850,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             pass
 
     def test_loader_limit(self):
-        del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -899,7 +903,6 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         """Test index build lock with multiple finders"""
         num_finders = 50
         fh = open(FILE_LOCK, 'w')
-        del self.finder
         self.config['influxdb']['reindex_interval'] = 0
         finders = []
         for _ in range(num_finders):
@@ -923,6 +926,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
             fcntl.flock(fh, fcntl.LOCK_UN)
             fh.close()
             os.unlink(FILE_LOCK)
+
 
 if __name__ == '__main__':
     unittest.main()

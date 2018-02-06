@@ -67,7 +67,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client = InfluxDBClient(database=self.db_name)
         self.default_nodes_limit = LOADER_LIMIT
         self.setup_db()
-        self.finder = influxgraph.InfluxDBFinder(self.config)
 
     def write_data(self, measurements, tags, fields):
         data = [{
@@ -112,6 +111,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             pass
 
     def _test_data_in_nodes(self, nodes):
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         time_info, data = self.finder.fetch_multi(
             nodes, int(self.start_time.strftime("%s")),
             int(self.end_time.strftime("%s")))
@@ -124,6 +124,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         return data
 
     def test_templated_index_find(self):
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
         nodes = [n.name for n in self.finder.find_nodes(query)]
         expected = [self.metric_prefix]
@@ -144,6 +145,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                              nodes, expected,))
 
     def test_templated_data_query(self):
+        self.finder = influxgraph.InfluxDBFinder(self.config)
         serie = self.graphite_series[0]
         nodes = list(self.finder.find_nodes(Query(serie)))
         time_info, data = self.finder.fetch_multi(nodes,
@@ -163,7 +165,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                             self.num_datapoints, serie, len(datapoints),))
 
     def test_template_drop_path_part(self):
-        del self.finder
         template = "..measurement*"
         self.config['influxdb']['templates'] = [self.template,
                                                 template]
@@ -193,7 +194,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                              nodes, expected,))
 
     def test_multiple_templates(self):
-        del self.finder
         templates = ["*.diskio. host.measurement.name.field*",
                      "*.disk. host.measurement.path.field*",
                      "*.cpu. host.measurement.cpu.field*",
@@ -260,7 +260,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(data[metric][-1] == _fields[metric.split('.')[-1]])
 
     def test_template_filter_patterns(self):
-        del self.finder
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         templates = ["*.*.memory. host.filter.measurement",
@@ -321,7 +320,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(stats_data[metric][-1] == fields['stats']['value'])
 
     def test_template_multi_tags_multi_templ_multi_nodes_no_fields(self):
-        del self.finder
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
         templates = [
@@ -635,7 +633,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(sorted([n.name for n in nodes]), sorted(fields.keys()))
 
     def test_find_nodes_template_measurement_first(self):
-        del self.finder
         template = "measurement.host.resource"
         self.config['influxdb']['templates'] = [template]
         measurements = ['load', 'idle',
@@ -694,7 +691,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                              expected, node_paths))
 
     def test_data_with_fields(self):
-        del self.finder
         template = "host.measurement.field*"
         self.config['influxdb']['templates'] = [template]
         measurements = ['cpu-0', 'cpu-1', 'cpu-2', 'cpu-3']
@@ -914,7 +910,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                                 metric, fields[field], data[metric][-1]))
 
     def test_field_data_part_or_no_template_match(self):
-        del self.finder
         measurements = ['test']
         fields = {'field1': self.randval(), 'field2': self.randval()}
         tags = {'env': 'my_env',
@@ -955,7 +950,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(data[metric][-1] == fields[metric.split('.')[-1]])
 
     def test_tagged_data_no_template_config(self):
-        del self.finder
         self.config['influxdb']['templates'] = None
         self.finder = influxgraph.InfluxDBFinder(self.config)
         query = Query('*')
@@ -966,7 +960,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
                          "no templates configured, got %s" % (nodes,))
 
     def test_tagged_data_multi_greedy_field(self):
-        del self.finder
         measurements = ['cpu']
         fields = {'cpu0.load': self.randval(), 'cpu0.idle': self.randval(),
                   'cpu0.usage': self.randval(), 'cpu0.user': self.randval(),
@@ -1049,8 +1042,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_field_template_with_value_field_failure(self):
         template = "env.host.measurement.field*"
-        # template = "env.host.measurement"
-        del self.finder
         measurements = ['cpuusage']
         fields = {'value': 1}
         tags = {'host': 'my_host1',
@@ -1068,7 +1059,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_measurement_template_with_value_field(self):
         template = "env.host.measurement"
-        del self.finder
         measurements = ['cpuusage']
         fields = {'value': 1}
         tags = {'host': 'my_host1',
@@ -1119,7 +1109,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
 
     def test_find_nodes_template_greedy_measurement_tags_and_no_tags(self):
         template = "env.host.measurement*"
-        del self.finder
         measurements = ['cpuusage']
         fields = {'value': self.randval()}
         tags = {'host': 'my_host1',
@@ -1145,7 +1134,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(data[metric][-1] == fields['value'])
 
     def test_multi_tmpl_part_filter(self):
-        del self.finder
         templates = ["env.host.measurement.field*",
                      "my_prefix.* prefix.measurement.field*",
                      ]
@@ -1183,7 +1171,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             self.assertTrue(cpu_data[metric][-1] == fields[metric.split('.')[-1]])
 
     def test_multi_fields(self):
-        del self.finder
         template = "host.measurement.field*"
         self.config['influxdb']['templates'] = [template]
         fields_num = 39
