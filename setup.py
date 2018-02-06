@@ -1,5 +1,5 @@
 from __future__ import print_function
-import platform
+
 import os
 import sys
 import versioneer
@@ -10,7 +10,6 @@ from distutils.errors import DistutilsExecError
 from distutils.errors import DistutilsPlatformError
 from distutils.command.build_ext import build_ext
 
-cpython = platform.python_implementation() == 'CPython'
 
 try:
     from Cython.Build import cythonize
@@ -114,11 +113,7 @@ def run_setup(ext_modules):
 
 ext_modules = {'ext_modules': []}
 
-if not cpython:
-    run_setup(ext_modules)
-    print("WARNING: C extensions are disabled on this platform,",
-          "Pure Python build succeeded")
-elif os.environ.get('DISABLE_INFLUXGRAPH_CEXT'):
+if os.environ.get('DISABLE_INFLUXGRAPH_CEXT'):
     run_setup({'ext_modules': []})
     print("DISABLE_INFLUXGRAPH_CEXT is set - not building C extension",
           "Pure Python build succeeded")
