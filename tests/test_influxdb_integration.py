@@ -9,7 +9,6 @@ from gzip import GzipFile
 from random import randint
 import logging
 import fcntl
-from time import sleep
 
 from influxgraph.influxdb import InfluxDBClient as INFLClient
 from influxdb.client import InfluxDBClient
@@ -82,6 +81,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                        ]
         self.series_values = [randint(1,100) for _ in self.series]
         self.setup_db()
+        time.sleep(.5)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)

@@ -86,7 +86,6 @@ install:
   - pip install -r requirements_dev.txt
 script:
   - nosetests --with-coverage --cover-package=influxgraph
-  - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
   # Test integration with pure Python code
   - find influxgraph -type f -name '*.so' -exec rm -f {} +
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py

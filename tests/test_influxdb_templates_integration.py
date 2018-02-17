@@ -67,6 +67,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.client = InfluxDBClient(database=self.db_name)
         self.default_nodes_limit = LOADER_LIMIT
         self.setup_db()
+        time.sleep(.5)
 
     def write_data(self, measurements, tags, fields):
         data = [{
