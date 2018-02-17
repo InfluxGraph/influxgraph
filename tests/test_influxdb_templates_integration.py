@@ -1193,7 +1193,6 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         self.assertEqual(len(nodes), expected_num)
 
     def test_invalid_tag_chars(self):
-        del self.finder
         templates = ["dc.host.measurement.field*"]
         measurements = ['cpu']
         fields = {'usage': self.randval()}
