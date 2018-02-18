@@ -39,7 +39,11 @@ class InfluxDBClient(object):
         resp.raise_for_status()
         return resp
 
-    def query(self, query, db=None, params=None, chunked=False):
+    def _read_chunked_response(self, resp):
+        for line in resp.iter_lines():
+            yield ujson.loads(line).get('results', [])
+
+    def query(self, query, db=None, params=None, chunked=False, chunk_size=None):
         db = db if db is not None else self.db
         if db is None:
             raise ValueError(
@@ -47,9 +51,15 @@ class InfluxDBClient(object):
                 "the client object")
         params = params if params is not None else self.params
         params.update(self.params)
+        if chunked:
+            params['chunked'] = True
+            if chunk_size:
+                params['chunk_size'] = chunk_size
         params['q'] = query
         params['db'] = self.db
         resp = self._run_query(params)
+        if chunked:
+            return self._read_chunked_response(resp)
         return ujson.loads(resp.content).get('results', [])
 
     def create_database(self, db):

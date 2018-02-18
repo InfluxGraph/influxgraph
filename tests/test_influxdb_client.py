@@ -17,6 +17,13 @@ class InfluxDBClientTest(unittest.TestCase):
         data = self.client.query(query)
         self.assertIsNotNone(data)
 
+    def test_query_chunked(self):
+        query = 'SHOW SERIES LIMIT 1'
+        data = self.client.query(query, chunked=True)
+        self.assertTrue(hasattr(data, 'next') or hasattr(data, '__next__'))
+        data = list(data)
+        self.assertTrue(len(data) > 0)
+
     def test_create_drop_db(self):
         self.client.create_database(self.client.db)
         self.client.drop_database(self.client.db)
