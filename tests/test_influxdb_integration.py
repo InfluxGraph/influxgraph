@@ -10,8 +10,8 @@ from random import randint
 import logging
 import fcntl
 
-from influxgraph.influxdb import InfluxDBClient as INFLClient
-from influxdb.client import InfluxDBClient
+from influxgraph.influxdb import InfluxDBClient
+# from influxdb.client import InfluxDBClient
 import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
@@ -29,28 +29,24 @@ logging.basicConfig()
 
 os.environ['TZ'] = 'UTC'
 
+EPOCH = datetime.datetime.utcfromtimestamp(0)
+
 class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def setup_db(self):
         try:
             self.client.drop_database(self.db_name)
-        except influxdb.exceptions.InfluxDBClientError:
+        except Exception:
             pass
         self.client.create_database(self.db_name)
-        data = [{
-            "measurement": series,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": self.series_values[i],
-                }
-            }
-            for i, series in enumerate(self.series)
+        data = "\n".join([
+            " ".join([self.series[i], "value=%s" % self.series_values[i], _time])
+            for i in range(len(self.series))
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data, params={'precision': 's'})
 
     def setUp(self):
         # Num datapoints is number of non-zero non-null datapoints
@@ -67,7 +63,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         'statsd': { 'host': 'localhost' },
                         'search_index': 'index',
                         }
-        self.client = InfluxDBClient(database=self.db_name)
+        self.client = InfluxDBClient('localhost', db=self.db_name)
         self.metric_prefix = "integration_test"
         self.nodes = ["leaf_node1", "leaf_node2"]
         self.series1, self.series2 = ".".join([self.metric_prefix, self.nodes[0]]), \
@@ -81,7 +77,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                        ]
         self.series_values = [randint(1,100) for _ in self.series]
         self.setup_db()
-        time.sleep(.5)
+        time.sleep(.1)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
@@ -142,20 +138,14 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                     branch, leaf_node,])
                                     for branch in written_branches
                                     for leaf_node in leaf_nodes]
-        data = [{
-            "measurement": series,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
+        data = "\n".join([
+            " ".join([series, "value=1"])
             for series in written_series
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data)
         self.finder.build_index()
         query = Query(prefix + '.*')
         # Test getting leaf nodes with wildcard
@@ -211,20 +201,15 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                     branch, leaf_node,])
                                     for branch in written_branches
                                     for leaf_node in leaf_nodes]
-        data = [{
-            "measurement": series,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
+        data = "\n".join([
+            " ".join([series, "value=1"])
             for series in written_series
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data)
+        time.sleep(.1)
         self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.build_index()
         query = Query(".".join([prefix, "branch_node*",
@@ -254,20 +239,15 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                     branch, leaf_node,])
                                     for branch in written_branches
                                     for leaf_node in leaf_nodes]
-        data = [{
-            "measurement": series,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
+        data = "\n".join([
+            " ".join([series, "value=1"])
             for series in written_series
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data)
+        time.sleep(.1)
         self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.build_index()
         query = Query(prefix + '.*')
@@ -378,7 +358,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
     def test_get_non_existant_series(self):
         """Test single fetch data for a series by name"""
         path = 'fake_path'
-        reader = influxgraph.InfluxDBReader(INFLClient(
+        reader = influxgraph.InfluxDBReader(InfluxDBClient(
             'localhost', db=self.db_name), path)
         time_info, data = reader.fetch(
             int(self.start_time.strftime("%s")),
@@ -392,9 +372,9 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         """Test single fetch data for a series by name"""
         path1, path2 = 'fake_path1', 'fake_path2'
         reader1 = influxgraph.InfluxDBReader(InfluxDBClient(
-            database=self.db_name), path1)
+            'localhost', db=self.db_name), path1)
         reader2 = influxgraph.InfluxDBReader(InfluxDBClient(
-            database=self.db_name), path2)
+            'localhost', db=self.db_name), path2)
         nodes = [influxgraph.classes.leaf.InfluxDBLeafNode(path1, reader1),
                  influxgraph.classes.leaf.InfluxDBLeafNode(path2, reader2)]
         self.finder = influxgraph.InfluxDBFinder(self.config)
@@ -619,7 +599,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
     def test_reader_memcache_integration(self):
         reader = influxgraph.InfluxDBReader(
-            INFLClient('localhost', db=self.db_name),
+            InfluxDBClient('localhost', db=self.db_name),
             self.series1,
             memcache=influxgraph.utils.make_memcache_client('localhost'))
         self.assertTrue(reader.fetch(int(self.start_time.strftime("%s")),
@@ -664,20 +644,15 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                     branch, leaf_node,])
                                     for branch in written_branches
                                     for leaf_node in leaf_nodes]
-        data = [{
-            "measurement": series,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
+        data = "\n".join([
+            " ".join([series, "value=1"])
             for series in written_series
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data)
+        time.sleep(.1)
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -760,30 +735,29 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                                   'log_level': 0,
                                   'fill': 'previous',
                                   }}
-        self.client.create_retention_policy('10m', '1d', 1, database=self.db_name, default=False)
-        self.client.create_retention_policy('30m', '1d', 1, database=self.db_name, default=False)
-        write_data = [{
-            "measurement": series,
-            "tags": {},
-            "time": _time,
-            "fields": {
-                "value": data_point_value,
-                }
-            }
+        self.client.query('CREATE RETENTION POLICY "10m" ON "%s" DURATION 1d REPLICATION 1' %
+                          self.db_name)
+        self.client.query('CREATE RETENTION POLICY "30m" ON "%s" DURATION 1d REPLICATION 1' %
+                          self.db_name)
+        write_data = "\n".join([
+            " ".join([series, "value=%s" % data_point_value, _time])
             for series in self.series
             for _time in [
-                (self.start_time - datetime.timedelta(minutes=60)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.start_time - datetime.timedelta(minutes=50)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.start_time - datetime.timedelta(minutes=40)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.start_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.start_time - datetime.timedelta(minutes=20)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.start_time - datetime.timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.start_time).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(write_data, retention_policy='10m'))
-        self.assertTrue(self.client.write_points(write_data, retention_policy='30m'))
+                    str(int(((self.start_time - datetime.timedelta(minutes=60)) - EPOCH).total_seconds())),
+                    str(int(((self.start_time - datetime.timedelta(minutes=50)) - EPOCH).total_seconds())),
+                    str(int(((self.start_time - datetime.timedelta(minutes=40)) - EPOCH).total_seconds())),
+                    str(int(((self.start_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.start_time - datetime.timedelta(minutes=20)) - EPOCH).total_seconds())),
+                    str(int(((self.start_time - datetime.timedelta(minutes=10)) - EPOCH).total_seconds())),
+                    str(int(((self.start_time - EPOCH).total_seconds()))),
+            ]])
+        self.client.write(write_data, params={'rp': '10m',
+                                              'precision': 's'})
+        self.client.write(write_data, params={'rp': '30m',
+                                              'precision': 's'})
+        time.sleep(.1)
         finder = influxgraph.InfluxDBFinder(config)
-        time.sleep(1)
+        time.sleep(.2)
         nodes = list(finder.find_nodes(Query(self.series1)))
         paths = [node.path for node in nodes]
         self.assertEqual(paths, [self.series1],
@@ -796,9 +770,9 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         msg="Did not get data for requested series %s - got data for %s" % (
                             self.series1, data.keys(),))
         data_points = [v for v in data[self.series1] if v]
-        self.assertTrue(len(data_points)==3,
-                        msg="Three datapoints in interval in retention policy, got %s from query" % (
-                            len(data_points)))
+        self.assertEqual(len(data_points), 3,
+                         msg="Three datapoints in interval in retention policy, got %s from query" % (
+                             len(data_points)))
         self.assertTrue(data_points[0]==data_point_value)
         time_info, data = finder.fetch_multi(nodes,
                                              int((self.start_time - datetime.timedelta(minutes=31)).strftime("%s")),

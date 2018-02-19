@@ -43,7 +43,8 @@ class InfluxDBClient(object):
         for line in resp.iter_lines():
             yield ujson.loads(line).get('results', [])
 
-    def query(self, query, db=None, params=None, chunked=False, chunk_size=None):
+    def query(self, query, db=None, params=None,
+              chunked=False, chunk_size=None):
         db = db if db is not None else self.db
         if db is None:
             raise ValueError(

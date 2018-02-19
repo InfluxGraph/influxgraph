@@ -321,7 +321,7 @@ class InfluxDBFinder(object):
             logger.debug("Series list loader finished in %s", dt)
 
     def find_nodes(self, query):
-        """Find and return nodes matching query
+        """Find and return nodes matching query.
 
         :param query: Query to search for
         :type query: :mod:`influxgraph.utils.Query`
