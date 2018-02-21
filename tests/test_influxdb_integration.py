@@ -2,17 +2,13 @@
 import os
 import unittest
 import sys
-import tempfile
 import datetime
 import time
-from gzip import GzipFile
 from random import randint
 import logging
 import fcntl
 
 from influxgraph.influxdb import InfluxDBClient
-# from influxdb.client import InfluxDBClient
-import influxdb.exceptions
 import influxgraph
 import influxgraph.utils
 from influxgraph.utils import Query, gen_memcache_key, get_aggregation_func, \
@@ -28,8 +24,8 @@ finder_logger.setLevel(logging.DEBUG)
 logging.basicConfig()
 
 os.environ['TZ'] = 'UTC'
-
 EPOCH = datetime.datetime.utcfromtimestamp(0)
+
 
 class InfluxGraphIntegrationTestCase(unittest.TestCase):
 
@@ -145,7 +141,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                     str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
                     str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
             ]])
-        self.client.write(data)
+        self.client.write(data, params={'precision': 's'})
         self.finder.build_index()
         query = Query(prefix + '.*')
         # Test getting leaf nodes with wildcard
@@ -208,7 +204,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                     str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
                     str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
             ]])
-        self.client.write(data)
+        self.client.write(data, params={'precision': 's'})
         time.sleep(.1)
         self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.build_index()
@@ -246,7 +242,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                     str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
                     str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
             ]])
-        self.client.write(data)
+        self.client.write(data, params={'precision': 's'})
         time.sleep(.1)
         self.finder = influxgraph.InfluxDBFinder(self.config)
         self.finder.build_index()
@@ -531,6 +527,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         for _key in memcache_keys:
             _memcache.delete(_key)
         _memcache.delete(SERIES_LOADER_MUTEX_KEY)
+        time.sleep(.1)
         finder = influxgraph.InfluxDBFinder(config)
         self.assertTrue(finder.memcache)
         self.assertEqual(finder.memcache_ttl, 60,
@@ -651,7 +648,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                     str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
                     str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
             ]])
-        self.client.write(data)
+        self.client.write(data, params={'precision': 's'})
         time.sleep(.1)
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,

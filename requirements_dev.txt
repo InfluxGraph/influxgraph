@@ -1,4 +1,3 @@
-influxdb
 coverage
 flake8
 nose

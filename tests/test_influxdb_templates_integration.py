@@ -9,13 +9,11 @@ import logging
 from string import ascii_letters
 from random import randint, choice
 
-import influxdb.exceptions
-
 import influxgraph
+from influxgraph.influxdb import InfluxDBClient
 from influxgraph.utils import Query
 from influxgraph.constants import SERIES_LOADER_MUTEX_KEY, \
      MEMCACHE_SERIES_DEFAULT_TTL, LOADER_LIMIT, _MEMCACHE_FIELDS_KEY
-from influxdb import InfluxDBClient
 from influxgraph.templates import InvalidTemplateError
 from influxgraph.classes.finder import logger as finder_logger
 
@@ -24,6 +22,8 @@ logging.basicConfig()
 
 
 os.environ['TZ'] = 'UTC'
+EPOCH = datetime.datetime.utcfromtimestamp(0)
+
 
 class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
     """Test node lookup and data retrieval when using tags on and Graphite
@@ -64,45 +64,46 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
             'fill': 'previous',
             },
             }
-        self.client = InfluxDBClient(database=self.db_name)
+        self.client = InfluxDBClient('localhost', db=self.db_name)
         self.default_nodes_limit = LOADER_LIMIT
         self.setup_db()
-        time.sleep(.5)
 
     def write_data(self, measurements, tags, fields):
-        data = [{
-            "measurement": measurement,
-            "tags": tags,
-            "time": _time,
-            "fields": fields,
-            }
-            for measurement in measurements
+        tags = ",".join(['='.join([tag_k, tag_v])
+                         for tag_k, tag_v in tags.items()]) if (tags and len(tags) > 0) else None
+        fields = ['='.join([field_k, str(field_v)])
+                  for field_k, field_v in fields.items()]
+        m_tags = [','.join([measurement, tags])
+                  for measurement in measurements] if tags else measurements
+        data = "\n".join([
+            " ".join([m_tags, field, _time])
+            for m_tags in m_tags
+            for field in fields
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data, params={'precision': 's'})
+        time.sleep(.2)
 
     def setup_db(self):
         try:
             self.client.drop_database(self.db_name)
-        except influxdb.exceptions.InfluxDBClientError:
+        except Exception:
             pass
         self.client.create_database(self.db_name)
-        data = [{
-            "measurement": measurement,
-            "tags": self.tags,
-            "time": _time,
-            "fields": {
-                "value": 1,
-                }
-            }
+        tags = ",".join(['='.join([tag_k, tag_v])
+                         for tag_k, tag_v in self.tags.items()])
+        fields = 'value=1'
+        data = "\n".join([
+            " ".join([','.join([measurement, tags]), fields, _time])
             for measurement in self.measurements
             for _time in [
-                (self.end_time - datetime.timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                (self.end_time - datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                ]]
-        self.assertTrue(self.client.write_points(data))
+                    str(int(((self.end_time - datetime.timedelta(minutes=30)) - EPOCH).total_seconds())),
+                    str(int(((self.end_time - datetime.timedelta(minutes=2)) - EPOCH).total_seconds())),
+            ]])
+        self.client.write(data, params={'precision': 's'})
+        time.sleep(.1)
 
     def tearDown(self):
         self.client.drop_database(self.db_name)
@@ -1197,7 +1198,7 @@ class InfluxGraphTemplatesIntegrationTestCase(unittest.TestCase):
         templates = ["dc.host.measurement.field*"]
         measurements = ['cpu']
         fields = {'usage': self.randval()}
-        env_tags = {'host': 'my_host1,my_host2',
+        env_tags = {'host': 'my_host1\\,my_host2',
                     'dc': 'my_dc'}
         self.client.drop_database(self.db_name)
         self.client.create_database(self.db_name)
