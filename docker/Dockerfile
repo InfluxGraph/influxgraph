@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.19
+FROM phusion/baseimage:0.10.0
 
 EXPOSE 80
 
@@ -41,6 +41,7 @@ RUN chmod +x /etc/my_init.d/dockerhost.sh
 # Memcached service
 RUN mkdir /etc/service/memcached
 ADD memcached.sh /etc/service/memcached/run
+ADD memcached.conf /etc/memcached.conf
 
 # Install in virtualenv
 RUN virtualenv /srv/graphite-env
