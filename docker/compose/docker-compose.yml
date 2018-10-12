@@ -9,6 +9,10 @@ services:
     volumes:
       - /var/lib/grafana:/var/lib/grafana
   influxgraph:
+    environment:
+      INFLUXGRAPH_GUNICORN_LOGLEVEL: "debug"
+      INFLUXGRAPH_GUNICORN_TIMEOUT: "300"
+      INFLUXGRAPH_GUNICORN_WORKERS: "2"
     build: .
     links:
       - influxdb:influxdb

@@ -1,2 +1,7 @@
 #!/bin/sh
-exec /sbin/setuser root gunicorn -b 0.0.0.0:8000 -w 2 --timeout 120 --log-level debug graphite_api.app:app >>/var/log/graphite-api.log 2>&1
+
+[ -z "$INFLUXGRAPH_GUNICORN_LOGLEVEL" ] && export INFLUXGRAPH_GUNICORN_LOGLEVEL="debug"
+[ -z "$INFLUXGRAPH_GUNICORN_TIMEOUT" ] && export INFLUXGRAPH_GUNICORN_TIMEOUT="300"
+[ -z "$INFLUXGRAPH_GUNICORN_WORKERS" ] && export INFLUXGRAPH_GUNICORN_WORKERS="2"
+
+exec /sbin/setuser root gunicorn -b 0.0.0.0:8000 -w $INFLUXGRAPH_GUNICORN_WORKERS --timeout $INFLUXGRAPH_GUNICORN_TIMEOUT --log-level $INFLUXGRAPH_GUNICORN_LOGLEVEL graphite_api.app:app >>/var/log/graphite-api.log 2>&1
