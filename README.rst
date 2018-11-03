@@ -51,8 +51,8 @@ Docker Image
 
 .. code-block:: shell
 
-  docker pull ikuosu/influxgraph
-  docker create  --name=influxgraph -p 8000:80 ikuosu/influxgraph
+  docker pull influxgraph/influxgraph
+  docker create  --name=influxgraph -p 8000:80 influxgraph/influxgraph
   docker start influxgraph
 
 There will now be a Graphite-API running on ``localhost:8000`` from the container with a default InfluxDB configuration and memcache enabled. Finder expects InfluxDB to be running on ``localhost:8086`` by default.

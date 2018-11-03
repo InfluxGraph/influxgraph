@@ -1,1 +1,1 @@
-FROM ikuosu/influxgraph
+FROM influxgraph/influxgraph

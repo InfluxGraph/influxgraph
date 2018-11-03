@@ -89,10 +89,10 @@ jobs:
         skip_upload_docs: true
       after_deploy:
         - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-          docker build --pull -t influxgraph/influxgraph:${TRAVIS_TAG} docker &&
+          docker build --pull --cache-from influxgraph/influxgraph -t influxgraph/influxgraph:${TRAVIS_TAG} docker &&
           docker push influxgraph/influxgraph:${TRAVIS_TAG};
       after_success:
-          - docker build --pull -t influxgraph/influxgraph:latest docker
+          - docker build --pull --cache-from influxgraph/influxgraph -t influxgraph/influxgraph:latest docker
           - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
               docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
               docker push influxgraph/influxgraph:latest;
