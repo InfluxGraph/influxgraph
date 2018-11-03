@@ -1,4 +1,6 @@
 coverage
+codecov
 flake8
 nose
+retrying
 -e .

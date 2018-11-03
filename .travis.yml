@@ -55,6 +55,7 @@ jobs:
       before_install: skip
       install: skip
       script: skip
+      after_success: skip
       deploy:
         provider: pypi
         on:
@@ -67,8 +68,7 @@ jobs:
         skip_upload_docs: true
       after_deploy:
         - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-          cd docker &&
-          docker build --pull -t ikuosu/influxgraph:${TRAVIS_TAG} . &&
+          docker build --pull -t ikuosu/influxgraph:${TRAVIS_TAG} docker &&
           docker push influxgraph/influxgraph:${TRAVIS_TAG};
 before_install:
   - pip install -U pip setuptools wheel
@@ -76,9 +76,7 @@ before_install:
   - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
   - sudo /etc/init.d/influxdb start
 install:
-  - pip install -r requirements.txt
-  - pip install coverage codecov flake8
-  - python setup.py build_ext --inplace
+  - pip install -r requirements_dev.txt
 script:
   - nosetests --with-coverage --cover-package=influxgraph
   - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
@@ -88,10 +86,9 @@ script:
   - flake8 influxgraph
 after_success:
   - codecov
+  - docker build --pull -t ikuosu/influxgraph:latest docker
   - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
       docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-      cd docker &&
-      docker build --pull -t ikuosu/influxgraph:latest . &&
       docker push influxgraph/influxgraph:latest;
     fi
 

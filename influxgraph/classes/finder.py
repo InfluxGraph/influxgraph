@@ -580,7 +580,8 @@ class InfluxDBFinder(object):
 
     def _save_index_file(self, file_h):
         """Dump tree contents to file handle"""
-        json.dump(self.index.to_array(), file_h)
+        if self.index:
+            json.dump(self.index.to_array(), file_h)
 
     def save_index(self):
         """Save index to file"""

@@ -10,6 +10,7 @@ from gzip import GzipFile
 from random import randint
 import logging
 import fcntl
+from retrying import retry
 
 from influxdb import InfluxDBClient
 import influxdb.exceptions
@@ -319,6 +320,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         msg="Expected %s datapoints - got %s" % (
                             self.num_datapoints, len(datapoints),))
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
     def test_single_fetch_memcache_integration(self):
         self.config['influxdb']['memcache'] = {'host': 'localhost'}
         del self.config['search_index']
@@ -514,8 +516,8 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
                         msg="Did not get data for all series with page limit %s" % (
                             limit,))
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
     def test_memcache_integration(self):
-        del self.finder
         config = { 'influxdb' : { 'host' : 'localhost',
                                   'port' : 8086,
                                   'user' : 'root',
@@ -605,6 +607,7 @@ class InfluxGraphIntegrationTestCase(unittest.TestCase):
         self.assertTrue(fake_nodes[0].path in data)
         self.assertFalse(finder.memcache.get(fake_nodes_memcache_key))
 
+    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
     def test_reader_memcache_integration(self):
         reader = influxgraph.InfluxDBReader(
             InfluxDBClient(database=self.db_name),
