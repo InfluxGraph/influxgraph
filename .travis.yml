@@ -1,6 +1,5 @@
 language: python
 cache: pip
-sudo: required
 notifications:
   email: false
 python:
@@ -9,10 +8,31 @@ python:
   - 3.5
   - 3.6
 #  - pypy
+services:
+  - memcached
+  - docker
 env:
   - INFLUXDB_VERSION=1.2.2
+before_install:
+  - pip install -U pip setuptools wheel
+  - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
+  - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
+  - sudo /etc/init.d/influxdb start
+install:
+  - pip install -r requirements_dev.txt
+script:
+  - nosetests --with-coverage --cover-package=influxgraph
+  - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
+  # Test integration with pure Python code
+  - find influxgraph -type f -name '*.so' -exec rm -f {} +
+  - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py
+  - flake8 influxgraph
+after_success:
+  - codecov
+
 jobs:
   include:
+
     - os: osx
       if: tag IS present
       before_install: skip
@@ -34,6 +54,7 @@ jobs:
           fi
       language: generic
       python: skip
+
     - stage: build wheels
       os: linux
       python: 3.6
@@ -51,11 +72,11 @@ jobs:
         - if [[ ! -z "$TRAVIS_TAG" ]]; then
             twine upload -u $PYPI_U -p $PYPI_P wheelhouse/*.whl;
           fi
-    - stage: deploy PyPi
+
+    - stage: deploy
       before_install: skip
       install: skip
       script: skip
-      after_success: skip
       deploy:
         provider: pypi
         on:
@@ -68,30 +89,11 @@ jobs:
         skip_upload_docs: true
       after_deploy:
         - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-          docker build --pull -t ikuosu/influxgraph:${TRAVIS_TAG} docker &&
+          docker build --pull -t influxgraph/influxgraph:${TRAVIS_TAG} docker &&
           docker push influxgraph/influxgraph:${TRAVIS_TAG};
-before_install:
-  - pip install -U pip setuptools wheel
-  - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
-  - sudo dpkg -i influxdb_${INFLUXDB_VERSION}_amd64.deb
-  - sudo /etc/init.d/influxdb start
-install:
-  - pip install -r requirements_dev.txt
-script:
-  - nosetests --with-coverage --cover-package=influxgraph
-  - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py
-  # Test integration with pure Python code
-  - find influxgraph -type f -name '*.so' -exec rm -f {} +
-  - nosetests --with-coverage --cover-package=influxgraph tests/test_influxdb_integration.py tests/test_influxdb_templates_integration.py
-  - flake8 influxgraph
-after_success:
-  - codecov
-  - docker build --pull -t ikuosu/influxgraph:latest docker
-  - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
-      docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
-      docker push influxgraph/influxgraph:latest;
-    fi
-
-services:
-  - memcached
-  - docker
+      after_success:
+          - docker build --pull -t influxgraph/influxgraph:latest docker
+          - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_PULL_REQUEST" == "false" ]]; then
+              docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" &&
+              docker push influxgraph/influxgraph:latest;
+            fi
