@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.10.0
+FROM phusion/baseimage:0.11
 
 EXPOSE 80
 
@@ -13,13 +13,15 @@ VOLUME /srv/graphite
 RUN apt-get update && apt-get upgrade -y
 
 # Dependencies
-RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev nginx memcached python-dev libffi-dev
+RUN apt-get install -y language-pack-en python-virtualenv libcairo2-dev nginx memcached python-dev libffi-dev tzdata
 RUN rm -f /etc/nginx/sites-enabled/default
 
 ENV LANGUAGE en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 RUN locale-gen en_US.UTF-8 && dpkg-reconfigure locales
+
+ENV TZ Etc/UTC
 
 # add our default config and allow subsequent builds to add a different one
 ADD graphite-api.yaml /etc/graphite-api.yaml
